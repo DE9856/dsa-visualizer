@@ -1,0 +1,109 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+import { nextId } from "../dataStructures/linkedList/nodeId";
+import { parseValueList } from "../dataStructures/linkedList/helpers";
+import { STACK_OP_MAP } from "../dataStructures/stack";
+
+function randomStack(size) {
+  return Array.from({ length: size }, () => ({ id: nextId(), value: Math.floor(Math.random() * 90) + 10 }));
+}
+
+const EMPTY_STEP = { nodes: [], message: "" };
+
+export function useStack() {
+  const [stack, setStack] = useState(() => randomStack(4));
+  const [operation, setOperation] = useState("push");
+  const [valueInput, setValueInput] = useState("42");
+  const [customInput, setCustomInput] = useState("");
+  const [steps, setSteps] = useState([{ ...EMPTY_STEP, nodes: [] }]);
+  const [stepIdx, setStepIdx] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(60);
+  const intervalRef = useRef(null);
+
+  const opMeta = STACK_OP_MAP[operation];
+
+  useEffect(() => {
+    setSteps([{ nodes: stack, message: "Ready" }]);
+    setStepIdx(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (playing) {
+      const delay = 720 - speed * 6;
+      intervalRef.current = setInterval(() => {
+        setStepIdx((prev) => {
+          if (prev >= steps.length - 1) {
+            setPlaying(false);
+            return prev;
+          }
+          return prev + 1;
+        });
+      }, Math.max(40, delay));
+    }
+    return () => clearInterval(intervalRef.current);
+  }, [playing, speed, steps]);
+
+  const runOperation = useCallback(() => {
+    const params = { value: parseInt(valueInput, 10) || 0 };
+    const { steps: newSteps, finalList } = opMeta.run(stack, params);
+    setSteps(newSteps);
+    setStepIdx(0);
+    setStack(finalList);
+    setPlaying(newSteps.length > 1);
+  }, [stack, opMeta, valueInput]);
+
+  const applyCustomStack = useCallback(() => {
+    const parsed = parseValueList(customInput).map((value) => ({ id: nextId(), value }));
+    setStack(parsed);
+    setSteps([{ nodes: parsed, message: "Custom stack loaded" }]);
+    setStepIdx(0);
+    setPlaying(false);
+    setCustomInput("");
+  }, [customInput]);
+
+  const shuffle = useCallback(() => {
+    const next = randomStack(3 + Math.floor(Math.random() * 3));
+    setStack(next);
+    setSteps([{ nodes: next, message: "New random stack" }]);
+    setStepIdx(0);
+    setPlaying(false);
+  }, []);
+
+  const togglePlay = useCallback(() => {
+    setPlaying((p) => {
+      const atEnd = stepIdx >= steps.length - 1;
+      if (atEnd) {
+        setStepIdx(0);
+        return true;
+      }
+      return !p;
+    });
+  }, [stepIdx, steps.length]);
+
+  const step = steps[Math.min(stepIdx, steps.length - 1)] || EMPTY_STEP;
+  const atEnd = stepIdx >= steps.length - 1;
+
+  return {
+    stack,
+    operation,
+    setOperation,
+    opMeta,
+    valueInput,
+    setValueInput,
+    customInput,
+    setCustomInput,
+    applyCustomStack,
+    shuffle,
+    steps,
+    step,
+    stepIdx,
+    setStepIdx,
+    playing,
+    speed,
+    setSpeed,
+    atEnd,
+    runOperation,
+    togglePlay,
+  };
+}
