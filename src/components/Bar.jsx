@@ -1,13 +1,16 @@
+const SORTED_SEARCH_ALGOS = ["binary", "interpolation", "exponential", "jump"];
+
 export default function Bar({ val, index, step, algo, maxVal, showLabel, showPointer }) {
   const isSorted = step.sorted && step.sorted.includes(index);
   const isComparing = step.compare && step.compare.includes(index);
   const isSwapping = step.swap && step.swap.includes(index);
   const isPivot = step.pivot === index;
   const isChecking = step.checking === index;
+  const isRangeAlgo = SORTED_SEARCH_ALGOS.includes(algo);
   const isFoundLinear = algo === "linear" && step.found === index;
   const isMid = step.mid === index;
-  const isFoundBinary = algo === "binary" && step.found === index;
-  const inRange = algo === "binary" && step.lo !== undefined && index >= step.lo && index <= step.hi;
+  const isFoundRange = isRangeAlgo && step.found === index;
+  const inRange = isRangeAlgo && step.lo !== undefined && index >= step.lo && index <= step.hi;
 
   let bg = "rgba(255,138,61,0.14)";
   let border = "var(--primary)";
@@ -18,7 +21,7 @@ export default function Bar({ val, index, step, algo, maxVal, showLabel, showPoi
     border = "var(--green)";
     glow = "rgba(95,214,160,0.3)";
   }
-  if (algo === "binary" && step.lo !== undefined && !inRange) {
+  if (isRangeAlgo && step.lo !== undefined && !inRange) {
     bg = "rgba(255,255,255,0.03)";
     border = "var(--border)";
     glow = "transparent";
@@ -42,7 +45,7 @@ export default function Bar({ val, index, step, algo, maxVal, showLabel, showPoi
     border = "var(--red)";
     glow = "rgba(255,107,107,0.5)";
   }
-  if (isFoundLinear || isFoundBinary) {
+  if (isFoundLinear || isFoundRange) {
     bg = "rgba(95,214,160,0.5)";
     border = "var(--green)";
     glow = "rgba(95,214,160,0.55)";

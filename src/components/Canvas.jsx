@@ -1,12 +1,15 @@
 import Bar from "./Bar.jsx";
 
+const SORTED_SEARCH_ALGOS = ["binary", "interpolation", "exponential", "jump"];
+
 export default function Canvas({ step, algo, displayArr, maxVal }) {
   const n = displayArr.length;
+  const isSortedSearch = SORTED_SEARCH_ALGOS.includes(algo);
 
   return (
     <div className="panel canvas">
-      {algo === "binary" && (
-        <div className="canvas__note">ARRAY SORTED FOR BINARY SEARCH</div>
+      {isSortedSearch && (
+        <div className="canvas__note">ARRAY SORTED FOR SEARCH</div>
       )}
       <div className="bars">
         {displayArr.map((val, i) => (
@@ -18,7 +21,7 @@ export default function Canvas({ step, algo, displayArr, maxVal }) {
             algo={algo}
             maxVal={maxVal}
             showLabel={n <= 22}
-            showPointer={algo === "binary" && n <= 30}
+            showPointer={isSortedSearch && n <= 30}
           />
         ))}
       </div>

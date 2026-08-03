@@ -6,7 +6,7 @@ export const CATEGORIES = [
     blurb: "Compare orderings and searches, one swap at a time.",
     items: [
       { key: "sorting", label: "Sorting", desc: "Bubble, merge, quick & more" },
-      { key: "searching", label: "Searching", desc: "Linear & binary search" },
+      { key: "searching", label: "Searching", desc: "Linear, binary, jump, interpolation & exponential" },
     ],
   },
   {
