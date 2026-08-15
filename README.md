@@ -2,6 +2,9 @@
 
 An interactive **Data Structures & Algorithms Visualizer** built with **React + Vite**. The application provides animated visualizations for algorithms and core data structures, helping students and developers understand how operations execute step by step.
 
+📖 **[Full documentation →](DOCS.md)** — setup, keyboard shortcuts, input formats, architecture and extension guide.
+📝 **[Changelog →](CHANGELOG.md)**
+
 ---
 
 ## ✨ Features
@@ -12,13 +15,19 @@ An interactive **Data Structures & Algorithms Visualizer** built with **React + 
 - Bubble Sort
 - Selection Sort
 - Insertion Sort
+- Shell Sort
 - Merge Sort
 - Quick Sort
 - Heap Sort
+- Counting Sort (Comparison)
+- Radix Sort
 
 #### Searching Algorithms
 - Linear Search
 - Binary Search
+- Jump Search
+- Interpolation Search
+- Exponential Search
 
 ---
 
@@ -26,8 +35,9 @@ An interactive **Data Structures & Algorithms Visualizer** built with **React + 
 
 The visualizer also supports interactive operations for:
 
-- 🌳 Trees
-- 🔗 Linked Lists
+- 🌳 Trees (Binary Tree, BST, AVL)
+- 🌲 2-3 Trees
+- 🔗 Linked Lists (singly, doubly, circular)
 - 📊 Graphs
 - 📦 Stacks
 - 📥 Queues
@@ -47,6 +57,8 @@ Each module provides its own visualization with animations that demonstrate how 
 ---
 
 ## 🚀 Getting Started
+
+> Requires **Node.js 18+**. See [DOCS.md](DOCS.md#running-it-locally) for the full guide.
 
 Clone the repository
 
@@ -87,10 +99,10 @@ npm run preview
 src/
 │
 ├── algorithms/
-│   ├── sorting/
-│   ├── searching/
+│   ├── sorting/            one file per sorting algorithm
+│   ├── searching/          one file per searching algorithm
 │   ├── stepUtils.js
-│   └── index.js
+│   └── index.js            algorithm registry
 │
 ├── dataStructures/
 │   ├── graph/
@@ -98,23 +110,40 @@ src/
 │   ├── polynomial/
 │   ├── queue/
 │   ├── stack/
-│   └── tree/
+│   ├── tree/
+│   └── twoThreeTree/
 │
-├── components/
-│   ├── Canvas/
-│   ├── Sidebar/
-│   ├── Controls/
-│   ├── InfoPanel/
-│   └── ...
+├── components/             Canvas, Sidebar, Controls, InfoPanel, ...
 │
 ├── hooks/
+│   ├── useStepPlayer.js         shared playback engine
+│   ├── useKeyboardShortcuts.js
+│   └── use<Structure>.js        one per visualizer view
 │
+├── data/                   categories + topic write-ups
 ├── utils/
 │
 ├── App.jsx
 ├── main.jsx
 └── index.css
 ```
+
+---
+
+## ⌨️ Keyboard Shortcuts
+
+| Key | Action |
+| --- | --- |
+| `Space` | Play / pause (replays from the start when finished) |
+| `←` / `→` | Step back / forward |
+| `Home` / `End` | Jump to the first / last step |
+| `R` | Reset to the first step |
+| `S` | Shuffle — new random data |
+| `?` | Toggle the in-app shortcut help |
+| `Enter` | Run the selected operation (from any sidebar input) |
+| `Esc` | Close an open top-bar menu |
+
+Shortcuts are ignored while you're typing in a field. Full details in [DOCS.md](DOCS.md#keyboard-shortcuts).
 
 ---
 
@@ -125,9 +154,10 @@ src/
 - Generate random arrays
 - Custom array input
 - Adjustable array size
-- Speed controls
-- Step-by-step execution
-- Pause, Resume and Reset
+- Speed controls with a live steps-per-second read-out
+- Step-by-step execution and a draggable timeline to scrub anywhere in a run
+- Pause, Resume, Reset and Replay
+- Live comparison and swap counters
 - Complexity information
 - Pseudocode display
 
@@ -143,34 +173,39 @@ src/
 
 Interactive visualizations for:
 
-- Stack operations
-  - Push
-  - Pop
-  - Peek
+- Stack (capacity 8)
+  - Push, Pop, Peek / Top
+  - Search, Size, isEmpty, isFull, Clear
 
-- Queue operations
-  - Enqueue
-  - Dequeue
-  - Front
+- Queue (capacity 8)
+  - Enqueue, Dequeue, Peek / Front
+  - Search, Size, isEmpty, isFull, Clear
 
-- Linked List
-  - Insert
-  - Delete
-  - Traverse
+- Linked List — singly, doubly, circular
+  - Insert at head / tail / position
+  - Delete by value / position, Update node
+  - Search & traverse, Reverse, Sort, Count length
+  - Concatenate, Merge sorted lists, Clear
 
-- Trees
-  - Insertion
-  - Traversals
-  - Node visualization
+- Trees — Binary Tree, BST, AVL
+  - Insert, Delete, Search
+  - Inorder, Preorder, Postorder, DFS, BFS (level order)
+  - Height, Size, Clear
 
-- Graphs
-  - Vertex creation
-  - Edge creation
-  - Graph traversal visualization
+- 2-3 Tree
+  - Insert (with node splits), Delete, Search
+  - Inorder, Height, Size, Clear
+
+- Graphs — directed/undirected, weighted/unweighted
+  - Add / remove vertex and edge, drag-to-connect on the canvas
+  - Neighbours, Degree, Is-adjacent
+  - BFS, DFS, Topological sort
+  - Dijkstra, Floyd–Warshall, Prim's MST, Kruskal's MST
+  - Adjacency list and adjacency matrix views
 
 - Polynomial
-  - Polynomial representation
-  - Polynomial operations and visualization
+  - Linked-list representation
+  - Add, Multiply, Evaluate P(x)
 
 ---
 
