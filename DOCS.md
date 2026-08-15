@@ -130,6 +130,13 @@ Every view shares the same transport bar:
 Animation duration follows the speed setting, so fast runs snap crisply instead of
 smearing steps into one another.
 
+### Live pseudocode
+
+On the sorting and searching views the pseudocode panel highlights the line the current
+step is executing, and follows along as you play, step or scrub. When a run finishes,
+nothing is highlighted — the algorithm has returned. Lines that never produce a frame of
+their own (loop headers, recursive calls) stay dim throughout.
+
 ### The sidebar
 
 Contents differ per topic, but the shape is consistent:
@@ -329,10 +336,22 @@ A sorting/searching step looks roughly like:
   compare: [0, 1],      // indices being compared
   swap: [0, 1],         // indices being swapped
   sorted: [2],          // indices locked in
+  line: 2,              // pseudocode line this frame is executing
   pivot: 1, mid: 1, lo: 0, hi: 2, found: -1,
   cCount: 4, sCount: 2  // added by annotateSteps()
 }
 ```
+
+`line` indexes the algorithm's own `pseudocode` array, which is what lets `InfoPanel`
+highlight the line as the run plays. `null` means the run has finished and no line is
+executing. Each algorithm declares its indices once, as a `LINE` constant next to `run`:
+
+```js
+const LINE = { COMPARE: 2, SWAP: 3, DONE: null };
+```
+
+Not every pseudocode line lights up — a frame only exists where the algorithm has
+something to show, so loop headers and recursive calls that produce no frame stay dim.
 
 A data-structure step carries the structure plus a human-readable line:
 
@@ -385,6 +404,9 @@ transport bar and the keyboard shortcuts, so both always drive whatever is on sc
    object shaped like the existing ones:
 
    ```js
+   // Indices into `pseudocode` below — the line each frame is executing.
+   const LINE = { COMPARE: 1, DONE: null };
+
    export const mySort = {
      key: "mySort",
      label: "My Sort",
@@ -392,17 +414,22 @@ transport bar and the keyboard shortcuts, so both always drive whatever is on sc
      desc: "One-paragraph explanation shown in the info panel.",
      time: { best: "O(n)", avg: "O(n log n)", worst: "O(n²)" },
      space: "O(1)",
-     code: ["for i in 0..n:", "  ..."],   // pseudocode lines
+     pseudocode: ["for i in 0..n:", "  ..."],
      run(array) {
        const steps = [];
        // push a frame whenever something visible changes
-       steps.push({ array: [...array], compare: [i, j] });
+       steps.push({ array: [...array], compare: [i, j], line: LINE.COMPARE });
        return steps;
      },
    };
    ```
 
    Searching algorithms take `run(array, target)` instead.
+
+   Give every frame a `line`, or the pseudocode panel won't follow your algorithm. Where
+   the pseudocode is too coarse for the frames you push — a whole helper collapsed onto
+   one line, say — spell that helper out as extra lines rather than pointing several
+   different frames at the same one.
 
 2. Register it in `src/algorithms/sorting/index.js` (or `searching/index.js`).
 

@@ -1,18 +1,21 @@
+// Indices into `pseudocode` below — the line each frame is executing.
+const LINE = { GAP: 0, COMPARE: 3, SWAP: 4, DONE: null };
+
 function run(input) {
   const arr = [...input];
   const n = arr.length;
   const steps = [];
   const sortedSet = new Set();
-  steps.push({ array: [...arr], compare: [], swap: [], sorted: [] });
+  steps.push({ array: [...arr], compare: [], swap: [], sorted: [], line: LINE.GAP });
 
   let gap = Math.floor(n / 2);
   while (gap > 0) {
     for (let i = gap; i < n; i++) {
       let j = i;
       while (j >= gap && arr[j - gap] > arr[j]) {
-        steps.push({ array: [...arr], compare: [j - gap, j], swap: [], sorted: [...sortedSet] });
+        steps.push({ array: [...arr], compare: [j - gap, j], swap: [], sorted: [...sortedSet], line: LINE.COMPARE });
         [arr[j - gap], arr[j]] = [arr[j], arr[j - gap]];
-        steps.push({ array: [...arr], compare: [], swap: [j - gap, j], sorted: [...sortedSet] });
+        steps.push({ array: [...arr], compare: [], swap: [j - gap, j], sorted: [...sortedSet], line: LINE.SWAP });
         j -= gap;
       }
     }
@@ -20,7 +23,7 @@ function run(input) {
   }
 
   for (let x = 0; x < n; x++) sortedSet.add(x);
-  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet] });
+  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet], line: LINE.DONE });
   return steps;
 }
 
@@ -59,7 +62,8 @@ export const shellSort = {
     "gap = n/2",
     "while gap > 0:",
     "  for i in gap..n:",
-    "    gapped-insertion-sort element i",
+    "    while j>=gap and a[j-gap]>a[j]:",
+    "      swap(a[j-gap], a[j]); j -= gap",
     "  gap = gap/2",
   ],
   run,

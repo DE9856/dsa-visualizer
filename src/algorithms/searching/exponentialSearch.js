@@ -1,3 +1,6 @@
+// Indices into `pseudocode` below — the line each frame is executing.
+const LINE = { FIRST: 0, GROW: 2, RANGE: 4, MID: 6, FOUND: 7, MISS: 8 };
+
 function run(input, target) {
   // Exponential search requires a sorted array — sort a copy first.
   const arr = [...input].sort((a, b) => a - b);
@@ -5,33 +8,33 @@ function run(input, target) {
   const steps = [];
 
   if (n === 0) {
-    steps.push({ array: [], checking: -1, found: -2 });
+    steps.push({ array: [], checking: -1, found: -2, line: LINE.MISS });
     return steps;
   }
 
-  steps.push({ array: [...arr], checking: 0, found: -1 });
+  steps.push({ array: [...arr], checking: 0, found: -1, line: LINE.FIRST });
   if (arr[0] === target) {
-    steps.push({ array: [...arr], checking: -1, found: 0 });
+    steps.push({ array: [...arr], checking: -1, found: 0, line: LINE.FIRST });
     return steps;
   }
 
   // Double the bound until it overshoots the target or the array ends.
   let bound = 1;
   while (bound < n && arr[bound] <= target) {
-    steps.push({ array: [...arr], checking: bound, found: -1 });
+    steps.push({ array: [...arr], checking: bound, found: -1, line: LINE.GROW });
     bound *= 2;
   }
 
   // Binary search inside [bound/2, min(bound, n-1)].
   let lo = Math.floor(bound / 2);
   let hi = Math.min(bound, n - 1);
-  steps.push({ array: [...arr], lo, hi, mid: -1, found: -1 });
+  steps.push({ array: [...arr], lo, hi, mid: -1, found: -1, line: LINE.RANGE });
 
   while (lo <= hi) {
     const mid = Math.floor((lo + hi) / 2);
-    steps.push({ array: [...arr], lo, hi, mid, found: -1 });
+    steps.push({ array: [...arr], lo, hi, mid, found: -1, line: LINE.MID });
     if (arr[mid] === target) {
-      steps.push({ array: [...arr], lo, hi, mid, found: mid });
+      steps.push({ array: [...arr], lo, hi, mid, found: mid, line: LINE.FOUND });
       return steps;
     } else if (arr[mid] < target) {
       lo = mid + 1;
@@ -40,7 +43,7 @@ function run(input, target) {
     }
   }
 
-  steps.push({ array: [...arr], lo, hi, mid: -1, found: -2 });
+  steps.push({ array: [...arr], lo, hi, mid: -1, found: -2, line: LINE.MISS });
   return steps;
 }
 
@@ -80,7 +83,11 @@ export const exponentialSearch = {
     "bound=1",
     "while bound<n and a[bound]<=target:",
     "  bound *= 2",
-    "binary search in [bound/2, min(bound,n-1)]",
+    "lo=bound/2, hi=min(bound,n-1)",
+    "while lo<=hi:",
+    "  mid = (lo+hi)/2",
+    "  if a[mid]==target: return mid",
+    "return not found",
   ],
   run,
 };

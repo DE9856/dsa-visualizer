@@ -1,3 +1,6 @@
+// Indices into `pseudocode` below — the line each frame is executing.
+const LINE = { COMPARE: 3, SWAP: 4, DONE: null };
+
 function run(input) {
   const arr = [...input];
   const n = arr.length;
@@ -7,17 +10,24 @@ function run(input) {
   for (let i = 0; i < n - 1; i++) {
     let minIdx = i;
     for (let j = i + 1; j < n; j++) {
-      steps.push({ array: [...arr], compare: [minIdx, j], swap: [], pivot: minIdx, sorted: [...sortedSet] });
+      steps.push({
+        array: [...arr],
+        compare: [minIdx, j],
+        swap: [],
+        pivot: minIdx,
+        sorted: [...sortedSet],
+        line: LINE.COMPARE,
+      });
       if (arr[j] < arr[minIdx]) minIdx = j;
     }
     if (minIdx !== i) {
       [arr[i], arr[minIdx]] = [arr[minIdx], arr[i]];
-      steps.push({ array: [...arr], compare: [], swap: [i, minIdx], sorted: [...sortedSet] });
+      steps.push({ array: [...arr], compare: [], swap: [i, minIdx], sorted: [...sortedSet], line: LINE.SWAP });
     }
     sortedSet.add(i);
   }
   sortedSet.add(n - 1);
-  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet] });
+  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet], line: LINE.DONE });
   return steps;
 }
 

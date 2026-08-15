@@ -355,7 +355,7 @@ export default function App() {
         >
           <Canvas step={v.step} algo={v.algo} displayArr={v.displayArr} maxVal={v.maxVal} />
           <Controls {...transport} step={v.step} meta={v.meta} />
-          <InfoPanel meta={v.meta} />
+          <InfoPanel meta={v.meta} step={v.step} />
         </Workspace>
       )}
     </div>

@@ -1,20 +1,24 @@
+// Indices into `pseudocode` below — the line each frame is executing.
+const LINE = { OUTER: 0, COMPARE: 2, SWAP: 3 };
+
 function run(input) {
   const arr = [...input];
   const n = arr.length;
   const steps = [];
   const sortedSet = new Set([0]);
-  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet] });
+  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet], line: LINE.OUTER });
 
   for (let i = 1; i < n; i++) {
     let j = i;
     while (j > 0 && arr[j - 1] > arr[j]) {
-      steps.push({ array: [...arr], compare: [j - 1, j], swap: [], sorted: [...sortedSet] });
+      steps.push({ array: [...arr], compare: [j - 1, j], swap: [], sorted: [...sortedSet], line: LINE.COMPARE });
       [arr[j - 1], arr[j]] = [arr[j], arr[j - 1]];
-      steps.push({ array: [...arr], compare: [], swap: [j - 1, j], sorted: [...sortedSet] });
+      steps.push({ array: [...arr], compare: [], swap: [j - 1, j], sorted: [...sortedSet], line: LINE.SWAP });
       j--;
     }
+    // Element i has landed; the next outer iteration picks up the one after.
     for (let k = 0; k <= i; k++) sortedSet.add(k);
-    steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet] });
+    steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet], line: LINE.OUTER });
   }
   return steps;
 }

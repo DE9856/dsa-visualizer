@@ -3,6 +3,9 @@
 // elements are smaller than it via direct comparisons \u2014 that count is exactly
 // the final index of the element in the sorted output. Ties are broken by
 // original position so equal elements keep stable order.
+// Indices into `pseudocode` below — the line each frame is executing.
+const LINE = { COUNT: 3, PLACE: 6, DONE: null };
+
 function run(input) {
   const arr = [...input];
   const n = arr.length;
@@ -16,7 +19,7 @@ function run(input) {
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
       if (i === j) continue;
-      steps.push({ array: [...arr], compare: [i, j], swap: [], sorted: [...sortedSet] });
+      steps.push({ array: [...arr], compare: [i, j], swap: [], sorted: [...sortedSet], line: LINE.COUNT });
       if (arr[j] < arr[i] || (arr[j] === arr[i] && j < i)) {
         counts[i]++;
       }
@@ -31,10 +34,10 @@ function run(input) {
   for (let k = 0; k < n; k++) {
     arr[k] = output[k];
     sortedSet.add(k);
-    steps.push({ array: [...arr], compare: [], swap: [k], sorted: [...sortedSet] });
+    steps.push({ array: [...arr], compare: [], swap: [k], sorted: [...sortedSet], line: LINE.PLACE });
   }
 
-  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet] });
+  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet], line: LINE.DONE });
   return steps;
 }
 

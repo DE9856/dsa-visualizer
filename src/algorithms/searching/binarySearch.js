@@ -1,16 +1,19 @@
+// Indices into `pseudocode` below — the line each frame is executing.
+const LINE = { INIT: 0, MID: 2, FOUND: 3, MISS: 6 };
+
 function run(input, target) {
   // Binary search requires a sorted array — sort a copy first.
   const arr = [...input].sort((a, b) => a - b);
   const steps = [];
   let lo = 0;
   let hi = arr.length - 1;
-  steps.push({ array: [...arr], lo, hi, mid: -1, found: -1 });
+  steps.push({ array: [...arr], lo, hi, mid: -1, found: -1, line: LINE.INIT });
 
   while (lo <= hi) {
     const mid = Math.floor((lo + hi) / 2);
-    steps.push({ array: [...arr], lo, hi, mid, found: -1 });
+    steps.push({ array: [...arr], lo, hi, mid, found: -1, line: LINE.MID });
     if (arr[mid] === target) {
-      steps.push({ array: [...arr], lo, hi, mid, found: mid });
+      steps.push({ array: [...arr], lo, hi, mid, found: mid, line: LINE.FOUND });
       return steps;
     } else if (arr[mid] < target) {
       lo = mid + 1;
@@ -18,7 +21,7 @@ function run(input, target) {
       hi = mid - 1;
     }
   }
-  steps.push({ array: [...arr], lo, hi, mid: -1, found: -2 });
+  steps.push({ array: [...arr], lo, hi, mid: -1, found: -2, line: LINE.MISS });
   return steps;
 }
 
@@ -60,6 +63,7 @@ export const binarySearch = {
     "  if a[mid]==target: return mid",
     "  elif a[mid]<target: lo=mid+1",
     "  else: hi=mid-1",
+    "return not found",
   ],
   run,
 };

@@ -1,3 +1,8 @@
+// Indices into `pseudocode` below — the line each frame is executing. Every
+// comparison happens inside heapify, so the pseudocode spells that out; the
+// heapify lines light up whichever phase called it.
+const LINE = { EXTRACT: 2, HEAPIFY_COMPARE: 5, HEAPIFY_SWAP: 7, DONE: null };
+
 function run(input) {
   const arr = [...input];
   const n = arr.length;
@@ -9,16 +14,16 @@ function run(input) {
     const l = 2 * i + 1;
     const r = 2 * i + 2;
     if (l < size) {
-      steps.push({ array: [...arr], compare: [largest, l], swap: [], sorted: [...sortedSet] });
+      steps.push({ array: [...arr], compare: [largest, l], swap: [], sorted: [...sortedSet], line: LINE.HEAPIFY_COMPARE });
       if (arr[l] > arr[largest]) largest = l;
     }
     if (r < size) {
-      steps.push({ array: [...arr], compare: [largest, r], swap: [], sorted: [...sortedSet] });
+      steps.push({ array: [...arr], compare: [largest, r], swap: [], sorted: [...sortedSet], line: LINE.HEAPIFY_COMPARE });
       if (arr[r] > arr[largest]) largest = r;
     }
     if (largest !== i) {
       [arr[i], arr[largest]] = [arr[largest], arr[i]];
-      steps.push({ array: [...arr], compare: [], swap: [i, largest], sorted: [...sortedSet] });
+      steps.push({ array: [...arr], compare: [], swap: [i, largest], sorted: [...sortedSet], line: LINE.HEAPIFY_SWAP });
       heapify(size, largest);
     }
   }
@@ -26,12 +31,12 @@ function run(input) {
   for (let i = Math.floor(n / 2) - 1; i >= 0; i--) heapify(n, i);
   for (let size = n - 1; size > 0; size--) {
     [arr[0], arr[size]] = [arr[size], arr[0]];
-    steps.push({ array: [...arr], compare: [], swap: [0, size], sorted: [...sortedSet] });
+    steps.push({ array: [...arr], compare: [], swap: [0, size], sorted: [...sortedSet], line: LINE.EXTRACT });
     sortedSet.add(size);
     heapify(size, 0);
   }
   sortedSet.add(0);
-  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet] });
+  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet], line: LINE.DONE });
   return steps;
 }
 
@@ -70,6 +75,10 @@ export const heapSort = {
     "for size = n-1 downto 1:",
     "  swap(a[0], a[size])",
     "  heapify(a, 0, size)",
+    "heapify(a, i, size):",
+    "  largest = max(a[i], a[left], a[right])",
+    "  if largest != i:",
+    "    swap(a[i], a[largest]); heapify(a, largest, size)",
   ],
   run,
 };

@@ -1,8 +1,11 @@
+// Indices into `pseudocode` below — the line each frame is executing.
+const LINE = { PASS: 0, BUCKET: 1, COLLECT: 2, DONE: null };
+
 function run(input) {
   const arr = [...input];
   const n = arr.length;
   const steps = [];
-  steps.push({ array: [...arr], compare: [], swap: [], sorted: [] });
+  steps.push({ array: [...arr], compare: [], swap: [], sorted: [], line: LINE.PASS });
 
   if (n === 0) return steps;
 
@@ -19,7 +22,7 @@ function run(input) {
 
     // Distribute each element into a bucket based on its current digit.
     for (let i = 0; i < n; i++) {
-      steps.push({ array: [...arr], compare: [i], swap: [], sorted: [] });
+      steps.push({ array: [...arr], compare: [i], swap: [], sorted: [], line: LINE.BUCKET });
       const digit = Math.floor((arr[i] + shift) / exp) % 10;
       buckets[digit].push(arr[i]);
     }
@@ -29,7 +32,7 @@ function run(input) {
     for (let d = 0; d < 10; d++) {
       for (const val of buckets[d]) {
         arr[k] = val;
-        steps.push({ array: [...arr], compare: [], swap: [k], sorted: [] });
+        steps.push({ array: [...arr], compare: [], swap: [k], sorted: [], line: LINE.COLLECT });
         k++;
       }
     }
@@ -39,7 +42,7 @@ function run(input) {
 
   const sortedSet = new Set();
   for (let x = 0; x < n; x++) sortedSet.add(x);
-  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet] });
+  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet], line: LINE.DONE });
   return steps;
 }
 

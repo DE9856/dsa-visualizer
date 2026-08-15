@@ -1,3 +1,8 @@
+// Indices into `pseudocode` below. Every frame carries the line it is
+// executing so the panel can follow along; DONE means the run has finished
+// and no line is executing.
+const LINE = { COMPARE: 2, SWAP: 3, DONE: null };
+
 function run(input) {
   const arr = [...input];
   const n = arr.length;
@@ -7,10 +12,10 @@ function run(input) {
   for (let i = 0; i < n - 1; i++) {
     let swappedAny = false;
     for (let j = 0; j < n - 1 - i; j++) {
-      steps.push({ array: [...arr], compare: [j, j + 1], swap: [], sorted: [...sortedSet] });
+      steps.push({ array: [...arr], compare: [j, j + 1], swap: [], sorted: [...sortedSet], line: LINE.COMPARE });
       if (arr[j] > arr[j + 1]) {
         [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
-        steps.push({ array: [...arr], compare: [], swap: [j, j + 1], sorted: [...sortedSet] });
+        steps.push({ array: [...arr], compare: [], swap: [j, j + 1], sorted: [...sortedSet], line: LINE.SWAP });
         swappedAny = true;
       }
     }
@@ -21,7 +26,7 @@ function run(input) {
     }
   }
   for (let k = 0; k < n; k++) sortedSet.add(k);
-  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet] });
+  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet], line: LINE.DONE });
   return steps;
 }
 

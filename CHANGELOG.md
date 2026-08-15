@@ -13,6 +13,15 @@ Usability and playback-smoothness pass across every visualizer.
 
 ### Added
 
+- **Live pseudocode.** Every sorting/searching frame now carries a `line` index into its
+  algorithm's `pseudocode`, and `InfoPanel` highlights that line as the run plays, steps or
+  scrubs. A finished run reports `null` and highlights nothing. Each algorithm declares its
+  indices once as a `LINE` constant beside `run`.
+- **Pseudocode expanded where it was too coarse to follow** — shell sort's inner pass,
+  quick sort's partition, merge sort's `merge`, heap sort's `heapify` and exponential
+  search's binary phase were each a single line that every frame would have mapped to.
+  Binary and interpolation search gained the `return not found` line their miss frames land
+  on.
 - **Phone layout.** Below 760px the two-column workspace rearranges instead of shrinking:
   the visualization takes the screen, the sidebar becomes a **bottom sheet** (capped so the
   canvas stays visible behind it, and self-closing when you run/apply/shuffle), and a fixed

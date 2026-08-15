@@ -787,8 +787,23 @@ input[type="range"] {
   font-family: "JetBrains Mono", monospace;
   font-size: 12px;
   line-height: 1.65;
-  color: var(--text);
+  color: var(--text-dim);
   white-space: pre;
+  /* Bled past the panel padding so the active row reads as a full-width
+     band rather than a box around the text. */
+  margin: 0 -8px;
+  padding: 1px 8px 1px 6px;
+  border-left: 2px solid transparent;
+  border-radius: 4px;
+  transition: color var(--step-anim) ease, background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease;
+}
+
+/* The line the current step is executing. */
+.info__code-line.is-active {
+  color: var(--text);
+  background: var(--primary-dim);
+  border-left-color: var(--primary);
 }
 
 /* ---------- topic panel (detailed explanations) ---------- */

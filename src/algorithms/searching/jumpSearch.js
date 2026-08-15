@@ -1,3 +1,6 @@
+// Indices into `pseudocode` below — the line each frame is executing.
+const LINE = { BLOCK_SIZE: 0, PROBE_BLOCK: 1, JUMP: 2, SCAN: 3, RETURN: 4 };
+
 function run(input, target) {
   // Jump search requires a sorted array — sort a copy first.
   const arr = [...input].sort((a, b) => a - b);
@@ -8,29 +11,29 @@ function run(input, target) {
   let blockStart = 0;
   let blockEnd = Math.min(blockSize, n) - 1;
 
-  steps.push({ array: [...arr], lo: blockStart, hi: blockEnd, checking: -1, found: -1 });
+  steps.push({ array: [...arr], lo: blockStart, hi: blockEnd, checking: -1, found: -1, line: LINE.BLOCK_SIZE });
 
   // Jump forward block by block until we find one whose last element
   // is not smaller than the target (or we run out of blocks).
   while (blockEnd < n && arr[blockEnd] < target) {
-    steps.push({ array: [...arr], lo: blockStart, hi: blockEnd, checking: blockEnd, found: -1 });
+    steps.push({ array: [...arr], lo: blockStart, hi: blockEnd, checking: blockEnd, found: -1, line: LINE.PROBE_BLOCK });
     blockStart = blockEnd + 1;
     if (blockStart >= n) break;
     blockEnd = Math.min(blockEnd + blockSize, n - 1);
-    steps.push({ array: [...arr], lo: blockStart, hi: blockEnd, checking: -1, found: -1 });
+    steps.push({ array: [...arr], lo: blockStart, hi: blockEnd, checking: -1, found: -1, line: LINE.JUMP });
   }
 
   // Linear scan inside the located block.
   for (let i = blockStart; i <= Math.min(blockEnd, n - 1); i++) {
-    steps.push({ array: [...arr], lo: blockStart, hi: blockEnd, checking: i, found: -1 });
+    steps.push({ array: [...arr], lo: blockStart, hi: blockEnd, checking: i, found: -1, line: LINE.SCAN });
     if (arr[i] === target) {
-      steps.push({ array: [...arr], lo: blockStart, hi: blockEnd, checking: -1, found: i });
+      steps.push({ array: [...arr], lo: blockStart, hi: blockEnd, checking: -1, found: i, line: LINE.RETURN });
       return steps;
     }
     if (arr[i] > target) break;
   }
 
-  steps.push({ array: [...arr], lo: blockStart, hi: blockEnd, checking: -1, found: -2 });
+  steps.push({ array: [...arr], lo: blockStart, hi: blockEnd, checking: -1, found: -2, line: LINE.RETURN });
   return steps;
 }
 

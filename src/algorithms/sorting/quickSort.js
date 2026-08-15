@@ -1,3 +1,6 @@
+// Indices into `pseudocode` below — the line each frame is executing.
+const LINE = { COMPARE: 3, SWAP: 4, PLACE_PIVOT: 5, DONE: null };
+
 function run(input) {
   const arr = [...input];
   const n = arr.length;
@@ -13,15 +16,15 @@ function run(input) {
     const pivotVal = arr[r];
     let i = l - 1;
     for (let j = l; j < r; j++) {
-      steps.push({ array: [...arr], compare: [j, r], swap: [], pivot: r, sorted: [...sortedSet] });
+      steps.push({ array: [...arr], compare: [j, r], swap: [], pivot: r, sorted: [...sortedSet], line: LINE.COMPARE });
       if (arr[j] < pivotVal) {
         i++;
         [arr[i], arr[j]] = [arr[j], arr[i]];
-        steps.push({ array: [...arr], compare: [], swap: [i, j], pivot: r, sorted: [...sortedSet] });
+        steps.push({ array: [...arr], compare: [], swap: [i, j], pivot: r, sorted: [...sortedSet], line: LINE.SWAP });
       }
     }
     [arr[i + 1], arr[r]] = [arr[r], arr[i + 1]];
-    steps.push({ array: [...arr], compare: [], swap: [i + 1, r], sorted: [...sortedSet] });
+    steps.push({ array: [...arr], compare: [], swap: [i + 1, r], sorted: [...sortedSet], line: LINE.PLACE_PIVOT });
     sortedSet.add(i + 1);
     qs(l, i);
     qs(i + 2, r);
@@ -29,7 +32,7 @@ function run(input) {
 
   qs(0, n - 1);
   for (let x = 0; x < n; x++) sortedSet.add(x);
-  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet] });
+  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet], line: LINE.DONE });
   return steps;
 }
 
@@ -65,9 +68,12 @@ export const quickSort = {
   ],
   pseudocode: [
     "quickSort(l, r):",
-    "  pivot = a[r]",
-    "  partition around pivot",
-    "  quickSort(l, p-1); quickSort(p+1, r)",
+    "  pivot = a[r]; i = l-1",
+    "  for j in l..r:",
+    "    if a[j] < pivot:",
+    "      i++; swap(a[i], a[j])",
+    "  swap(a[i+1], a[r])",
+    "  quickSort(l, i); quickSort(i+2, r)",
   ],
   run,
 };

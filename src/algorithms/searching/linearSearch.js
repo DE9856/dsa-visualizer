@@ -1,14 +1,17 @@
+// Indices into `pseudocode` below — the line each frame is executing.
+const LINE = { CHECK: 1, FOUND: 2, MISS: 3 };
+
 function run(input, target) {
   const arr = [...input];
   const steps = [];
   for (let i = 0; i < arr.length; i++) {
-    steps.push({ array: [...arr], checking: i, found: -1 });
+    steps.push({ array: [...arr], checking: i, found: -1, line: LINE.CHECK });
     if (arr[i] === target) {
-      steps.push({ array: [...arr], checking: -1, found: i });
+      steps.push({ array: [...arr], checking: -1, found: i, line: LINE.FOUND });
       return steps;
     }
   }
-  steps.push({ array: [...arr], checking: -1, found: -2 });
+  steps.push({ array: [...arr], checking: -1, found: -2, line: LINE.MISS });
   return steps;
 }
 

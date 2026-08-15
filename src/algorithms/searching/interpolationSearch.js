@@ -1,3 +1,6 @@
+// Indices into `pseudocode` below — the line each frame is executing.
+const LINE = { INIT: 0, PROBE: 2, FOUND: 3, MISS: 6 };
+
 function run(input, target) {
   // Interpolation search requires a sorted array — sort a copy first.
   const arr = [...input].sort((a, b) => a - b);
@@ -5,14 +8,14 @@ function run(input, target) {
   let lo = 0;
   let hi = arr.length - 1;
 
-  steps.push({ array: [...arr], lo, hi, mid: -1, found: -1 });
+  steps.push({ array: [...arr], lo, hi, mid: -1, found: -1, line: LINE.INIT });
 
   while (lo <= hi && target >= arr[lo] && target <= arr[hi]) {
     if (arr[hi] === arr[lo]) {
       // All values in range are equal — check lo directly to avoid dividing by zero.
-      steps.push({ array: [...arr], lo, hi, mid: lo, found: -1 });
+      steps.push({ array: [...arr], lo, hi, mid: lo, found: -1, line: LINE.PROBE });
       if (arr[lo] === target) {
-        steps.push({ array: [...arr], lo, hi, mid: lo, found: lo });
+        steps.push({ array: [...arr], lo, hi, mid: lo, found: lo, line: LINE.FOUND });
         return steps;
       }
       break;
@@ -21,10 +24,10 @@ function run(input, target) {
     const rawPos = lo + Math.floor(((target - arr[lo]) * (hi - lo)) / (arr[hi] - arr[lo]));
     const pos = Math.max(lo, Math.min(hi, rawPos));
 
-    steps.push({ array: [...arr], lo, hi, mid: pos, found: -1 });
+    steps.push({ array: [...arr], lo, hi, mid: pos, found: -1, line: LINE.PROBE });
 
     if (arr[pos] === target) {
-      steps.push({ array: [...arr], lo, hi, mid: pos, found: pos });
+      steps.push({ array: [...arr], lo, hi, mid: pos, found: pos, line: LINE.FOUND });
       return steps;
     } else if (arr[pos] < target) {
       lo = pos + 1;
@@ -33,7 +36,7 @@ function run(input, target) {
     }
   }
 
-  steps.push({ array: [...arr], lo, hi, mid: -1, found: -2 });
+  steps.push({ array: [...arr], lo, hi, mid: -1, found: -2, line: LINE.MISS });
   return steps;
 }
 
@@ -75,6 +78,7 @@ export const interpolationSearch = {
     "  if a[pos]==target: return pos",
     "  elif a[pos]<target: lo=pos+1",
     "  else: hi=pos-1",
+    "return not found",
   ],
   run,
 };

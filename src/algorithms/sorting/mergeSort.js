@@ -1,3 +1,7 @@
+// Indices into `pseudocode` below — the line each frame is executing. Every
+// frame comes out of merge(), so the pseudocode spells that helper out.
+const LINE = { MERGE_LOOP: 6, TAKE_LEFT: 7, TAKE_RIGHT: 8, DRAIN: 9, DONE: null };
+
 function run(input) {
   const arr = [...input];
   const n = arr.length;
@@ -19,26 +23,31 @@ function run(input) {
     let j = 0;
     let k = l;
     while (i < left.length && j < right.length) {
-      steps.push({ array: [...arr], compare: [l + i, mid + j], swap: [], sorted: [...sortedSet] });
+      steps.push({ array: [...arr], compare: [l + i, mid + j], swap: [], sorted: [...sortedSet], line: LINE.MERGE_LOOP });
+      // Which branch wins is what the next frame shows, so the highlight
+      // lands on the arm that actually ran.
+      let taken;
       if (left[i] <= right[j]) {
         arr[k] = left[i];
         i++;
+        taken = LINE.TAKE_LEFT;
       } else {
         arr[k] = right[j];
         j++;
+        taken = LINE.TAKE_RIGHT;
       }
-      steps.push({ array: [...arr], compare: [], swap: [k], sorted: [...sortedSet] });
+      steps.push({ array: [...arr], compare: [], swap: [k], sorted: [...sortedSet], line: taken });
       k++;
     }
     while (i < left.length) {
       arr[k] = left[i];
-      steps.push({ array: [...arr], compare: [], swap: [k], sorted: [...sortedSet] });
+      steps.push({ array: [...arr], compare: [], swap: [k], sorted: [...sortedSet], line: LINE.DRAIN });
       i++;
       k++;
     }
     while (j < right.length) {
       arr[k] = right[j];
-      steps.push({ array: [...arr], compare: [], swap: [k], sorted: [...sortedSet] });
+      steps.push({ array: [...arr], compare: [], swap: [k], sorted: [...sortedSet], line: LINE.DRAIN });
       j++;
       k++;
     }
@@ -46,7 +55,7 @@ function run(input) {
 
   mergeSort(0, n);
   for (let x = 0; x < n; x++) sortedSet.add(x);
-  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet] });
+  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet], line: LINE.DONE });
   return steps;
 }
 
@@ -85,6 +94,11 @@ export const mergeSort = {
     "  mid = (l+r)/2",
     "  mergeSort(l,mid); mergeSort(mid,r)",
     "  merge(l, mid, r)",
+    "merge(l, mid, r):",
+    "  while i<len(L) and j<len(R):",
+    "    if L[i] <= R[j]: a[k++] = L[i]",
+    "    else: a[k++] = R[j]",
+    "  copy whatever remains",
   ],
   run,
 };
