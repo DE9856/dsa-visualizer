@@ -7,32 +7,61 @@ function run(input) {
   const steps = [];
   const sortedSet = new Set();
 
-  function qs(l, r) {
+  // Every qs() call is recorded as it is entered, so the UI can draw the
+  // recursion tree. One array, shared by reference across every frame;
+  // `callCount` is how much of it exists at that point in the run. Unlike
+  // merge sort's, this shape depends on where the pivots land.
+  const calls = [];
+  const enterCall = (lo, hi, depth, parent) => {
+    calls.push({ id: calls.length, parent, range: [lo, hi], depth });
+    return calls.length - 1;
+  };
+
+  // Frames name the subrange (inclusive) and depth of the call they came
+  // from, which is what lets the bars outside it dim.
+  const frame = (fields, l, r, depth, callId) => ({
+    ...fields,
+    array: [...arr],
+    sorted: [...sortedSet],
+    range: [l, r],
+    depth,
+    callId,
+    calls,
+    callCount: calls.length,
+  });
+
+  function qs(l, r, depth, parent) {
+    // An empty side of a partition isn't a call worth drawing.
     if (l > r) return;
+    const id = enterCall(l, r, depth, parent);
     if (l === r) {
       sortedSet.add(l);
       return;
     }
+    const at = (fields) => steps.push(frame(fields, l, r, depth, id));
+
     const pivotVal = arr[r];
     let i = l - 1;
     for (let j = l; j < r; j++) {
-      steps.push({ array: [...arr], compare: [j, r], swap: [], pivot: r, sorted: [...sortedSet], line: LINE.COMPARE });
+      at({ compare: [j, r], swap: [], pivot: r, line: LINE.COMPARE });
       if (arr[j] < pivotVal) {
         i++;
         [arr[i], arr[j]] = [arr[j], arr[i]];
-        steps.push({ array: [...arr], compare: [], swap: [i, j], pivot: r, sorted: [...sortedSet], line: LINE.SWAP });
+        at({ compare: [], swap: [i, j], pivot: r, line: LINE.SWAP });
       }
     }
     [arr[i + 1], arr[r]] = [arr[r], arr[i + 1]];
-    steps.push({ array: [...arr], compare: [], swap: [i + 1, r], sorted: [...sortedSet], line: LINE.PLACE_PIVOT });
+    at({ compare: [], swap: [i + 1, r], line: LINE.PLACE_PIVOT });
     sortedSet.add(i + 1);
-    qs(l, i);
-    qs(i + 2, r);
+    qs(l, i, depth + 1, id);
+    qs(i + 2, r, depth + 1, id);
   }
 
-  qs(0, n - 1);
+  qs(0, n - 1, 0, null);
   for (let x = 0; x < n; x++) sortedSet.add(x);
-  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet], line: LINE.DONE });
+  // The run is over: the whole array is the active range again, so nothing
+  // is left dimmed.
+  steps.push(frame({ compare: [], swap: [], line: LINE.DONE }, 0, n - 1, 0, 0));
   return steps;
 }
 

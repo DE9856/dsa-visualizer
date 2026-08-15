@@ -53,9 +53,14 @@ export default function Bar({ val, index, step, algo, maxVal, showLabel, showPoi
 
   const pointerLabel = index === step.mid ? "mid" : index === step.lo ? "lo" : index === step.hi ? "hi" : null;
 
+  // Divide-and-conquer frames name the subrange the current call owns.
+  // Everything outside it fades back rather than changing colour, so a bar
+  // that is already sorted or holding a pivot keeps saying so.
+  const outsideRange = step.range && (index < step.range[0] || index > step.range[1]);
+
   return (
     <div
-      className={`bar ${isSwapping ? "swap" : ""}`}
+      className={`bar ${isSwapping ? "swap" : ""} ${outsideRange ? "bar--outside" : ""}`}
       style={{
         height: `${(val / maxVal) * 100}%`,
         background: bg,

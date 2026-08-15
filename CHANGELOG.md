@@ -13,6 +13,13 @@ Usability and playback-smoothness pass across every visualizer.
 
 ### Added
 
+- **Recursion structure for the divide-and-conquer sorts.** Merge and quick sort frames now
+  carry `range` (the inclusive subrange the current call owns), `depth`, and the call tree
+  itself. Bars outside the active partition fade back — by opacity, not colour, so a sorted
+  or pivot bar keeps its meaning — and a new `RecursionPanel` draws the tree under the bars:
+  one row per depth, each call a segment covering exactly the columns it owns, on the same
+  horizontal scale as the bars. The live call is highlighted and its ancestors outlined. The
+  tree fills in as the run proceeds; quick sort on sorted input draws its O(n²) staircase.
 - **Shareable links.** The address bar tracks the topic, algorithm and data on screen,
   and a **SHARE** button copies the link; opening one goes straight to the visualizer with
   that data loaded. Custom arrays, lists, stacks, queues, trees, 2-3 trees, graphs and

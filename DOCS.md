@@ -130,6 +130,20 @@ Every view shares the same transport bar:
 Animation duration follows the speed setting, so fast runs snap crisply instead of
 smearing steps into one another.
 
+### The recursion tree
+
+Merge sort and quick sort show an extra panel under the bars. Each recursive call is a
+segment covering exactly the columns it owns, one row per depth, on the same horizontal
+scale as the bars — so containment is something you see rather than infer. The live call
+is highlighted, its ancestors (the rest of the call stack) are outlined, and bars outside
+the active subrange fade back without changing colour, so a sorted or pivot bar keeps
+saying so.
+
+The tree fills in as the run proceeds. For merge sort the shape is fixed by the array's
+length, so it appears almost at once; quick sort discovers its subranges as pivots land,
+and the tree grows with them. Feed quick sort an already-sorted array and the staircase
+of `0–22`, `0–21`, `0–20`… is the O(n²) worst case, drawn.
+
 ### Sharing a setup
 
 The address bar always holds a link to whatever is on screen — the topic, the
@@ -389,6 +403,25 @@ const LINE = { COMPARE: 2, SWAP: 3, DONE: null };
 
 Not every pseudocode line lights up — a frame only exists where the algorithm has
 something to show, so loop headers and recursive calls that produce no frame stay dim.
+
+**Merge and quick sort carry recursion structure on top of that:**
+
+```js
+{
+  range: [4, 7],   // inclusive subrange this call owns
+  depth: 1,        // recursion depth, root is 0
+  callId: 2,       // index into calls[]
+  callCount: 7,    // how many calls have been entered by now
+  calls: [ { id, parent, range: [lo, hi], depth }, ... ]
+}
+```
+
+`range` is what dims the bars outside the active partition; `calls` is what
+`RecursionPanel` draws. That array is built once per run and shared by reference across
+every frame of it — `callCount` is how much of it had been entered at that point, so the
+tree fills in as the run proceeds rather than showing the whole shape up front. Note the
+two sorts recurse over different conventions internally (merge sort's `r` is exclusive,
+quick sort's is inclusive); `range` is always inclusive.
 
 A data-structure step carries the structure plus a human-readable line:
 

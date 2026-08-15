@@ -8,22 +8,48 @@ function run(input) {
   const steps = [];
   const sortedSet = new Set();
 
-  function mergeSort(l, r) {
+  // Every mergeSort() call is recorded as it is entered, so the UI can draw
+  // the recursion tree. One array, shared by reference across every frame;
+  // `callCount` is how much of it exists at that point in the run.
+  const calls = [];
+  const enterCall = (lo, hi, depth, parent) => {
+    calls.push({ id: calls.length, parent, range: [lo, hi], depth });
+    return calls.length - 1;
+  };
+
+  // Frames name the subrange (inclusive) and depth of the call they came
+  // from, which is what lets the bars outside it dim.
+  const frame = (fields, l, r, depth, callId) => ({
+    ...fields,
+    array: [...arr],
+    sorted: [...sortedSet],
+    range: [l, r],
+    depth,
+    callId,
+    calls,
+    callCount: calls.length,
+  });
+
+  // r is exclusive here; the recorded range is inclusive.
+  function mergeSort(l, r, depth, parent) {
+    const id = enterCall(l, r - 1, depth, parent);
     if (r - l <= 1) return;
     const mid = Math.floor((l + r) / 2);
-    mergeSort(l, mid);
-    mergeSort(mid, r);
-    merge(l, mid, r);
+    mergeSort(l, mid, depth + 1, id);
+    mergeSort(mid, r, depth + 1, id);
+    merge(l, mid, r, depth, id);
   }
 
-  function merge(l, mid, r) {
+  function merge(l, mid, r, depth, callId) {
     const left = arr.slice(l, mid);
     const right = arr.slice(mid, r);
     let i = 0;
     let j = 0;
     let k = l;
+    const at = (fields) => steps.push(frame(fields, l, r - 1, depth, callId));
+
     while (i < left.length && j < right.length) {
-      steps.push({ array: [...arr], compare: [l + i, mid + j], swap: [], sorted: [...sortedSet], line: LINE.MERGE_LOOP });
+      at({ compare: [l + i, mid + j], swap: [], line: LINE.MERGE_LOOP });
       // Which branch wins is what the next frame shows, so the highlight
       // lands on the arm that actually ran.
       let taken;
@@ -36,26 +62,28 @@ function run(input) {
         j++;
         taken = LINE.TAKE_RIGHT;
       }
-      steps.push({ array: [...arr], compare: [], swap: [k], sorted: [...sortedSet], line: taken });
+      at({ compare: [], swap: [k], line: taken });
       k++;
     }
     while (i < left.length) {
       arr[k] = left[i];
-      steps.push({ array: [...arr], compare: [], swap: [k], sorted: [...sortedSet], line: LINE.DRAIN });
+      at({ compare: [], swap: [k], line: LINE.DRAIN });
       i++;
       k++;
     }
     while (j < right.length) {
       arr[k] = right[j];
-      steps.push({ array: [...arr], compare: [], swap: [k], sorted: [...sortedSet], line: LINE.DRAIN });
+      at({ compare: [], swap: [k], line: LINE.DRAIN });
       j++;
       k++;
     }
   }
 
-  mergeSort(0, n);
+  mergeSort(0, n, 0, null);
   for (let x = 0; x < n; x++) sortedSet.add(x);
-  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet], line: LINE.DONE });
+  // The run is over: the whole array is the active range again, so nothing
+  // is left dimmed.
+  steps.push(frame({ compare: [], swap: [], line: LINE.DONE }, 0, n - 1, 0, 0));
   return steps;
 }
 

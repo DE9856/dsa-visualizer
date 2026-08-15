@@ -7,6 +7,7 @@ import Sidebar from "./components/Sidebar.jsx";
 import Canvas from "./components/Canvas.jsx";
 import Controls from "./components/Controls.jsx";
 import InfoPanel from "./components/InfoPanel.jsx";
+import RecursionPanel from "./components/RecursionPanel.jsx";
 import ListSidebar from "./components/ListSidebar.jsx";
 import ListCanvas from "./components/ListCanvas.jsx";
 import ListControls from "./components/ListControls.jsx";
@@ -374,6 +375,7 @@ export default function App() {
           }
         >
           <Canvas step={v.step} algo={v.algo} displayArr={v.displayArr} maxVal={v.maxVal} />
+          <RecursionPanel step={v.step} size={v.displayArr.length} />
           <Controls {...transport} step={v.step} meta={v.meta} />
           <InfoPanel meta={v.meta} step={v.step} />
         </Workspace>

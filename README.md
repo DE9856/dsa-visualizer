@@ -181,6 +181,9 @@ scroll sideways. See [DOCS.md](DOCS.md#on-a-phone) for the details.
 - Adjustable array size
 - Speed controls with a live steps-per-second read-out
 - Step-by-step execution and a draggable timeline to scrub anywhere in a run
+- Live pseudocode — the line the current step is executing is highlighted
+- A recursion tree under the bars for merge and quick sort, with everything outside the
+  active partition dimmed
 - Pause, Resume, Reset and Replay
 - Live comparison and swap counters
 - Complexity information
