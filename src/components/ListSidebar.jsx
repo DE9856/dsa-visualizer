@@ -61,20 +61,27 @@ export default function ListSidebar({
           const isOpen = openGroups.has(group.key);
           return (
             <div key={group.key} className="algo-group">
-              <div className="algo-group__header" onClick={() => toggleGroup(group.key)}>
+              <button
+                type="button"
+                className="algo-group__header"
+                onClick={() => toggleGroup(group.key)}
+                aria-expanded={isOpen}
+              >
                 <span className="algo-group__label">{group.label}</span>
                 {isOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-              </div>
+              </button>
               {isOpen && (
                 <div className="algo-group__body">
                   {ops.map((op) => (
-                    <div
+                    <button
+                      type="button"
                       key={op.key}
                       className={`algo-row ${operation === op.key ? "active" : ""}`}
                       onClick={() => selectOperation(op)}
+                      aria-pressed={operation === op.key}
                     >
                       {op.label}
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
@@ -83,7 +90,13 @@ export default function ListSidebar({
         })}
       </div>
 
-      <div className="sidebar__section">
+      <form
+        className="sidebar__section"
+        onSubmit={(e) => {
+          e.preventDefault();
+          onRun();
+        }}
+      >
         {opMeta.fields.includes("value") && (
           <>
             <div className="label">{opMeta.key === "updateNode" ? "NEW VALUE" : "VALUE"}</div>
@@ -122,10 +135,10 @@ export default function ListSidebar({
             />
           </>
         )}
-        <button className="btn active" style={{ width: "100%" }} onClick={onRun}>
+        <button type="submit" className="btn active btn--block-flat">
           RUN {opMeta.label.toUpperCase()}
         </button>
-      </div>
+      </form>
 
       <div className="sidebar__section">
         <div className="label">NEW / CUSTOM LIST</div>

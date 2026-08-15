@@ -1,7 +1,8 @@
 import { nextId } from "../dataStructures/linkedList/nodeId";
 import { parsePolynomial, formatTerm } from "../dataStructures/polynomial/helpers";
 import { POLY_OP_MAP } from "../dataStructures/polynomial";
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useStepPlayer } from "./useStepPlayer.js";
 
 function toNodes(terms) {
   return terms.map((t) => ({ id: nextId(), coeff: t.coeff, exp: t.exp, value: formatTerm(t.coeff, t.exp) }));
@@ -19,10 +20,9 @@ export function usePolynomial() {
   const [secondPolyInput, setSecondPolyInput] = useState(DEFAULT_SECOND_POLY);
   const [xValueInput, setXValueInput] = useState("2");
   const [steps, setSteps] = useState([{ ...EMPTY_STEP, nodes: [] }]);
-  const [stepIdx, setStepIdx] = useState(0);
-  const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(60);
-  const intervalRef = useRef(null);
+
+  const player = useStepPlayer(steps.length);
+  const { setStepIdx, setPlaying, stepIdx } = player;
 
   const opMeta = POLY_OP_MAP[operation];
   const secondPreviewNodes = useMemo(() => toNodes(parsePolynomial(secondPolyInput)), [secondPolyInput]);
@@ -34,22 +34,6 @@ export function usePolynomial() {
     setStepIdx(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    if (playing) {
-      const delay = 720 - speed * 6;
-      intervalRef.current = setInterval(() => {
-        setStepIdx((prev) => {
-          if (prev >= steps.length - 1) {
-            setPlaying(false);
-            return prev;
-          }
-          return prev + 1;
-        });
-      }, Math.max(40, delay));
-    }
-    return () => clearInterval(intervalRef.current);
-  }, [playing, speed, steps]);
 
   const runOperation = useCallback(() => {
     const params = {
@@ -90,21 +74,10 @@ export function usePolynomial() {
     setPlaying(false);
   }, []);
 
-  const togglePlay = useCallback(() => {
-    setPlaying((p) => {
-      const atEnd = stepIdx >= steps.length - 1;
-      if (atEnd) {
-        setStepIdx(0);
-        return true;
-      }
-      return !p;
-    });
-  }, [stepIdx, steps.length]);
-
   const step = steps[Math.min(stepIdx, steps.length - 1)] || EMPTY_STEP;
-  const atEnd = stepIdx >= steps.length - 1;
 
   return {
+    ...player,
     list,
     operation,
     setOperation,
@@ -119,17 +92,7 @@ export function usePolynomial() {
     randomPolynomial,
     steps,
     step,
-    stepIdx,
-    setStepIdx,
-    playing,
-    speed,
-    setSpeed,
-    atEnd,
     runOperation,
-    togglePlay,
-    atEnd,
-    runOperation,
-    togglePlay,
     secondPreviewNodes,
     showSecondPreview,
   };

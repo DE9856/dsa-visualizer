@@ -14,8 +14,15 @@ export default function TopBar({ category, onCategoryChange, onGoHome }) {
         setOpenMenu(null);
       }
     };
+    const handleEscape = (e) => {
+      if (e.key === "Escape") setOpenMenu(null);
+    };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
   }, []);
 
   const toggleMenu = (key) => {
@@ -47,6 +54,8 @@ export default function TopBar({ category, onCategoryChange, onGoHome }) {
               <button
                 className={`btn topbar__category ${isActiveCategory ? "active" : ""}`}
                 onClick={() => toggleMenu(cat.key)}
+                aria-haspopup="menu"
+                aria-expanded={isOpen}
               >
                 {cat.label}
                 {isActiveCategory && activeItem && (
@@ -55,15 +64,17 @@ export default function TopBar({ category, onCategoryChange, onGoHome }) {
                 <ChevronDown size={13} className={`topbar__chevron ${isOpen ? "open" : ""}`} />
               </button>
               {isOpen && (
-                <div className="topbar__menu">
+                <div className="topbar__menu" role="menu">
                   {cat.items.map((item) => (
-                    <div
+                    <button
+                      type="button"
+                      role="menuitem"
                       key={item.key}
                       className={`topbar__menu-item ${category === item.key ? "active" : ""}`}
                       onClick={() => selectItem(item)}
                     >
                       {item.label}
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}

@@ -32,10 +32,13 @@ import { useQueue } from "./hooks/useQueue.js";
 import { useGraph } from "./hooks/useGraph.js";
 import { useTree } from "./hooks/useTree.js";
 import { useTwoThreeTree } from "./hooks/useTwoThreeTree.js";
+import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts.js";
+import { delayForSpeed } from "./hooks/useStepPlayer.js";
 
 export default function App() {
   const [stage, setStage] = useState("boot"); // "boot" | "select" | "app"
   const [view, setView] = useState("sorting");
+  const [showHelp, setShowHelp] = useState(false);
   const v = useVisualizer();
   const ll = useLinkedList();
   const poly = usePolynomial();
@@ -44,6 +47,53 @@ export default function App() {
   const gr = useGraph();
   const tr = useTree();
   const tt = useTwoThreeTree();
+
+  // The player driving whatever view is on screen — one source for the
+  // transport bar, the timeline and the keyboard shortcuts.
+  const players = {
+    linkedlist: ll,
+    polynomial: poly,
+    stack: st,
+    queue: q,
+    graph: gr,
+    tree: tr,
+    twothree: tt,
+  };
+  const active = players[view] || v;
+
+  const shuffleActive = () => {
+    if (view === "polynomial") poly.randomPolynomial();
+    else if (players[view]) players[view].shuffle();
+    else v.handleShuffle();
+  };
+
+  // Transport props every Controls instance needs, wired to the active view.
+  const transport = {
+    stepIdx: active.stepIdx,
+    steps: active.steps,
+    playing: active.playing,
+    speed: active.speed,
+    setSpeed: active.setSpeed,
+    onReset: active.reset,
+    onStepBack: active.stepBack,
+    onStepForward: active.stepForward,
+    onTogglePlay: active.togglePlay,
+    onSeek: active.seek,
+    showHelp,
+    onToggleHelp: () => setShowHelp((s) => !s),
+  };
+
+  useKeyboardShortcuts({
+    enabled: stage === "app",
+    onTogglePlay: active.togglePlay,
+    onStepBack: active.stepBack,
+    onStepForward: active.stepForward,
+    onReset: active.reset,
+    onFirst: () => active.seek(0),
+    onLast: () => active.seek(active.steps.length - 1),
+    onShuffle: shuffleActive,
+    onToggleHelp: () => setShowHelp((s) => !s),
+  });
 
   const handleViewChange = (next) => {
     setView(next);
@@ -59,47 +109,39 @@ export default function App() {
     return <CategoryLanding onSelect={handleViewChange} />;
   }
 
+  // Keep step animations shorter than the gap between steps, otherwise a fast
+  // run leaves every element mid-transition and the whole thing looks smeared.
+  const stepAnim = Math.round(Math.min(240, delayForSpeed(active.speed) * 0.7));
+
   return (
-    <div className="app">
+    <div className="app" style={{ "--step-anim": `${stepAnim}ms` }}>
       <TopBar category={view} onCategoryChange={handleViewChange} onGoHome={() => setStage("select")} />
 
       {view === "linkedlist" ? (
         <div className="layout">
           <ListSidebar
-  listType={ll.listType}
-  onListTypeChange={ll.setListType}
-  operation={ll.operation}
-  onOperationChange={ll.setOperation}
-  opMeta={ll.opMeta}
-  valueInput={ll.valueInput}
-  setValueInput={ll.setValueInput}
-  positionInput={ll.positionInput}
-  setPositionInput={ll.setPositionInput}
-  secondListInput={ll.secondListInput}
-  setSecondListInput={ll.setSecondListInput}
-  onRun={ll.runOperation}
-  customInput={ll.customInput}
-  setCustomInput={ll.setCustomInput}
-  onApplyCustom={ll.applyCustomList}
-  onShuffle={ll.shuffle}
-  listLength={ll.list.length}
-/>
+            listType={ll.listType}
+            onListTypeChange={ll.setListType}
+            operation={ll.operation}
+            onOperationChange={ll.setOperation}
+            opMeta={ll.opMeta}
+            valueInput={ll.valueInput}
+            setValueInput={ll.setValueInput}
+            positionInput={ll.positionInput}
+            setPositionInput={ll.setPositionInput}
+            secondListInput={ll.secondListInput}
+            setSecondListInput={ll.setSecondListInput}
+            onRun={ll.runOperation}
+            customInput={ll.customInput}
+            setCustomInput={ll.setCustomInput}
+            onApplyCustom={ll.applyCustomList}
+            onShuffle={ll.shuffle}
+            listLength={ll.list.length}
+          />
 
-<div className="main-col">
-  <ListCanvas step={ll.step} listType={ll.listType} />
-
-            <ListControls
-              stepIdx={ll.stepIdx}
-              steps={ll.steps}
-              playing={ll.playing}
-              speed={ll.speed}
-              setSpeed={ll.setSpeed}
-              onReset={() => ll.setStepIdx(0)}
-              onStepBack={() => ll.setStepIdx((i) => Math.max(0, i - 1))}
-              onStepForward={() => ll.setStepIdx((i) => Math.min(ll.steps.length - 1, i + 1))}
-              onTogglePlay={ll.togglePlay}
-            />
-
+          <div className="main-col">
+            <ListCanvas step={ll.step} listType={ll.listType} />
+            <ListControls {...transport} />
             <ListInfoPanel opMeta={ll.opMeta} />
             <TopicPanel topic={TOPIC_OVERVIEWS.linkedlist} />
           </div>
@@ -123,25 +165,13 @@ export default function App() {
 
           <div className="main-col">
             <ListCanvas
-  step={poly.step}
-  listType="singly"
-  primaryLabel="POLYNOMIAL A"
-  secondaryLabel="POLYNOMIAL B"
-  secondNodes={poly.showSecondPreview ? poly.secondPreviewNodes : null}
-/>
-
-            <ListControls
-              stepIdx={poly.stepIdx}
-              steps={poly.steps}
-              playing={poly.playing}
-              speed={poly.speed}
-              setSpeed={poly.setSpeed}
-              onReset={() => poly.setStepIdx(0)}
-              onStepBack={() => poly.setStepIdx((i) => Math.max(0, i - 1))}
-              onStepForward={() => poly.setStepIdx((i) => Math.min(poly.steps.length - 1, i + 1))}
-              onTogglePlay={poly.togglePlay}
+              step={poly.step}
+              listType="singly"
+              primaryLabel="POLYNOMIAL A"
+              secondaryLabel="POLYNOMIAL B"
+              secondNodes={poly.showSecondPreview ? poly.secondPreviewNodes : null}
             />
-
+            <ListControls {...transport} />
             <ListInfoPanel opMeta={poly.opMeta} />
             <TopicPanel topic={TOPIC_OVERVIEWS.polynomial} />
           </div>
@@ -163,19 +193,7 @@ export default function App() {
 
           <div className="main-col">
             <StackCanvas step={st.step} />
-
-            <ListControls
-              stepIdx={st.stepIdx}
-              steps={st.steps}
-              playing={st.playing}
-              speed={st.speed}
-              setSpeed={st.setSpeed}
-              onReset={() => st.setStepIdx(0)}
-              onStepBack={() => st.setStepIdx((i) => Math.max(0, i - 1))}
-              onStepForward={() => st.setStepIdx((i) => Math.min(st.steps.length - 1, i + 1))}
-              onTogglePlay={st.togglePlay}
-            />
-
+            <ListControls {...transport} />
             <ListInfoPanel opMeta={st.opMeta} />
             <TopicPanel topic={TOPIC_OVERVIEWS.stack} />
           </div>
@@ -197,19 +215,7 @@ export default function App() {
 
           <div className="main-col">
             <QueueCanvas step={q.step} />
-
-            <ListControls
-              stepIdx={q.stepIdx}
-              steps={q.steps}
-              playing={q.playing}
-              speed={q.speed}
-              setSpeed={q.setSpeed}
-              onReset={() => q.setStepIdx(0)}
-              onStepBack={() => q.setStepIdx((i) => Math.max(0, i - 1))}
-              onStepForward={() => q.setStepIdx((i) => Math.min(q.steps.length - 1, i + 1))}
-              onTogglePlay={q.togglePlay}
-            />
-
+            <ListControls {...transport} />
             <ListInfoPanel opMeta={q.opMeta} />
             <TopicPanel topic={TOPIC_OVERVIEWS.queue} />
           </div>
@@ -249,21 +255,8 @@ export default function App() {
 
           <div className="main-col">
             <GraphCanvas step={gr.step} directed={gr.directed} weighted={gr.weighted} onCreateEdge={gr.createEdgeFromDrag} />
-
             <GraphRepresentationPanel representation={gr.representation} step={gr.step} directed={gr.directed} />
-
-            <ListControls
-              stepIdx={gr.stepIdx}
-              steps={gr.steps}
-              playing={gr.playing}
-              speed={gr.speed}
-              setSpeed={gr.setSpeed}
-              onReset={() => gr.setStepIdx(0)}
-              onStepBack={() => gr.setStepIdx((i) => Math.max(0, i - 1))}
-              onStepForward={() => gr.setStepIdx((i) => Math.min(gr.steps.length - 1, i + 1))}
-              onTogglePlay={gr.togglePlay}
-            />
-
+            <ListControls {...transport} />
             <ListInfoPanel opMeta={gr.opMeta} />
             <TopicPanel topic={TOPIC_OVERVIEWS.graph} />
           </div>
@@ -287,19 +280,7 @@ export default function App() {
 
           <div className="main-col">
             <TreeCanvas step={tr.step} treeType={tr.treeType} />
-
-            <ListControls
-              stepIdx={tr.stepIdx}
-              steps={tr.steps}
-              playing={tr.playing}
-              speed={tr.speed}
-              setSpeed={tr.setSpeed}
-              onReset={() => tr.setStepIdx(0)}
-              onStepBack={() => tr.setStepIdx((i) => Math.max(0, i - 1))}
-              onStepForward={() => tr.setStepIdx((i) => Math.min(tr.steps.length - 1, i + 1))}
-              onTogglePlay={tr.togglePlay}
-            />
-
+            <ListControls {...transport} />
             <ListInfoPanel opMeta={tr.opMeta} />
             <TopicPanel topic={TOPIC_OVERVIEWS.tree} />
           </div>
@@ -321,19 +302,7 @@ export default function App() {
 
           <div className="main-col">
             <TwoThreeTreeCanvas step={tt.step} />
-
-            <ListControls
-              stepIdx={tt.stepIdx}
-              steps={tt.steps}
-              playing={tt.playing}
-              speed={tt.speed}
-              setSpeed={tt.setSpeed}
-              onReset={() => tt.setStepIdx(0)}
-              onStepBack={() => tt.setStepIdx((i) => Math.max(0, i - 1))}
-              onStepForward={() => tt.setStepIdx((i) => Math.min(tt.steps.length - 1, i + 1))}
-              onTogglePlay={tt.togglePlay}
-            />
-
+            <ListControls {...transport} />
             <ListInfoPanel opMeta={tt.opMeta} />
             <TopicPanel topic={TOPIC_OVERVIEWS.twothree} />
           </div>
@@ -357,21 +326,7 @@ export default function App() {
 
           <div className="main-col">
             <Canvas step={v.step} algo={v.algo} displayArr={v.displayArr} maxVal={v.maxVal} />
-
-            <Controls
-              stepIdx={v.stepIdx}
-              steps={v.steps}
-              step={v.step}
-              playing={v.playing}
-              speed={v.speed}
-              setSpeed={v.setSpeed}
-              meta={v.meta}
-              onReset={() => v.setStepIdx(0)}
-              onStepBack={() => v.setStepIdx((i) => Math.max(0, i - 1))}
-              onStepForward={() => v.setStepIdx((i) => Math.min(v.steps.length - 1, i + 1))}
-              onTogglePlay={v.togglePlay}
-            />
-
+            <Controls {...transport} step={v.step} meta={v.meta} />
             <InfoPanel meta={v.meta} />
           </div>
         </div>

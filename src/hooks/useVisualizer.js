@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { ALGO_MAP, SORT_KEYS, SEARCH_KEYS, getSteps } from "../algorithms";
 import { randomArray } from "../utils/randomArray";
+import { useStepPlayer } from "./useStepPlayer.js";
 
 export function useVisualizer() {
   const [category, setCategoryState] = useState("sorting");
@@ -9,15 +10,10 @@ export function useVisualizer() {
   const [array, setArray] = useState(() => randomArray(18));
   const [target, setTarget] = useState(null);
   const [customInput, setCustomInput] = useState("");
-  const [stepIdx, setStepIdx] = useState(0);
-  const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(60); // 1-100, higher = faster
-  const intervalRef = useRef(null);
 
   const meta = ALGO_MAP[algo];
 
   const steps = useMemo(() => {
-    setPlaying(false);
     if (meta.category === "searching") {
       const t = target === null ? array[Math.floor(Math.random() * array.length)] : target;
       return getSteps(algo, array, t);
@@ -26,46 +22,35 @@ export function useVisualizer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [algo, array, target]);
 
-  useEffect(() => {
-    setStepIdx(0);
-  }, [steps]);
+  const player = useStepPlayer(steps.length);
+  const { setStepIdx, setPlaying, pause } = player;
 
+  // A new run (algorithm, array or target change) rewinds to the start.
   useEffect(() => {
-    if (playing) {
-      const delay = 620 - speed * 5.5;
-      intervalRef.current = setInterval(() => {
-        setStepIdx((prev) => {
-          if (prev >= steps.length - 1) {
-            setPlaying(false);
-            return prev;
-          }
-          return prev + 1;
-        });
-      }, Math.max(30, delay));
-    }
-    return () => clearInterval(intervalRef.current);
-  }, [playing, speed, steps]);
+    setPlaying(false);
+    setStepIdx(0);
+  }, [steps, setPlaying, setStepIdx]);
 
   const switchCategory = useCallback(
     (cat) => {
       setCategoryState(cat);
-      setPlaying(false);
+      pause();
       const first = cat === "sorting" ? SORT_KEYS[0] : SEARCH_KEYS[0];
       setAlgo(first);
       if (cat === "searching") setTarget(array[Math.floor(Math.random() * array.length)]);
     },
-    [array]
+    [array, pause]
   );
 
   const switchAlgo = useCallback(
     (key) => {
-      setPlaying(false);
+      pause();
       setAlgo(key);
       if (ALGO_MAP[key].category === "searching") {
         setTarget(array[Math.floor(Math.random() * array.length)]);
       }
     },
-    [array]
+    [array, pause]
   );
 
   const handleShuffle = useCallback(() => {
@@ -100,30 +85,19 @@ export function useVisualizer() {
 
   const setRandomTarget = useCallback(
     (inArray) => {
-      const arr = steps[Math.min(stepIdx, steps.length - 1)]?.array || array;
+      const arr = steps[Math.min(player.stepIdx, steps.length - 1)]?.array || array;
       if (inArray) setTarget(arr[Math.floor(Math.random() * arr.length)]);
       else setTarget(Math.max(...arr) + Math.floor(Math.random() * 20) + 1);
     },
-    [array, steps, stepIdx]
+    [array, steps, player.stepIdx]
   );
 
-  const togglePlay = useCallback(() => {
-    setPlaying((p) => {
-      const atEnd = stepIdx >= steps.length - 1;
-      if (atEnd) {
-        setStepIdx(0);
-        return true;
-      }
-      return !p;
-    });
-  }, [stepIdx, steps.length]);
-
-  const step = steps[Math.min(stepIdx, steps.length - 1)] || {};
+  const step = steps[Math.min(player.stepIdx, steps.length - 1)] || {};
   const displayArr = step.array || array;
   const maxVal = Math.max(...displayArr, 1);
-  const atEnd = stepIdx >= steps.length - 1;
 
   return {
+    ...player,
     category,
     algo,
     meta,
@@ -132,22 +106,15 @@ export function useVisualizer() {
     target,
     customInput,
     setCustomInput,
-    stepIdx,
-    setStepIdx,
-    playing,
-    speed,
-    setSpeed,
     steps,
     step,
     displayArr,
     maxVal,
-    atEnd,
     switchCategory,
     switchAlgo,
     handleShuffle,
     handleSizeChange,
     applyCustomArray,
     setRandomTarget,
-    togglePlay,
   };
 }

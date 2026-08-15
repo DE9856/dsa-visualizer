@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { nextId } from "../dataStructures/linkedList/nodeId";
 import { parseValueList } from "../dataStructures/linkedList/helpers";
 import { STACK_OP_MAP } from "../dataStructures/stack";
+import { useStepPlayer } from "./useStepPlayer.js";
 
 function randomStack(size) {
   return Array.from({ length: size }, () => ({ id: nextId(), value: Math.floor(Math.random() * 90) + 10 }));
@@ -15,10 +16,9 @@ export function useStack() {
   const [valueInput, setValueInput] = useState("42");
   const [customInput, setCustomInput] = useState("");
   const [steps, setSteps] = useState([{ ...EMPTY_STEP, nodes: [] }]);
-  const [stepIdx, setStepIdx] = useState(0);
-  const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(60);
-  const intervalRef = useRef(null);
+
+  const player = useStepPlayer(steps.length);
+  const { setStepIdx, setPlaying, stepIdx } = player;
 
   const opMeta = STACK_OP_MAP[operation];
 
@@ -27,22 +27,6 @@ export function useStack() {
     setStepIdx(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    if (playing) {
-      const delay = 720 - speed * 6;
-      intervalRef.current = setInterval(() => {
-        setStepIdx((prev) => {
-          if (prev >= steps.length - 1) {
-            setPlaying(false);
-            return prev;
-          }
-          return prev + 1;
-        });
-      }, Math.max(40, delay));
-    }
-    return () => clearInterval(intervalRef.current);
-  }, [playing, speed, steps]);
 
   const runOperation = useCallback(() => {
     const params = { value: parseInt(valueInput, 10) || 0 };
@@ -70,21 +54,10 @@ export function useStack() {
     setPlaying(false);
   }, []);
 
-  const togglePlay = useCallback(() => {
-    setPlaying((p) => {
-      const atEnd = stepIdx >= steps.length - 1;
-      if (atEnd) {
-        setStepIdx(0);
-        return true;
-      }
-      return !p;
-    });
-  }, [stepIdx, steps.length]);
-
   const step = steps[Math.min(stepIdx, steps.length - 1)] || EMPTY_STEP;
-  const atEnd = stepIdx >= steps.length - 1;
 
   return {
+    ...player,
     stack,
     operation,
     setOperation,
@@ -97,13 +70,6 @@ export function useStack() {
     shuffle,
     steps,
     step,
-    stepIdx,
-    setStepIdx,
-    playing,
-    speed,
-    setSpeed,
-    atEnd,
     runOperation,
-    togglePlay,
   };
 }

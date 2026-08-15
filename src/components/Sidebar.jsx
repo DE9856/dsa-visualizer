@@ -22,40 +22,49 @@ export default function Sidebar({
       <div className="label">ALGORITHMS</div>
       <div className="algo-list">
         {keys.map((key) => (
-          <div
+          <button
+            type="button"
             key={key}
             className={`algo-row ${algo === key ? "active" : ""}`}
             onClick={() => onAlgoChange(key)}
+            aria-pressed={algo === key}
           >
             {ALGO_MAP[key].label}
-          </div>
+          </button>
         ))}
       </div>
 
       <div className="sidebar__section">
-        <div className="label">ARRAY SIZE — {size}</div>
+        <label className="label" htmlFor="array-size">
+          ARRAY SIZE — {size}
+        </label>
         <input
+          id="array-size"
           type="range"
           min={6}
           max={40}
           value={size}
           onChange={(e) => onSizeChange(parseInt(e.target.value, 10))}
         />
-        <button className="btn" style={{ width: "100%", marginTop: 10 }} onClick={onShuffle}>
+        <button className="btn btn--block" onClick={onShuffle} title="New random array (S)">
           <Shuffle size={13} /> NEW ARRAY
         </button>
       </div>
 
       <div className="sidebar__section">
-        <div className="label">CUSTOM ARRAY</div>
+        <label className="label" htmlFor="custom-array">
+          CUSTOM ARRAY
+        </label>
         <input
+          id="custom-array"
           type="text"
           className="text-input"
           placeholder="5, 12, 3, 8..."
           value={customInput}
           onChange={(e) => setCustomInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && onApplyCustom()}
         />
-        <button className="btn" style={{ width: "100%", marginTop: 6 }} onClick={onApplyCustom}>
+        <button className="btn btn--block btn--tight" onClick={onApplyCustom}>
           APPLY
         </button>
       </div>

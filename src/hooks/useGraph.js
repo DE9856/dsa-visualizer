@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { GRAPH_OP_MAP } from "../dataStructures/graph";
+import { useStepPlayer } from "./useStepPlayer.js";
 import {
   parseEdgeList,
   buildGraphFromEdgeList,
@@ -29,10 +30,9 @@ export function useGraph() {
   const [buildError, setBuildError] = useState("");
 
   const [steps, setSteps] = useState([{ ...EMPTY_STEP }]);
-  const [stepIdx, setStepIdx] = useState(0);
-  const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(60);
-  const intervalRef = useRef(null);
+
+  const player = useStepPlayer(steps.length);
+  const { setStepIdx, setPlaying, stepIdx } = player;
 
   const opMeta = GRAPH_OP_MAP[operation];
 
@@ -41,22 +41,6 @@ export function useGraph() {
     setStepIdx(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    if (playing) {
-      const delay = 720 - speed * 6;
-      intervalRef.current = setInterval(() => {
-        setStepIdx((prev) => {
-          if (prev >= steps.length - 1) {
-            setPlaying(false);
-            return prev;
-          }
-          return prev + 1;
-        });
-      }, Math.max(40, delay));
-    }
-    return () => clearInterval(intervalRef.current);
-  }, [playing, speed, steps]);
 
   // Keep the vertex selects pointed at real vertices whenever the graph changes.
   useEffect(() => {
@@ -149,21 +133,10 @@ export function useGraph() {
     setPlaying(false);
   }, []);
 
-  const togglePlay = useCallback(() => {
-    setPlaying((p) => {
-      const atEnd = stepIdx >= steps.length - 1;
-      if (atEnd) {
-        setStepIdx(0);
-        return true;
-      }
-      return !p;
-    });
-  }, [stepIdx, steps.length]);
-
   const step = steps[Math.min(stepIdx, steps.length - 1)] || EMPTY_STEP;
-  const atEnd = stepIdx >= steps.length - 1;
 
   return {
+    ...player,
     graph,
     representation,
     setRepresentation,
@@ -196,14 +169,7 @@ export function useGraph() {
     shuffle,
     steps,
     step,
-    stepIdx,
-    setStepIdx,
-    playing,
-    speed,
-    setSpeed,
-    atEnd,
     runOperation,
-    togglePlay,
     createEdgeFromDrag,
   };
 }

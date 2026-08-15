@@ -12,10 +12,17 @@
   --red: #ff6b6b;
   --green: #5fd6a0;
   --purple: #b18cff;
+  /* Duration of step-driven animations. App.jsx overrides it from the current
+     playback speed so fast runs snap instead of smearing into each other. */
+  --step-anim: 240ms;
 }
 
 * {
   box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
@@ -23,6 +30,33 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: "IBM Plex Sans", sans-serif;
+  /* Keeps text edges crisp while panels animate over the gradient backdrop. */
+  -webkit-font-smoothing: antialiased;
+}
+
+/* A single, consistent keyboard focus ring — nothing was focusable-looking
+   before, which made the app unusable without a mouse. */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Respect the OS "reduce motion" setting: keep the app usable, drop the
+   decorative movement. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 .mono {
@@ -105,6 +139,8 @@ body {
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
+  /* fallback so a menu never pushes the page sideways */
+  max-width: calc(100vw - 32px);
   min-width: 180px;
   background: var(--panel);
   border: 1px solid var(--border-strong);
@@ -118,6 +154,13 @@ body {
   gap: 2px;
 }
 
+/* The right-most menu would otherwise open past the viewport edge and add a
+   horizontal scrollbar to the whole page. */
+.topbar__dropdown:last-child .topbar__menu {
+  left: auto;
+  right: 0;
+}
+
 .topbar__menu-item {
   font-family: "JetBrains Mono", monospace;
   font-size: 12px;
@@ -126,6 +169,11 @@ body {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s ease;
+  /* rendered as a <button> so it is reachable by keyboard */
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
 }
 
 .topbar__menu-item:hover {
@@ -184,9 +232,18 @@ body {
   gap: 6px;
 }
 
-.btn:hover {
+.btn:hover:not(:disabled) {
   color: var(--text);
   background: rgba(255, 255, 255, 0.06);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .btn.active {
@@ -205,6 +262,19 @@ body {
   border: 1px solid rgba(255, 138, 61, 0.4);
   color: var(--primary);
   border-radius: 10px;
+}
+
+.btn--block {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.btn--block-flat {
+  width: 100%;
+}
+
+.btn--tight {
+  margin-top: 6px;
 }
 
 input[type="range"] {
@@ -242,6 +312,7 @@ input[type="range"] {
 }
 
 .label {
+  display: block;
   font-family: "JetBrains Mono", monospace;
   font-size: 11px;
   letter-spacing: 0.04em;
@@ -294,6 +365,11 @@ input[type="range"] {
   border-radius: 6px;
   user-select: none;
   transition: background 0.15s ease;
+  /* rendered as a <button> so it is reachable by keyboard */
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
 }
 
 .algo-group__header:hover {
@@ -337,6 +413,11 @@ input[type="range"] {
   justify-content: space-between;
   cursor: pointer;
   transition: all 0.15s ease;
+  /* rendered as a <button> so it is reachable by keyboard */
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
 }
 
 .algo-row:hover {
@@ -350,7 +431,7 @@ input[type="range"] {
 }
 
 .sidebar__section {
-  margin-top: 22px;
+  margin: 22px 0 0;
   padding-top: 18px;
   border-top: 1px solid var(--border);
 }
@@ -407,8 +488,9 @@ input[type="range"] {
   min-width: 2px;
   border-radius: 4px 4px 2px 2px;
   position: relative;
-  transition: height 0.28s ease, background-color 0.18s ease, transform 0.18s ease,
-    border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: height var(--step-anim) cubic-bezier(0.4, 0, 0.2, 1),
+    background-color var(--step-anim) ease, transform var(--step-anim) ease,
+    border-color var(--step-anim) ease, box-shadow var(--step-anim) ease;
 }
 
 .bar.swap {
@@ -448,6 +530,12 @@ input[type="range"] {
 .controls {
   padding: 14px 16px;
   display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.controls__row {
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 18px;
@@ -464,12 +552,139 @@ input[type="range"] {
   align-items: center;
   gap: 10px;
   flex: 1;
-  min-width: 140px;
+  min-width: 160px;
+  cursor: pointer;
 }
 
 .controls__speed .label {
   margin-bottom: 0;
   white-space: nowrap;
+}
+
+.controls__rate {
+  min-width: 42px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.controls__step {
+  white-space: nowrap;
+}
+
+.controls__help-btn {
+  margin-left: auto;
+}
+
+/* ---------- timeline scrubber ---------- */
+
+.timeline {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.timeline__range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 18px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.timeline__range:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.timeline__range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--primary) 0%,
+    var(--primary) var(--progress, 0%),
+    rgba(255, 255, 255, 0.08) var(--progress, 0%),
+    rgba(255, 255, 255, 0.08) 100%
+  );
+}
+
+.timeline__range::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.timeline__range::-moz-range-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--primary);
+}
+
+.timeline__range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -4px;
+  border-radius: 999px;
+  background: var(--text);
+  border: 2px solid var(--primary);
+  box-shadow: 0 0 10px rgba(255, 138, 61, 0.5);
+  transition: transform 0.12s ease;
+}
+
+.timeline__range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--text);
+  border: 2px solid var(--primary);
+  box-shadow: 0 0 10px rgba(255, 138, 61, 0.5);
+}
+
+.timeline__range:hover::-webkit-slider-thumb,
+.timeline__range:active::-webkit-slider-thumb {
+  transform: scale(1.18);
+}
+
+/* ---------- shortcut help ---------- */
+
+.controls__help {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  animation: help-in 0.18s ease both;
+}
+
+@keyframes help-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.controls__help-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.controls__help-item kbd {
+  font-size: 10.5px;
+  color: var(--text);
+  background: var(--panel-alt);
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  padding: 3px 7px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 62px;
+  text-align: center;
 }
 
 .lcd {
@@ -687,7 +902,7 @@ input[type="range"] {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.25s ease;
+  transition: all var(--step-anim) ease;
 }
 
 .ll-node--removing {
@@ -879,7 +1094,7 @@ input[type="range"] {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.25s ease;
+  transition: all var(--step-anim) ease;
 }
 
 .sq-slot--removing {
