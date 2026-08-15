@@ -1386,6 +1386,57 @@ input[type="range"] {
 
 
 
+/* ---------- share link ---------- */
+
+.share {
+  position: relative;
+}
+
+.topbar__share {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+/* Fallback for when the clipboard isn't available: the link, selected and
+   ready to copy by hand. */
+.share__manual {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: min(360px, 78vw);
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 14px 32px rgba(0, 0, 0, 0.4);
+}
+
+.share__manual .text-input {
+  font-size: 11px;
+}
+
+.topbar__nav-share {
+  height: 44px;
+  margin-bottom: 14px;
+  border: 1px solid rgba(255, 138, 61, 0.4);
+  border-radius: 12px;
+  color: var(--primary);
+  background: var(--primary-dim);
+}
+
+/* In the mobile menu the popover has no room to the side — sit it inline. */
+.topbar--mobile .share {
+  display: block;
+}
+
+.topbar--mobile .share__manual {
+  position: static;
+  width: auto;
+  margin-bottom: 6px;
+}
+
 /* ---------- topbar home click ---------- */
 
 .topbar__title--clickable {

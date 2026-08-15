@@ -13,10 +13,12 @@ const DEFAULT_SECOND_POLY = "2x + 1";
 
 const EMPTY_STEP = { nodes: [], message: "" };
 
-export function usePolynomial() {
-  const [list, setList] = useState(() => toNodes(parsePolynomial(DEFAULT_POLY)));
+/** `init` is the setup decoded from a shared link ({ poly }). */
+export function usePolynomial(init) {
+  const initialPoly = init?.poly || DEFAULT_POLY;
+  const [list, setList] = useState(() => toNodes(parsePolynomial(initialPoly)));
   const [operation, setOperation] = useState("addPoly");
-  const [polyInput, setPolyInput] = useState(DEFAULT_POLY);
+  const [polyInput, setPolyInput] = useState(initialPoly);
   const [secondPolyInput, setSecondPolyInput] = useState(DEFAULT_SECOND_POLY);
   const [xValueInput, setXValueInput] = useState("2");
   const [steps, setSteps] = useState([{ ...EMPTY_STEP, nodes: [] }]);

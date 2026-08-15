@@ -10,8 +10,11 @@ function randomQueue(size) {
 
 const EMPTY_STEP = { nodes: [], message: "" };
 
-export function useQueue() {
-  const [queue, setQueue] = useState(() => randomQueue(4));
+/** `init` is the setup decoded from a shared link ({ values }). */
+export function useQueue(init) {
+  const [queue, setQueue] = useState(() =>
+    init?.values ? init.values.map((value) => ({ id: nextId(), value })) : randomQueue(4)
+  );
   const [operation, setOperation] = useState("enqueue");
   const [valueInput, setValueInput] = useState("42");
   const [customInput, setCustomInput] = useState("");

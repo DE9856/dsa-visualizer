@@ -150,6 +150,23 @@ export function buildGraphFromAdjacencyList(entries, directed) {
   return { nodes, edges };
 }
 
+// Rebuilds a graph from an explicit vertex order plus an explicit edge order.
+// Unlike the text builders above, nothing is inferred: this is what a shared
+// link uses, so a graph comes back with its vertices and edges in exactly the
+// order it had. Edges naming an unknown vertex are skipped.
+export function buildGraphFromLabelsAndEdges(labels, edgeSpecs) {
+  const nodes = labels.map((label) => ({ id: nextVertexId(), label }));
+  const idByLabel = Object.fromEntries(nodes.map((n) => [n.label, n.id]));
+  const edges = [];
+  edgeSpecs.forEach(({ from, to, weight }) => {
+    const fromId = idByLabel[from];
+    const toId = idByLabel[to];
+    if (!fromId || !toId) return;
+    edges.push({ id: nextEdgeId(), from: fromId, to: toId, weight: weight || 1 });
+  });
+  return { nodes, edges };
+}
+
 // Parses adjacency-matrix text: one row per line, values separated by
 // whitespace or commas. Returns null if rows aren't a square numeric grid.
 export function parseAdjacencyMatrix(input) {

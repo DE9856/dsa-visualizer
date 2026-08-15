@@ -147,6 +147,21 @@ Shortcuts are ignored while you're typing in a field. Full details in [DOCS.md](
 
 ---
 
+## 🔗 Sharing
+
+The address bar always holds a link to what's on screen, and **SHARE** in the top bar
+copies it. Open a link and you land straight in the visualizer with the data loaded:
+
+```
+#v=tree&type=avl&a=30,20,10,25,40,50
+#v=graph&w=1&g=A,B,C,D&e=A-B(5),B-C(2),C-D(7),A-D
+```
+
+Custom arrays, lists, stacks, queues, trees, graphs and polynomials all round-trip
+exactly. See [DOCS.md](DOCS.md#sharing-a-setup) for the full format.
+
+---
+
 ## 📱 On a phone
 
 The app is built for small screens too, not just scaled down for them. Below 760px the

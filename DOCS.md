@@ -130,6 +130,42 @@ Every view shares the same transport bar:
 Animation duration follows the speed setting, so fast runs snap crisply instead of
 smearing steps into one another.
 
+### Sharing a setup
+
+The address bar always holds a link to whatever is on screen — the topic, the
+algorithm, and the data itself. **SHARE** in the top bar (or at the top of the ☰ menu
+on a phone) copies it. Opening that link goes straight to the visualizer with the data
+loaded, skipping the boot and category screens.
+
+| Topic | Link |
+| --- | --- |
+| Sorting | `#v=sorting&algo=quick&a=9,4,7,1,3,8` |
+| Searching | `#v=searching&algo=binary&a=10,20,30,40,50&t=40` |
+| Linked list | `#v=linkedlist&type=doubly&a=5,12,3,44` |
+| Stack / queue | `#v=stack&a=7,8,9` |
+| Tree | `#v=tree&type=avl&a=30,20,10,25,40,50` |
+| 2-3 tree | `#v=twothree&a=12,5,30,3,8,21,44` |
+| Graph | `#v=graph&w=1&g=A,B,C,D&e=A-B(5),B-C(2),C-D(7),A-D` |
+| Polynomial | `#v=polynomial&p=6x^4 - 2x^2 + 9` |
+
+The values are the same text the sidebar's custom-data boxes take, so links stay
+readable and can be written by hand. Trees are listed in the order that rebuilds them
+(preorder for BST/AVL, level order for a plain binary tree), and a graph carries its
+vertices and edges separately so both keep their order. Everything round-trips exactly,
+including tree shape.
+
+Some details are deliberately not in the link: playback position, speed, which
+operation is selected, and half-typed text in the sidebar. The link is the *data*, not
+the session.
+
+The hash is written with `replaceState`, so it keeps up with your edits without filling
+browser history — but it's read only once, on load. Editing it by hand needs a reload,
+and the back button leaves the app rather than stepping through past states.
+
+Anything unrecognised in a link is ignored and falls back to the default: an unknown
+algorithm, a bad tree type, non-numeric values, or an edge naming a vertex that doesn't
+exist. A link can only ever produce a setup the app could have built itself.
+
 ### Live pseudocode
 
 On the sorting and searching views the pseudocode panel highlights the line the current
@@ -318,6 +354,7 @@ src/
 │
 ├── data/                   category metadata and long-form topic write-ups
 ├── utils/
+│   └── urlState.js         encodes/decodes the shareable link
 ├── App.jsx                 stage + view routing, wires the active player
 ├── main.jsx
 └── index.css               the whole stylesheet

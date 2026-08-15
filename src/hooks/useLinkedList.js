@@ -10,9 +10,12 @@ function randomList(size) {
 
 const EMPTY_STEP = { nodes: [], message: "" };
 
-export function useLinkedList() {
-  const [list, setList] = useState(() => randomList(5));
-  const [listType, setListType] = useState("singly"); // singly | doubly | circular
+/** `init` is the setup decoded from a shared link ({ values, listType }). */
+export function useLinkedList(init) {
+  const [list, setList] = useState(() =>
+    init?.values ? init.values.map((value) => ({ id: nextId(), value })) : randomList(5)
+  );
+  const [listType, setListType] = useState(init?.listType ?? "singly"); // singly | doubly | circular
   const [operation, setOperation] = useState("insertHead");
   const [valueInput, setValueInput] = useState("42");
   const [positionInput, setPositionInput] = useState("0");

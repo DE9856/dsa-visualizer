@@ -5,8 +5,11 @@ import { useStepPlayer } from "./useStepPlayer.js";
 
 const EMPTY_STEP = { root: null, message: "" };
 
-export function useTwoThreeTree() {
-  const [tree, setTree] = useState(() => randomTree());
+/** `init` is the setup decoded from a shared link ({ values }). */
+export function useTwoThreeTree(init) {
+  const [tree, setTree] = useState(() =>
+    init?.values ? buildTreeFromValues(init.values) : randomTree()
+  );
 
   const [operation, setOperation] = useState("insert");
   const [valueInput, setValueInput] = useState("");

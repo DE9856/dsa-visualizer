@@ -13,6 +13,15 @@ Usability and playback-smoothness pass across every visualizer.
 
 ### Added
 
+- **Shareable links.** The address bar tracks the topic, algorithm and data on screen,
+  and a **SHARE** button copies the link; opening one goes straight to the visualizer with
+  that data loaded. Custom arrays, lists, stacks, queues, trees, 2-3 trees, graphs and
+  polynomials all round-trip exactly, tree shape included — trees are written in the order
+  that rebuilds them, and a graph carries its vertices and edges separately so both keep
+  their order. New `src/utils/urlState.js`; each view hook now takes an optional `init`.
+  Written with `replaceState`, so it doesn't fill browser history, and read once on load.
+  Anything unrecognised in a link falls back to the default, so a hand-edited link can only
+  produce a setup the app could have built itself.
 - **Live pseudocode.** Every sorting/searching frame now carries a `line` index into its
   algorithm's `pseudocode`, and `InfoPanel` highlights that line as the run plays, steps or
   scrubs. A finished run reports `null` and highlights nothing. Each algorithm declares its

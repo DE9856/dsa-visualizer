@@ -10,8 +10,11 @@ function randomStack(size) {
 
 const EMPTY_STEP = { nodes: [], message: "" };
 
-export function useStack() {
-  const [stack, setStack] = useState(() => randomStack(4));
+/** `init` is the setup decoded from a shared link ({ values }). */
+export function useStack(init) {
+  const [stack, setStack] = useState(() =>
+    init?.values ? init.values.map((value) => ({ id: nextId(), value })) : randomStack(4)
+  );
   const [operation, setOperation] = useState("push");
   const [valueInput, setValueInput] = useState("42");
   const [customInput, setCustomInput] = useState("");

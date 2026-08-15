@@ -3,12 +3,25 @@ import { ALGO_MAP, SORT_KEYS, SEARCH_KEYS, getSteps } from "../algorithms";
 import { randomArray } from "../utils/randomArray";
 import { useStepPlayer } from "./useStepPlayer.js";
 
-export function useVisualizer() {
-  const [category, setCategoryState] = useState("sorting");
-  const [algo, setAlgo] = useState("bubble");
-  const [size, setSize] = useState(18);
-  const [array, setArray] = useState(() => randomArray(18));
-  const [target, setTarget] = useState(null);
+/**
+ * `init` is the setup decoded from a shared link ({ view, algo, values,
+ * target }); anything missing or unrecognised falls back to the defaults.
+ */
+export function useVisualizer(init) {
+  const initialCategory = init?.view === "searching" ? "searching" : "sorting";
+  // A link can name any algorithm; only honour one the registry actually has.
+  const initialAlgo =
+    init?.algo && ALGO_MAP[init.algo]?.category === initialCategory
+      ? init.algo
+      : initialCategory === "searching"
+        ? SEARCH_KEYS[0]
+        : SORT_KEYS[0];
+
+  const [category, setCategoryState] = useState(initialCategory);
+  const [algo, setAlgo] = useState(initialAlgo);
+  const [size, setSize] = useState(init?.values?.length ?? 18);
+  const [array, setArray] = useState(() => init?.values ?? randomArray(18));
+  const [target, setTarget] = useState(init?.target ?? null);
   const [customInput, setCustomInput] = useState("");
 
   const meta = ALGO_MAP[algo];

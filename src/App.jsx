@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import BootScreen from "./components/BootScreen.jsx";
 import CategoryLanding from "./components/CategoryLanding.jsx";
 import TopBar from "./components/TopBar.jsx";
@@ -35,19 +35,25 @@ import { useTree } from "./hooks/useTree.js";
 import { useTwoThreeTree } from "./hooks/useTwoThreeTree.js";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts.js";
 import { delayForSpeed } from "./hooks/useStepPlayer.js";
+import { readSharedState, shareHashFor, replaceHash, buildShareUrl } from "./utils/urlState.js";
 
 export default function App() {
-  const [stage, setStage] = useState("boot"); // "boot" | "select" | "app"
-  const [view, setView] = useState("sorting");
+  // A shared link carries a topic and its data. Read once, on mount: it seeds
+  // the hooks below, so it can't be re-read later without remounting.
+  const shared = useMemo(() => readSharedState(), []);
+  const initFor = (name) => (shared?.view === name ? shared : null);
+
+  const [stage, setStage] = useState(shared ? "app" : "boot");
+  const [view, setView] = useState(shared?.view ?? "sorting");
   const [showHelp, setShowHelp] = useState(false);
-  const v = useVisualizer();
-  const ll = useLinkedList();
-  const poly = usePolynomial();
-  const st = useStack();
-  const q = useQueue();
-  const gr = useGraph();
-  const tr = useTree();
-  const tt = useTwoThreeTree();
+  const v = useVisualizer(initFor("sorting") || initFor("searching"));
+  const ll = useLinkedList(initFor("linkedlist"));
+  const poly = usePolynomial(initFor("polynomial"));
+  const st = useStack(initFor("stack"));
+  const q = useQueue(initFor("queue"));
+  const gr = useGraph(initFor("graph"));
+  const tr = useTree(initFor("tree"));
+  const tt = useTwoThreeTree(initFor("twothree"));
 
   // The player driving whatever view is on screen — one source for the
   // transport bar, the timeline and the keyboard shortcuts.
@@ -94,6 +100,15 @@ export default function App() {
     atEnd: active.stepIdx >= active.steps.length - 1,
   };
 
+  // The address bar tracks the data on screen, so the link is always ready to
+  // copy. Only committed data is encoded — never half-typed sidebar text.
+  const shareHash = shareHashFor(view, { v, ll, poly, st, q, gr, tr, tt });
+  const shareUrl = buildShareUrl(shareHash);
+
+  useEffect(() => {
+    if (stage === "app") replaceHash(shareHash);
+  }, [stage, shareHash]);
+
   useKeyboardShortcuts({
     enabled: stage === "app",
     onTogglePlay: active.togglePlay,
@@ -126,7 +141,12 @@ export default function App() {
 
   return (
     <div className="app" style={{ "--step-anim": `${stepAnim}ms` }}>
-      <TopBar category={view} onCategoryChange={handleViewChange} onGoHome={() => setStage("select")} />
+      <TopBar
+        category={view}
+        onCategoryChange={handleViewChange}
+        onGoHome={() => setStage("select")}
+        shareUrl={shareUrl}
+      />
 
       {view === "linkedlist" ? (
         <Workspace

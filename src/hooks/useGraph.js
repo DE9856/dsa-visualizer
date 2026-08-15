@@ -8,16 +8,24 @@ import {
   buildGraphFromAdjacencyList,
   parseAdjacencyMatrix,
   buildGraphFromAdjacencyMatrix,
+  buildGraphFromLabelsAndEdges,
   randomGraph,
 } from "../dataStructures/graph/helpers";
 
 const EMPTY_STEP = { nodes: [], edges: [], message: "" };
 
-export function useGraph() {
-  const [graph, setGraph] = useState(() => randomGraph());
+/**
+ * `init` is the setup decoded from a shared link ({ vertices, edges, directed,
+ * weighted }) — an explicit vertex and edge order, so the graph comes back
+ * laid out exactly as it was shared.
+ */
+export function useGraph(init) {
+  const [graph, setGraph] = useState(() =>
+    init?.vertices ? buildGraphFromLabelsAndEdges(init.vertices, init.edges) : randomGraph()
+  );
   const [representation, setRepresentation] = useState("list");
-  const [directed, setDirected] = useState(false);
-  const [weighted, setWeighted] = useState(false);
+  const [directed, setDirected] = useState(init?.directed ?? false);
+  const [weighted, setWeighted] = useState(init?.weighted ?? false);
 
   const [operation, setOperation] = useState("addVertex");
   const [vertexLabelInput, setVertexLabelInput] = useState("");

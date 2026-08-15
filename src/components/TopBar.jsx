@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Menu, X, Home } from "lucide-react";
 import { CATEGORIES } from "../data/categories.js";
 import { useIsMobile } from "../hooks/useMediaQuery.js";
+import ShareButton from "./ShareButton.jsx";
 
-export default function TopBar({ category, onCategoryChange, onGoHome }) {
+export default function TopBar({ category, onCategoryChange, onGoHome, shareUrl }) {
   const [openMenu, setOpenMenu] = useState(null);
   const [navOpen, setNavOpen] = useState(false);
   const rootRef = useRef(null);
@@ -73,6 +74,12 @@ export default function TopBar({ category, onCategoryChange, onGoHome }) {
           <>
             <button className="sheet__backdrop" onClick={() => setNavOpen(false)} aria-label="Close menu" />
             <nav className="topbar__nav-sheet" aria-label="Topics">
+              {/* Actions first — the topic list below is long enough to bury
+                  anything that sits under it. */}
+              {shareUrl && (
+                <ShareButton url={shareUrl} label="SHARE THIS SETUP" className="btn--block-flat topbar__nav-share" />
+              )}
+
               {CATEGORIES.map((cat) => (
                 <div className="topbar__nav-group" key={cat.key} style={{ "--accent": cat.accent }}>
                   <div className="topbar__nav-label mono">{cat.label}</div>
@@ -157,6 +164,7 @@ export default function TopBar({ category, onCategoryChange, onGoHome }) {
           );
         })}
       </div>
+      {shareUrl && <ShareButton url={shareUrl} className="topbar__share" />}
     </div>
   );
 }
