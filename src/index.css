@@ -32,6 +32,20 @@ body {
   font-family: "IBM Plex Sans", sans-serif;
   /* Keeps text edges crisp while panels animate over the gradient backdrop. */
   -webkit-font-smoothing: antialiased;
+  /* A phone must never be able to scroll sideways: every wide element
+     (matrices, trees) gets its own scroll container instead. */
+  overflow-x: hidden;
+  /* Stops iOS from inflating text when the device is turned to landscape. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Grey flash on tap looks broken next to the app's own :active states. */
+button,
+a,
+summary {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 /* A single, consistent keyboard focus ring — nothing was focusable-looking
@@ -67,6 +81,8 @@ body {
 
 .app {
   min-height: 100vh;
+  /* Dynamic viewport units account for the mobile URL bar sliding away. */
+  min-height: 100dvh;
   padding: 28px;
   background:
     radial-gradient(circle at 15% -10%, rgba(255, 138, 61, 0.10), transparent 45%),
@@ -195,6 +211,17 @@ body {
 @media (max-width: 900px) {
   .layout {
     flex-direction: column;
+    /* Without this the flex-start alignment above shrinks the stacked
+       columns to their content width instead of filling the screen. */
+    align-items: stretch;
+  }
+
+  /* Stacked, the visualization goes first — otherwise the sidebar pushes
+     the thing you came to watch below the fold. (On a phone the sidebar
+     leaves the flow entirely; this covers large phones in landscape and
+     small tablets, where the two columns simply stack.) */
+  .layout > .main-col {
+    order: -1;
   }
 }
 
@@ -1359,6 +1386,7 @@ input[type="range"] {
 
 .boot {
   min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
   display: flex;
   align-items: center;
@@ -1525,6 +1553,7 @@ input[type="range"] {
 
 .landing {
   min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
   padding: 60px 28px;
   display: flex;
@@ -1663,5 +1692,577 @@ input[type="range"] {
 @media (max-width: 560px) {
   .landing__item-desc {
     display: none;
+  }
+}
+
+/* =====================================================================
+   PHONE LAYOUT
+
+   The desktop view is a two-column workspace. On a phone (<= 760px, the
+   same breakpoint useMediaQuery watches) the sidebar moves into a bottom
+   sheet, the visualization gets the whole screen, and the controls you
+   reach for most sit in a fixed action bar inside thumb range.
+   ===================================================================== */
+
+/* Wide diagrams (trees, matrices) scroll inside their own panel so the
+   page itself never scrolls sideways. */
+.canvas-scroll {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* A tree laid out at its natural size instead of squeezed to fit. */
+.graph-svg--fixed {
+  width: auto;
+  height: auto;
+  max-width: none;
+  display: block;
+}
+
+/* Vertices are tapped, not dragged, in the phone layout. */
+.graph-svg--portrait .graph-node {
+  cursor: pointer;
+}
+
+/* The graph's ring of vertices goes tall-and-narrow on a phone. */
+.graph-svg--portrait {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 33 / 37;
+  max-height: 62dvh;
+}
+
+/* ---------- bottom sheet (mobile sidebar) ---------- */
+
+.sheet__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  padding: 0;
+  border: none;
+  background: rgba(6, 7, 10, 0.62);
+  backdrop-filter: blur(2px);
+  animation: sheet-fade 0.2s ease both;
+}
+
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  /* Capped so a slice of the canvas stays visible: picking an algorithm
+     updates the visualization behind the sheet, and you can see it. */
+  max-height: 74dvh;
+  background: rgba(17, 20, 27, 0.97);
+  border-top: 1px solid var(--border-strong);
+  border-radius: 20px 20px 0 0;
+  backdrop-filter: blur(18px);
+  box-shadow: 0 -16px 44px rgba(0, 0, 0, 0.55);
+  padding-bottom: env(safe-area-inset-bottom);
+  animation: sheet-up 0.24s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes sheet-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.sheet__head {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px 14px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sheet__grip {
+  position: absolute;
+  top: 7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 38px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border-strong);
+}
+
+.sheet__title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+}
+
+.sheet__body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 14px 14px 20px;
+}
+
+/* The sidebar is already a panel; inside the sheet it is just content. */
+.sheet__body .sidebar {
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+/* ---------- fixed action bar ---------- */
+
+.actionbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px calc(9px + env(safe-area-inset-bottom));
+  background: rgba(13, 15, 21, 0.94);
+  border-top: 1px solid var(--border);
+  backdrop-filter: blur(16px);
+}
+
+.actionbar .btn.icon {
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  flex-shrink: 0;
+  border-radius: 12px;
+}
+
+.actionbar__play {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.actionbar__main {
+  flex: 1;
+  height: 46px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--primary);
+  background: var(--primary-dim);
+  border: 1px solid rgba(255, 138, 61, 0.4);
+}
+
+/* ---------- mobile top bar ---------- */
+
+/* Layering, from the back: page content, the top bar (40), a sheet backdrop
+   (55), the sheet itself (60). The top bar sits *below* the backdrop on
+   purpose — while the operations sheet is open, tapping where the menu
+   button is just dismisses the sheet instead of opening a second panel on
+   top of it. The bar's own controls are lifted back above its own backdrop
+   further down. */
+.topbar--mobile {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin: -12px -12px 12px;
+  padding: calc(10px + env(safe-area-inset-top)) 12px 10px;
+  background: rgba(11, 13, 18, 0.88);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Above the nav sheet and its backdrop, so the title and the close button
+   stay legible and tappable while the menu is open. */
+.topbar--mobile .topbar__title,
+.topbar--mobile > .btn {
+  position: relative;
+  z-index: 57;
+}
+
+.topbar--mobile .topbar__title {
+  min-width: 0;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.topbar--mobile .topbar__title h1 {
+  font-size: 15px;
+}
+
+.topbar__now {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--primary);
+  background: var(--primary-dim);
+  border: 1px solid rgba(255, 138, 61, 0.35);
+  border-radius: 999px;
+  padding: 3px 9px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar__nav-sheet {
+  position: absolute;
+  top: calc(100% + 1px);
+  left: 0;
+  right: 0;
+  z-index: 56;
+  max-height: 74dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 14px;
+  background: rgba(17, 20, 27, 0.97);
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--border-strong);
+  border-radius: 0 0 18px 18px;
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.55);
+  animation: nav-down 0.22s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+@keyframes nav-down {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.topbar__nav-group {
+  margin-bottom: 14px;
+}
+
+.topbar__nav-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--accent, var(--text-dim));
+  margin: 0 0 7px 2px;
+}
+
+.topbar__nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: 11px 12px;
+  margin-bottom: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.topbar__nav-item.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.topbar__nav-item-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.topbar__nav-item-desc {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-dim);
+}
+
+.topbar__nav-home {
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+}
+
+/* ---------- phone-sized adjustments ---------- */
+
+@media (max-width: 760px) {
+  .app {
+    padding: 12px 12px 0;
+  }
+
+  .layout {
+    gap: 12px;
+  }
+
+  .main-col {
+    gap: 12px;
+  }
+
+  /* Room for the fixed action bar at the bottom of the scroll. */
+  .layout--mobile .main-col {
+    padding-bottom: calc(74px + env(safe-area-inset-bottom));
+  }
+
+  .panel {
+    border-radius: 12px;
+  }
+
+  /* canvases — only the bar chart has a fixed height; the structure views
+     grow with their content and must keep `height: auto`, or this rule
+     clips them. */
+  .canvas {
+    height: clamp(190px, 34dvh, 300px);
+    padding: 20px 10px 14px;
+  }
+
+  .ll-canvas,
+  .sq-canvas,
+  .graph-canvas {
+    height: auto;
+  }
+
+  .bars {
+    gap: 2px;
+  }
+
+  .bar__value {
+    font-size: 9px;
+    top: -17px;
+  }
+
+  .ll-canvas {
+    padding: 28px 12px 14px;
+    min-height: 190px;
+  }
+
+  .ll-row {
+    row-gap: 30px;
+  }
+
+  .ll-arrow {
+    padding: 0 6px;
+    font-size: 16px;
+  }
+
+  .ll-node {
+    width: 48px;
+    height: 48px;
+  }
+
+  .ll-node__value,
+  .sq-slot__value {
+    font-size: 14px;
+  }
+
+  .sq-canvas {
+    min-height: 250px;
+    padding: 20px 12px 14px;
+  }
+
+  .sq-slot {
+    width: 56px;
+    height: 44px;
+  }
+
+  .graph-canvas {
+    min-height: 0;
+    padding: 14px 12px 12px;
+  }
+
+  .graph-repr {
+    padding: 14px 12px;
+  }
+
+  .canvas__note {
+    font-size: 9.5px;
+  }
+
+  /* transport: buttons on one row, slider on the next, read-outs last */
+  .controls {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .controls__row {
+    gap: 10px 14px;
+  }
+
+  .controls__transport {
+    flex: 1 0 100%;
+    justify-content: space-between;
+  }
+
+  .controls__speed {
+    flex: 1 0 100%;
+    min-width: 0;
+  }
+
+  .controls__step {
+    flex: 0 0 auto;
+  }
+
+  .metrics {
+    flex: 1;
+    justify-content: flex-end;
+    gap: 14px;
+  }
+
+  /* No physical keyboard to explain. */
+  .controls__help-btn {
+    display: none;
+  }
+
+  /* info + topic panels */
+  .info {
+    padding: 14px;
+    gap: 14px;
+  }
+
+  .info__summary,
+  .info__code {
+    flex-basis: 100%;
+    min-width: 0;
+  }
+
+  .info__code {
+    padding: 12px;
+    overflow-x: auto;
+  }
+
+  .info__code-line {
+    font-size: 11.5px;
+  }
+
+  .info__desc {
+    font-size: 12.5px;
+  }
+
+  .topic-panel {
+    padding: 14px;
+  }
+
+  /* landing */
+  .landing {
+    padding: 34px 14px calc(28px + env(safe-area-inset-bottom));
+  }
+
+  .landing__header {
+    margin-bottom: 26px;
+  }
+
+  .landing__title {
+    font-size: 22px;
+  }
+
+  .landing__subtitle {
+    font-size: 12px;
+  }
+
+  .landing__grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .landing__card {
+    padding: 16px;
+    border-radius: 14px;
+  }
+
+  .landing__card-blurb {
+    min-height: 0;
+    margin-bottom: 12px;
+  }
+
+  /* boot */
+  .boot__title {
+    font-size: 21px;
+  }
+
+  .boot__console {
+    font-size: 10.5px;
+    line-height: 1.75;
+    min-height: 116px;
+    padding: 12px;
+  }
+
+  .boot__enter {
+    margin-top: 22px;
+    padding: 14px 30px;
+  }
+}
+
+/* ---------- touch targets ----------
+   Applies to any coarse pointer (phone or tablet), independent of width:
+   a 12px pill is fine under a cursor and much too small under a thumb. */
+
+@media (pointer: coarse) {
+  .btn {
+    padding: 10px 16px;
+    font-size: 12.5px;
+  }
+
+  .btn.icon {
+    padding: 12px;
+  }
+
+  .type-toggle .btn {
+    padding: 11px 6px;
+    font-size: 11.5px;
+  }
+
+  .algo-row {
+    padding: 12px 12px;
+    font-size: 13.5px;
+  }
+
+  .algo-group__header {
+    padding: 12px 10px;
+  }
+
+  .topbar__menu-item {
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  /* 16px is the threshold below which iOS Safari zooms in on focus. */
+  .text-input,
+  .textarea-input {
+    font-size: 16px;
+    padding: 11px 12px;
+  }
+
+  select.text-input {
+    height: 46px;
+  }
+
+  input[type="range"] {
+    height: 30px;
+  }
+
+  .timeline__range {
+    height: 32px;
+  }
+
+  .timeline__range::-webkit-slider-thumb {
+    width: 20px;
+    height: 20px;
+    margin-top: -7px;
+  }
+
+  .timeline__range::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
   }
 }

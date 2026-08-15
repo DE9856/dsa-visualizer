@@ -1,5 +1,6 @@
 import { Shuffle, Target } from "lucide-react";
 import { SORT_KEYS, SEARCH_KEYS, ALGO_MAP } from "../algorithms";
+import { useIsMobile } from "../hooks/useMediaQuery.js";
 
 export default function Sidebar({
   category,
@@ -16,10 +17,13 @@ export default function Sidebar({
   onRandomTarget,
 }) {
   const keys = category === "sorting" ? SORT_KEYS : SEARCH_KEYS;
+  // On a phone this sidebar only ever renders inside the sheet, whose header
+  // already reads ALGORITHMS — repeating it twice looks like a mistake.
+  const isMobile = useIsMobile();
 
   return (
     <div className="panel sidebar">
-      <div className="label">ALGORITHMS</div>
+      {!isMobile && <div className="label">ALGORITHMS</div>}
       <div className="algo-list">
         {keys.map((key) => (
           <button

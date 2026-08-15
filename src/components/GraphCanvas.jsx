@@ -1,40 +1,70 @@
 import { useRef, useState, useCallback } from "react";
+import { useIsMobile } from "../hooks/useMediaQuery.js";
 
-const WIDTH = 640;
-const HEIGHT = 300;
-const RADIUS = 22;
+// A phone is portrait, so the ring of vertices is laid out tall-and-narrow
+// there — the landscape viewBox would otherwise scale down to letterbox-sized
+// nodes on a 360px screen. rx/ry are given rather than derived so the phone's
+// ring can stretch into an ellipse that fills a portrait canvas, while the
+// desktop one stays circular.
+const DESKTOP_VIEW = { width: 640, height: 300, radius: 22, rx: 104, ry: 104 };
+const MOBILE_VIEW = { width: 330, height: 370, radius: 21, rx: 118, ry: 138 };
 
-function layout(nodes) {
-  const cx = WIDTH / 2;
-  const cy = HEIGHT / 2;
-  const r = Math.min(WIDTH, HEIGHT) / 2 - 46;
+function layout(nodes, { width, height, rx, ry }) {
+  const cx = width / 2;
+  const cy = height / 2;
   const n = nodes.length;
   return nodes.map((node, i) => {
     const angle = n > 0 ? (2 * Math.PI * i) / n - Math.PI / 2 : 0;
-    return { ...node, x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+    return { ...node, x: cx + rx * Math.cos(angle), y: cy + ry * Math.sin(angle) };
   });
 }
 
 export default function GraphCanvas({ step, directed, weighted, onCreateEdge }) {
+  const isMobile = useIsMobile();
+  const view = isMobile ? MOBILE_VIEW : DESKTOP_VIEW;
+  const { width: WIDTH, height: HEIGHT, radius: RADIUS } = view;
+
   const nodes = step.nodes || [];
   const edges = step.edges || [];
-  const positioned = layout(nodes);
+  const positioned = layout(nodes, view);
   const posById = Object.fromEntries(positioned.map((n) => [n.id, n]));
 
   const svgRef = useRef(null);
-  const [drag, setDrag] = useState(null); // { fromId, x, y }
+  const [drag, setDrag] = useState(null); // { fromId, x, y } — cursor only
+  const [linkFrom, setLinkFrom] = useState(null); // tap-to-connect, touch only
 
-  const toSvgPoint = useCallback((clientX, clientY) => {
-    const svg = svgRef.current;
-    const rect = svg.getBoundingClientRect();
-    return {
-      x: ((clientX - rect.left) / rect.width) * WIDTH,
-      y: ((clientY - rect.top) / rect.height) * HEIGHT,
-    };
-  }, []);
+  // A vertex that was tapped and then deleted must not stay armed.
+  const pendingLink = nodes.some((n) => n.id === linkFrom) ? linkFrom : null;
 
+  const toSvgPoint = useCallback(
+    (clientX, clientY) => {
+      const svg = svgRef.current;
+      const rect = svg.getBoundingClientRect();
+      return {
+        x: ((clientX - rect.left) / rect.width) * WIDTH,
+        y: ((clientY - rect.top) / rect.height) * HEIGHT,
+      };
+    },
+    [WIDTH, HEIGHT]
+  );
+
+  // Touch can't use drag-to-connect: the browser claims a finger drag off an
+  // SVG shape as a page scroll and cancels the pointer mid-gesture (it ignores
+  // touch-action on SVG children). So a phone connects two vertices by tapping
+  // one and then the other, which is the friendlier gesture there anyway.
+  const handleNodeTap = (nodeId) => {
+    if (pendingLink === null) setLinkFrom(nodeId);
+    else if (pendingLink === nodeId) setLinkFrom(null);
+    else {
+      onCreateEdge?.(pendingLink, nodeId);
+      setLinkFrom(null);
+    }
+  };
+
+  // Pointer (not mouse) events so a stylus works like a cursor too.
   const handleNodeDown = (e, nodeId) => {
     e.preventDefault();
+    e.currentTarget.setPointerCapture?.(e.pointerId);
     const p = toSvgPoint(e.clientX, e.clientY);
     setDrag({ fromId: nodeId, x: p.x, y: p.y });
   };
@@ -73,7 +103,13 @@ export default function GraphCanvas({ step, directed, weighted, onCreateEdge }) 
 
   return (
     <div className="panel canvas graph-canvas">
-      <div className="canvas__note">DRAG FROM ONE VERTEX TO ANOTHER TO CONNECT THEM</div>
+      <div className="canvas__note">
+        {isMobile
+          ? pendingLink
+            ? "NOW TAP THE VERTEX TO CONNECT IT TO"
+            : "TAP TWO VERTICES TO CONNECT THEM"
+          : "DRAG FROM ONE VERTEX TO ANOTHER TO CONNECT THEM"}
+      </div>
 
       {nodes.length === 0 ? (
         <div className="ll-empty mono" style={{ justifyContent: "center", width: "100%" }}>
@@ -83,10 +119,10 @@ export default function GraphCanvas({ step, directed, weighted, onCreateEdge }) 
         <svg
           ref={svgRef}
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-          className="graph-svg"
-          onMouseMove={handleMove}
-          onMouseUp={handleUp}
-          onMouseLeave={() => setDrag(null)}
+          className={`graph-svg ${isMobile ? "graph-svg--portrait" : ""}`}
+          onPointerMove={handleMove}
+          onPointerUp={handleUp}
+          onPointerCancel={() => setDrag(null)}
         >
           <defs>
             <marker id="graph-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -179,9 +215,19 @@ export default function GraphCanvas({ step, directed, weighted, onCreateEdge }) 
               fill = "rgba(255,107,107,0.22)";
               glow = "rgba(255,107,107,0.5)";
             }
+            const armed = pendingLink === node.id;
+            if (armed) {
+              stroke = "var(--primary)";
+              glow = "rgba(255,138,61,0.55)";
+            }
 
             return (
-              <g key={node.id} className="graph-node" onMouseDown={(e) => handleNodeDown(e, node.id)}>
+              <g
+                key={node.id}
+                className="graph-node"
+                onClick={isMobile ? () => handleNodeTap(node.id) : undefined}
+                onPointerDown={isMobile ? undefined : (e) => handleNodeDown(e, node.id)}
+              >
                 <circle
                   cx={node.x}
                   cy={node.y}
@@ -189,7 +235,8 @@ export default function GraphCanvas({ step, directed, weighted, onCreateEdge }) 
                   style={{
                     fill,
                     stroke,
-                    strokeWidth: 2,
+                    strokeWidth: armed ? 2.5 : 2,
+                    strokeDasharray: armed ? "5 4" : undefined,
                     filter: glow ? `drop-shadow(0 0 6px ${glow})` : "none",
                   }}
                 />

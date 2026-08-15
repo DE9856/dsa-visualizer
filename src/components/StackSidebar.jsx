@@ -98,7 +98,7 @@ export default function StackSidebar({
 
       <div className="sidebar__section">
         <div className="label">NEW / CUSTOM STACK</div>
-        <button className="btn" style={{ width: "100%", marginBottom: 8 }} onClick={onShuffle}>
+        <button className="btn btn--block-flat" style={{ marginBottom: 8 }} onClick={onShuffle}>
           <Shuffle size={13} /> RANDOM STACK
         </button>
         <input
@@ -108,7 +108,7 @@ export default function StackSidebar({
           value={customInput}
           onChange={(e) => setCustomInput(e.target.value)}
         />
-        <button className="btn" style={{ width: "100%", marginTop: 6 }} onClick={onApplyCustom}>
+        <button className="btn btn--block-flat btn--tight" onClick={onApplyCustom}>
           APPLY
         </button>
       </div>

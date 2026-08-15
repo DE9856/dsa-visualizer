@@ -147,6 +147,16 @@ Shortcuts are ignored while you're typing in a field. Full details in [DOCS.md](
 
 ---
 
+## 📱 On a phone
+
+The app is built for small screens too, not just scaled down for them. Below 760px the
+visualization takes the whole screen, the sidebar becomes a bottom sheet, and a fixed
+action bar keeps play/pause, the controls sheet and shuffle within thumb reach. Graphs
+lay out in a portrait ring and connect by tapping two vertices; trees stay readable and
+scroll sideways. See [DOCS.md](DOCS.md#on-a-phone) for the details.
+
+---
+
 ## 🎯 Current Functionalities
 
 ### Sorting

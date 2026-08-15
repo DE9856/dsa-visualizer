@@ -107,7 +107,7 @@ export default function GraphSidebar({
 
       <div className="sidebar__section">
         <div className="label">NEW / CUSTOM GRAPH</div>
-        <button className="btn" style={{ width: "100%", marginBottom: 8 }} onClick={onShuffle}>
+        <button className="btn btn--block-flat" style={{ marginBottom: 8 }} onClick={onShuffle}>
           <Shuffle size={13} /> RANDOM GRAPH
         </button>
 
@@ -131,7 +131,7 @@ export default function GraphSidebar({
           rows={buildMode === "edgeList" ? 2 : 4}
         />
         {buildError && <div className="build-error mono">{buildError}</div>}
-        <button className="btn" style={{ width: "100%", marginTop: 6 }} onClick={onApplyCustom}>
+        <button className="btn btn--block-flat btn--tight" onClick={onApplyCustom}>
           APPLY
         </button>
       </div>

@@ -138,6 +138,29 @@ Contents differ per topic, but the shape is consistent:
 - **Operation inputs** — value, position, second list, weights, and so on. <kbd>Enter</kbd> runs the operation.
 - **New / custom data** — a shuffle button plus a text field to load your own data.
 
+### On a phone
+
+Below 760px wide the app rearranges itself rather than shrinking:
+
+- The **visualization takes the screen**, with the transport bar and the write-ups
+  below it.
+- The sidebar becomes a **bottom sheet**, opened from the button in the middle of the
+  fixed action bar. It stops short of the top of the screen so you can watch the
+  canvas react while you change things, and closes itself when you run an operation,
+  apply custom data or shuffle.
+- The **action bar** also carries play/pause and shuffle, so the two most-used
+  controls are always within thumb reach.
+- Topics move from the row of top-bar dropdowns into a **single menu sheet** behind
+  the ☰ button.
+- **Graphs** lay their vertices out in a portrait ring, and you connect two of them by
+  **tapping one and then the other** (drag-to-connect is a cursor gesture; browsers
+  claim a finger drag off an SVG shape as a page scroll).
+- **Trees** keep their nodes at a readable size and scroll sideways inside the canvas
+  instead of shrinking to fit.
+
+The breakpoint lives in one place, `MOBILE_QUERY` in `src/hooks/useMediaQuery.js`, and
+is mirrored by the `@media (max-width: 760px)` block at the end of `src/index.css`.
+
 ### Reduced motion
 
 If your OS has "reduce motion" enabled, decorative animation and transitions are turned

@@ -2,6 +2,7 @@ import { useState } from "react";
 import BootScreen from "./components/BootScreen.jsx";
 import CategoryLanding from "./components/CategoryLanding.jsx";
 import TopBar from "./components/TopBar.jsx";
+import Workspace from "./components/Workspace.jsx";
 import Sidebar from "./components/Sidebar.jsx";
 import Canvas from "./components/Canvas.jsx";
 import Controls from "./components/Controls.jsx";
@@ -83,6 +84,16 @@ export default function App() {
     onToggleHelp: () => setShowHelp((s) => !s),
   };
 
+  // What the phone action bar needs — the same player, minus the read-outs
+  // that only make sense in the full transport panel.
+  const shell = {
+    onShuffle: shuffleActive,
+    playing: active.playing,
+    onTogglePlay: active.togglePlay,
+    canPlay: active.steps.length > 1,
+    atEnd: active.stepIdx >= active.steps.length - 1,
+  };
+
   useKeyboardShortcuts({
     enabled: stage === "app",
     onTogglePlay: active.togglePlay,
@@ -118,218 +129,234 @@ export default function App() {
       <TopBar category={view} onCategoryChange={handleViewChange} onGoHome={() => setStage("select")} />
 
       {view === "linkedlist" ? (
-        <div className="layout">
-          <ListSidebar
-            listType={ll.listType}
-            onListTypeChange={ll.setListType}
-            operation={ll.operation}
-            onOperationChange={ll.setOperation}
-            opMeta={ll.opMeta}
-            valueInput={ll.valueInput}
-            setValueInput={ll.setValueInput}
-            positionInput={ll.positionInput}
-            setPositionInput={ll.setPositionInput}
-            secondListInput={ll.secondListInput}
-            setSecondListInput={ll.setSecondListInput}
-            onRun={ll.runOperation}
-            customInput={ll.customInput}
-            setCustomInput={ll.setCustomInput}
-            onApplyCustom={ll.applyCustomList}
-            onShuffle={ll.shuffle}
-            listLength={ll.list.length}
-          />
-
-          <div className="main-col">
-            <ListCanvas step={ll.step} listType={ll.listType} />
-            <ListControls {...transport} />
-            <ListInfoPanel opMeta={ll.opMeta} />
-            <TopicPanel topic={TOPIC_OVERVIEWS.linkedlist} />
-          </div>
-        </div>
-      ) : view === "polynomial" ? (
-        <div className="layout">
-          <PolySidebar
-            operation={poly.operation}
-            onOperationChange={poly.setOperation}
-            opMeta={poly.opMeta}
-            polyInput={poly.polyInput}
-            setPolyInput={poly.setPolyInput}
-            onApplyPolynomial={poly.applyPolynomial}
-            onRandomPolynomial={poly.randomPolynomial}
-            secondPolyInput={poly.secondPolyInput}
-            setSecondPolyInput={poly.setSecondPolyInput}
-            xValueInput={poly.xValueInput}
-            setXValueInput={poly.setXValueInput}
-            onRun={poly.runOperation}
-          />
-
-          <div className="main-col">
-            <ListCanvas
-              step={poly.step}
-              listType="singly"
-              primaryLabel="POLYNOMIAL A"
-              secondaryLabel="POLYNOMIAL B"
-              secondNodes={poly.showSecondPreview ? poly.secondPreviewNodes : null}
+        <Workspace
+          {...shell}
+          panelLabel="LIST OPS"
+          sidebar={
+            <ListSidebar
+              listType={ll.listType}
+              onListTypeChange={ll.setListType}
+              operation={ll.operation}
+              onOperationChange={ll.setOperation}
+              opMeta={ll.opMeta}
+              valueInput={ll.valueInput}
+              setValueInput={ll.setValueInput}
+              positionInput={ll.positionInput}
+              setPositionInput={ll.setPositionInput}
+              secondListInput={ll.secondListInput}
+              setSecondListInput={ll.setSecondListInput}
+              onRun={ll.runOperation}
+              customInput={ll.customInput}
+              setCustomInput={ll.setCustomInput}
+              onApplyCustom={ll.applyCustomList}
+              onShuffle={ll.shuffle}
+              listLength={ll.list.length}
             />
-            <ListControls {...transport} />
-            <ListInfoPanel opMeta={poly.opMeta} />
-            <TopicPanel topic={TOPIC_OVERVIEWS.polynomial} />
-          </div>
-        </div>
+          }
+        >
+          <ListCanvas step={ll.step} listType={ll.listType} />
+          <ListControls {...transport} />
+          <ListInfoPanel opMeta={ll.opMeta} />
+          <TopicPanel topic={TOPIC_OVERVIEWS.linkedlist} />
+        </Workspace>
+      ) : view === "polynomial" ? (
+        <Workspace
+          {...shell}
+          panelLabel="POLYNOMIAL OPS"
+          sidebar={
+            <PolySidebar
+              operation={poly.operation}
+              onOperationChange={poly.setOperation}
+              opMeta={poly.opMeta}
+              polyInput={poly.polyInput}
+              setPolyInput={poly.setPolyInput}
+              onApplyPolynomial={poly.applyPolynomial}
+              onRandomPolynomial={poly.randomPolynomial}
+              secondPolyInput={poly.secondPolyInput}
+              setSecondPolyInput={poly.setSecondPolyInput}
+              xValueInput={poly.xValueInput}
+              setXValueInput={poly.setXValueInput}
+              onRun={poly.runOperation}
+            />
+          }
+        >
+          <ListCanvas
+            step={poly.step}
+            listType="singly"
+            primaryLabel="POLYNOMIAL A"
+            secondaryLabel="POLYNOMIAL B"
+            secondNodes={poly.showSecondPreview ? poly.secondPreviewNodes : null}
+          />
+          <ListControls {...transport} />
+          <ListInfoPanel opMeta={poly.opMeta} />
+          <TopicPanel topic={TOPIC_OVERVIEWS.polynomial} />
+        </Workspace>
       ) : view === "stack" ? (
-        <div className="layout">
-          <StackSidebar
-            operation={st.operation}
-            onOperationChange={st.setOperation}
-            opMeta={st.opMeta}
-            valueInput={st.valueInput}
-            setValueInput={st.setValueInput}
-            onRun={st.runOperation}
-            customInput={st.customInput}
-            setCustomInput={st.setCustomInput}
-            onApplyCustom={st.applyCustomStack}
-            onShuffle={st.shuffle}
-          />
-
-          <div className="main-col">
-            <StackCanvas step={st.step} />
-            <ListControls {...transport} />
-            <ListInfoPanel opMeta={st.opMeta} />
-            <TopicPanel topic={TOPIC_OVERVIEWS.stack} />
-          </div>
-        </div>
+        <Workspace
+          {...shell}
+          panelLabel="STACK OPS"
+          sidebar={
+            <StackSidebar
+              operation={st.operation}
+              onOperationChange={st.setOperation}
+              opMeta={st.opMeta}
+              valueInput={st.valueInput}
+              setValueInput={st.setValueInput}
+              onRun={st.runOperation}
+              customInput={st.customInput}
+              setCustomInput={st.setCustomInput}
+              onApplyCustom={st.applyCustomStack}
+              onShuffle={st.shuffle}
+            />
+          }
+        >
+          <StackCanvas step={st.step} />
+          <ListControls {...transport} />
+          <ListInfoPanel opMeta={st.opMeta} />
+          <TopicPanel topic={TOPIC_OVERVIEWS.stack} />
+        </Workspace>
       ) : view === "queue" ? (
-        <div className="layout">
-          <QueueSidebar
-            operation={q.operation}
-            onOperationChange={q.setOperation}
-            opMeta={q.opMeta}
-            valueInput={q.valueInput}
-            setValueInput={q.setValueInput}
-            onRun={q.runOperation}
-            customInput={q.customInput}
-            setCustomInput={q.setCustomInput}
-            onApplyCustom={q.applyCustomQueue}
-            onShuffle={q.shuffle}
-          />
-
-          <div className="main-col">
-            <QueueCanvas step={q.step} />
-            <ListControls {...transport} />
-            <ListInfoPanel opMeta={q.opMeta} />
-            <TopicPanel topic={TOPIC_OVERVIEWS.queue} />
-          </div>
-        </div>
+        <Workspace
+          {...shell}
+          panelLabel="QUEUE OPS"
+          sidebar={
+            <QueueSidebar
+              operation={q.operation}
+              onOperationChange={q.setOperation}
+              opMeta={q.opMeta}
+              valueInput={q.valueInput}
+              setValueInput={q.setValueInput}
+              onRun={q.runOperation}
+              customInput={q.customInput}
+              setCustomInput={q.setCustomInput}
+              onApplyCustom={q.applyCustomQueue}
+              onShuffle={q.shuffle}
+            />
+          }
+        >
+          <QueueCanvas step={q.step} />
+          <ListControls {...transport} />
+          <ListInfoPanel opMeta={q.opMeta} />
+          <TopicPanel topic={TOPIC_OVERVIEWS.queue} />
+        </Workspace>
       ) : view === "graph" ? (
-        <div className="layout">
-          <GraphSidebar
-            nodes={gr.graph.nodes}
-            representation={gr.representation}
-            onRepresentationChange={gr.setRepresentation}
-            directed={gr.directed}
-            onDirectedChange={gr.setDirected}
-            weighted={gr.weighted}
-            onWeightedChange={gr.setWeighted}
-            operation={gr.operation}
-            onOperationChange={gr.setOperation}
-            opMeta={gr.opMeta}
-            vertexLabelInput={gr.vertexLabelInput}
-            setVertexLabelInput={gr.setVertexLabelInput}
-            vertexInput={gr.vertexInput}
-            setVertexInput={gr.setVertexInput}
-            fromVertexInput={gr.fromVertexInput}
-            setFromVertexInput={gr.setFromVertexInput}
-            toVertexInput={gr.toVertexInput}
-            setToVertexInput={gr.setToVertexInput}
-            weightInput={gr.weightInput}
-            setWeightInput={gr.setWeightInput}
-            onRun={gr.runOperation}
-            customInput={gr.customInput}
-            setCustomInput={gr.setCustomInput}
-            buildMode={gr.buildMode}
-            setBuildMode={gr.setBuildMode}
-            buildError={gr.buildError}
-            onApplyCustom={gr.applyCustomGraph}
-            onShuffle={gr.shuffle}
-          />
-
-          <div className="main-col">
-            <GraphCanvas step={gr.step} directed={gr.directed} weighted={gr.weighted} onCreateEdge={gr.createEdgeFromDrag} />
-            <GraphRepresentationPanel representation={gr.representation} step={gr.step} directed={gr.directed} />
-            <ListControls {...transport} />
-            <ListInfoPanel opMeta={gr.opMeta} />
-            <TopicPanel topic={TOPIC_OVERVIEWS.graph} />
-          </div>
-        </div>
+        <Workspace
+          {...shell}
+          panelLabel="GRAPH OPS"
+          sidebar={
+            <GraphSidebar
+              nodes={gr.graph.nodes}
+              representation={gr.representation}
+              onRepresentationChange={gr.setRepresentation}
+              directed={gr.directed}
+              onDirectedChange={gr.setDirected}
+              weighted={gr.weighted}
+              onWeightedChange={gr.setWeighted}
+              operation={gr.operation}
+              onOperationChange={gr.setOperation}
+              opMeta={gr.opMeta}
+              vertexLabelInput={gr.vertexLabelInput}
+              setVertexLabelInput={gr.setVertexLabelInput}
+              vertexInput={gr.vertexInput}
+              setVertexInput={gr.setVertexInput}
+              fromVertexInput={gr.fromVertexInput}
+              setFromVertexInput={gr.setFromVertexInput}
+              toVertexInput={gr.toVertexInput}
+              setToVertexInput={gr.setToVertexInput}
+              weightInput={gr.weightInput}
+              setWeightInput={gr.setWeightInput}
+              onRun={gr.runOperation}
+              customInput={gr.customInput}
+              setCustomInput={gr.setCustomInput}
+              buildMode={gr.buildMode}
+              setBuildMode={gr.setBuildMode}
+              buildError={gr.buildError}
+              onApplyCustom={gr.applyCustomGraph}
+              onShuffle={gr.shuffle}
+            />
+          }
+        >
+          <GraphCanvas step={gr.step} directed={gr.directed} weighted={gr.weighted} onCreateEdge={gr.createEdgeFromDrag} />
+          <GraphRepresentationPanel representation={gr.representation} step={gr.step} directed={gr.directed} />
+          <ListControls {...transport} />
+          <ListInfoPanel opMeta={gr.opMeta} />
+          <TopicPanel topic={TOPIC_OVERVIEWS.graph} />
+        </Workspace>
       ) : view === "tree" ? (
-        <div className="layout">
-          <TreeSidebar
-            treeType={tr.treeType}
-            onTreeTypeChange={tr.setTreeType}
-            operation={tr.operation}
-            onOperationChange={tr.setOperation}
-            opMeta={tr.opMeta}
-            valueInput={tr.valueInput}
-            setValueInput={tr.setValueInput}
-            onRun={tr.runOperation}
-            customInput={tr.customInput}
-            setCustomInput={tr.setCustomInput}
-            onApplyCustom={tr.applyCustomTree}
-            onShuffle={tr.shuffle}
-          />
-
-          <div className="main-col">
-            <TreeCanvas step={tr.step} treeType={tr.treeType} />
-            <ListControls {...transport} />
-            <ListInfoPanel opMeta={tr.opMeta} />
-            <TopicPanel topic={TOPIC_OVERVIEWS.tree} />
-          </div>
-        </div>
+        <Workspace
+          {...shell}
+          panelLabel="TREE OPS"
+          sidebar={
+            <TreeSidebar
+              treeType={tr.treeType}
+              onTreeTypeChange={tr.setTreeType}
+              operation={tr.operation}
+              onOperationChange={tr.setOperation}
+              opMeta={tr.opMeta}
+              valueInput={tr.valueInput}
+              setValueInput={tr.setValueInput}
+              onRun={tr.runOperation}
+              customInput={tr.customInput}
+              setCustomInput={tr.setCustomInput}
+              onApplyCustom={tr.applyCustomTree}
+              onShuffle={tr.shuffle}
+            />
+          }
+        >
+          <TreeCanvas step={tr.step} treeType={tr.treeType} />
+          <ListControls {...transport} />
+          <ListInfoPanel opMeta={tr.opMeta} />
+          <TopicPanel topic={TOPIC_OVERVIEWS.tree} />
+        </Workspace>
       ) : view === "twothree" ? (
-        <div className="layout">
-          <TwoThreeTreeSidebar
-            operation={tt.operation}
-            onOperationChange={tt.setOperation}
-            opMeta={tt.opMeta}
-            valueInput={tt.valueInput}
-            setValueInput={tt.setValueInput}
-            onRun={tt.runOperation}
-            customInput={tt.customInput}
-            setCustomInput={tt.setCustomInput}
-            onApplyCustom={tt.applyCustomTree}
-            onShuffle={tt.shuffle}
-          />
-
-          <div className="main-col">
-            <TwoThreeTreeCanvas step={tt.step} />
-            <ListControls {...transport} />
-            <ListInfoPanel opMeta={tt.opMeta} />
-            <TopicPanel topic={TOPIC_OVERVIEWS.twothree} />
-          </div>
-        </div>
+        <Workspace
+          {...shell}
+          panelLabel="2-3 TREE OPS"
+          sidebar={
+            <TwoThreeTreeSidebar
+              operation={tt.operation}
+              onOperationChange={tt.setOperation}
+              opMeta={tt.opMeta}
+              valueInput={tt.valueInput}
+              setValueInput={tt.setValueInput}
+              onRun={tt.runOperation}
+              customInput={tt.customInput}
+              setCustomInput={tt.setCustomInput}
+              onApplyCustom={tt.applyCustomTree}
+              onShuffle={tt.shuffle}
+            />
+          }
+        >
+          <TwoThreeTreeCanvas step={tt.step} />
+          <ListControls {...transport} />
+          <ListInfoPanel opMeta={tt.opMeta} />
+          <TopicPanel topic={TOPIC_OVERVIEWS.twothree} />
+        </Workspace>
       ) : (
-        <div className="layout">
-          <Sidebar
-            category={v.category}
-            algo={v.algo}
-            onAlgoChange={v.switchAlgo}
-            size={v.size}
-            onSizeChange={v.handleSizeChange}
-            onShuffle={v.handleShuffle}
-            customInput={v.customInput}
-            setCustomInput={v.setCustomInput}
-            onApplyCustom={v.applyCustomArray}
-            meta={v.meta}
-            target={v.target}
-            onRandomTarget={v.setRandomTarget}
-          />
-
-          <div className="main-col">
-            <Canvas step={v.step} algo={v.algo} displayArr={v.displayArr} maxVal={v.maxVal} />
-            <Controls {...transport} step={v.step} meta={v.meta} />
-            <InfoPanel meta={v.meta} />
-          </div>
-        </div>
+        <Workspace
+          {...shell}
+          panelLabel="ALGORITHMS"
+          sidebar={
+            <Sidebar
+              category={v.category}
+              algo={v.algo}
+              onAlgoChange={v.switchAlgo}
+              size={v.size}
+              onSizeChange={v.handleSizeChange}
+              onShuffle={v.handleShuffle}
+              customInput={v.customInput}
+              setCustomInput={v.setCustomInput}
+              onApplyCustom={v.applyCustomArray}
+              meta={v.meta}
+              target={v.target}
+              onRandomTarget={v.setRandomTarget}
+            />
+          }
+        >
+          <Canvas step={v.step} algo={v.algo} displayArr={v.displayArr} maxVal={v.maxVal} />
+          <Controls {...transport} step={v.step} meta={v.meta} />
+          <InfoPanel meta={v.meta} />
+        </Workspace>
       )}
     </div>
   );

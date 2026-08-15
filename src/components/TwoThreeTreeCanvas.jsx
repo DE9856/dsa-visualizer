@@ -1,15 +1,24 @@
 import { isLeaf } from "../dataStructures/twoThreeTree/helpers";
+import { useIsMobile } from "../hooks/useMediaQuery.js";
 
-const WIDTH = 640;
 const HEIGHT = 300;
 const BOX_H = 28;
 const KEY_W = 38;
+// See TreeCanvas: a phone scrolls the tree sideways rather than shrinking it.
+const MOBILE_SLOT = 96;
+const MOBILE_MIN_WIDTH = 300;
+
+function countLeaves(node) {
+  if (!node) return 0;
+  if (isLeaf(node)) return 1;
+  return node.children.reduce((sum, c) => sum + countLeaves(c), 0);
+}
 
 // Leaves get sequential x-slots left to right; an internal node's x is the
 // average of its children's x. This keeps subtrees non-overlapping without
 // a heavier layout algorithm, the same trick TreeCanvas uses for binary
 // trees but generalized to multi-child nodes.
-function layout(root) {
+function layout(root, WIDTH) {
   const positions = {};
   let leafCounter = 0;
   let maxDepth = 0;
@@ -62,8 +71,12 @@ function collectEdges(node, edges = []) {
 }
 
 export default function TwoThreeTreeCanvas({ step }) {
+  const isMobile = useIsMobile();
   const root = step.root;
-  const positions = layout(root);
+  const WIDTH = isMobile
+    ? Math.max(MOBILE_MIN_WIDTH, countLeaves(root) * MOBILE_SLOT)
+    : 640;
+  const positions = layout(root, WIDTH);
   const nodes = flattenNodes(root);
   const edges = collectEdges(root);
 
@@ -79,83 +92,90 @@ export default function TwoThreeTreeCanvas({ step }) {
           {"EMPTY TREE \u2014 INSERT A VALUE TO BEGIN"}
         </div>
       ) : (
-        <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="graph-svg">
-          {edges.map((edge) => {
-            const from = positions[edge.from];
-            const to = positions[edge.to];
-            if (!from || !to) return null;
-            const fromNode = nodes.find((n) => n.id === edge.from);
-            const boxW = fromNode.keys.length * KEY_W;
-            const startX = from.px - boxW / 2 + ((edge.slot + 0.5) * boxW) / edge.of;
-            return (
-              <line
-                key={edge.id}
-                x1={startX}
-                y1={from.py + BOX_H / 2}
-                x2={to.px}
-                y2={to.py - BOX_H / 2}
-                style={{ stroke: "var(--border-strong)" }}
-                strokeWidth={1.6}
-              />
-            );
-          })}
-
-          {nodes.map((node) => {
-            const pos = positions[node.id];
-            const boxW = node.keys.length * KEY_W;
-            const left = pos.px - boxW / 2;
-            const top = pos.py - BOX_H / 2;
-
-            let stroke = "var(--border-strong)";
-            let fill = "var(--panel-alt)";
-            let glow = null;
-            if (isVisited(node.id)) {
-              stroke = "var(--green)";
-              fill = "rgba(95,214,160,0.14)";
-            }
-            if (isOnPath(node.id)) {
-              stroke = "var(--blue)";
-              fill = "rgba(79,184,224,0.18)";
-            }
-            if (isCurrent(node.id) || isActive(node.id)) {
-              stroke = "var(--primary)";
-              fill = "rgba(255,138,61,0.2)";
-              glow = "rgba(255,138,61,0.55)";
-            }
-
-            return (
-              <g key={node.id}>
-                <rect
-                  x={left}
-                  y={top}
-                  width={boxW}
-                  height={BOX_H}
-                  rx={6}
-                  style={{
-                    fill,
-                    stroke,
-                    strokeWidth: 2,
-                    filter: glow ? `drop-shadow(0 0 6px ${glow})` : "none",
-                  }}
+        <div className="canvas-scroll">
+          <svg
+            viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+            className={`graph-svg ${isMobile ? "graph-svg--fixed" : ""}`}
+            width={isMobile ? WIDTH : undefined}
+            height={isMobile ? HEIGHT : undefined}
+          >
+            {edges.map((edge) => {
+              const from = positions[edge.from];
+              const to = positions[edge.to];
+              if (!from || !to) return null;
+              const fromNode = nodes.find((n) => n.id === edge.from);
+              const boxW = fromNode.keys.length * KEY_W;
+              const startX = from.px - boxW / 2 + ((edge.slot + 0.5) * boxW) / edge.of;
+              return (
+                <line
+                  key={edge.id}
+                  x1={startX}
+                  y1={from.py + BOX_H / 2}
+                  x2={to.px}
+                  y2={to.py - BOX_H / 2}
+                  style={{ stroke: "var(--border-strong)" }}
+                  strokeWidth={1.6}
                 />
-                {node.keys.length === 2 && (
-                  <line x1={pos.px} y1={top} x2={pos.px} y2={top + BOX_H} style={{ stroke, strokeWidth: 1.4 }} />
-                )}
-                {node.keys.map((k, i) => (
-                  <text
-                    key={k}
-                    x={left + (i + 0.5) * KEY_W}
-                    y={pos.py + 4}
-                    textAnchor="middle"
-                    className="graph-node__label mono"
-                  >
-                    {k}
-                  </text>
-                ))}
-              </g>
-            );
-          })}
-        </svg>
+              );
+            })}
+
+            {nodes.map((node) => {
+              const pos = positions[node.id];
+              const boxW = node.keys.length * KEY_W;
+              const left = pos.px - boxW / 2;
+              const top = pos.py - BOX_H / 2;
+
+              let stroke = "var(--border-strong)";
+              let fill = "var(--panel-alt)";
+              let glow = null;
+              if (isVisited(node.id)) {
+                stroke = "var(--green)";
+                fill = "rgba(95,214,160,0.14)";
+              }
+              if (isOnPath(node.id)) {
+                stroke = "var(--blue)";
+                fill = "rgba(79,184,224,0.18)";
+              }
+              if (isCurrent(node.id) || isActive(node.id)) {
+                stroke = "var(--primary)";
+                fill = "rgba(255,138,61,0.2)";
+                glow = "rgba(255,138,61,0.55)";
+              }
+
+              return (
+                <g key={node.id}>
+                  <rect
+                    x={left}
+                    y={top}
+                    width={boxW}
+                    height={BOX_H}
+                    rx={6}
+                    style={{
+                      fill,
+                      stroke,
+                      strokeWidth: 2,
+                      filter: glow ? `drop-shadow(0 0 6px ${glow})` : "none",
+                    }}
+                  />
+                  {node.keys.length === 2 && (
+                    <line x1={pos.px} y1={top} x2={pos.px} y2={top + BOX_H} style={{ stroke, strokeWidth: 1.4 }} />
+                  )}
+                  {node.keys.map((k, i) => (
+                    <text
+                      key={k}
+                      x={left + (i + 0.5) * KEY_W}
+                      y={pos.py + 4}
+                      textAnchor="middle"
+                      className="graph-node__label mono"
+                    >
+                      {k}
+                    </text>
+                  ))}
+                </g>
+              );
+            })}
+          </svg>
+        </div>
       )}
 
       <div className="ll-message mono">{step.message}</div>

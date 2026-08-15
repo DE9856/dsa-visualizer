@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Menu, X, Home } from "lucide-react";
 import { CATEGORIES } from "../data/categories.js";
+import { useIsMobile } from "../hooks/useMediaQuery.js";
 
 export default function TopBar({ category, onCategoryChange, onGoHome }) {
   const [openMenu, setOpenMenu] = useState(null);
+  const [navOpen, setNavOpen] = useState(false);
   const rootRef = useRef(null);
+  const isMobile = useIsMobile();
 
   const activeCategory = CATEGORIES.find((cat) => cat.items.some((item) => item.key === category));
+  const activeItem = activeCategory?.items.find((item) => item.key === category);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -15,7 +19,10 @@ export default function TopBar({ category, onCategoryChange, onGoHome }) {
       }
     };
     const handleEscape = (e) => {
-      if (e.key === "Escape") setOpenMenu(null);
+      if (e.key === "Escape") {
+        setOpenMenu(null);
+        setNavOpen(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleEscape);
@@ -25,6 +32,13 @@ export default function TopBar({ category, onCategoryChange, onGoHome }) {
     };
   }, []);
 
+  // The two variants have different open state; leaving one open while the
+  // other renders would strand a menu off-screen.
+  useEffect(() => {
+    setOpenMenu(null);
+    setNavOpen(false);
+  }, [isMobile]);
+
   const toggleMenu = (key) => {
     setOpenMenu((prev) => (prev === key ? null : key));
   };
@@ -32,7 +46,68 @@ export default function TopBar({ category, onCategoryChange, onGoHome }) {
   const selectItem = (item) => {
     onCategoryChange(item.key);
     setOpenMenu(null);
+    setNavOpen(false);
   };
+
+  // On a phone the row of dropdowns doesn't fit, so navigation moves into a
+  // single full-width sheet — one tap to open, one tap to pick a topic.
+  if (isMobile) {
+    return (
+      <div className="topbar topbar--mobile" ref={rootRef}>
+        <div className="topbar__title" onClick={onGoHome}>
+          <span className="topbar__mark">&#9642;</span>
+          <h1 className="mono">DSA://VIS</h1>
+          {activeItem && <span className="topbar__now mono">{activeItem.label}</span>}
+        </div>
+
+        <button
+          className={`btn icon ${navOpen ? "active" : ""}`}
+          onClick={() => setNavOpen((o) => !o)}
+          aria-label={navOpen ? "Close menu" : "Open menu"}
+          aria-expanded={navOpen}
+        >
+          {navOpen ? <X size={17} /> : <Menu size={17} />}
+        </button>
+
+        {navOpen && (
+          <>
+            <button className="sheet__backdrop" onClick={() => setNavOpen(false)} aria-label="Close menu" />
+            <nav className="topbar__nav-sheet" aria-label="Topics">
+              {CATEGORIES.map((cat) => (
+                <div className="topbar__nav-group" key={cat.key} style={{ "--accent": cat.accent }}>
+                  <div className="topbar__nav-label mono">{cat.label}</div>
+                  {cat.items.map((item) => (
+                    <button
+                      type="button"
+                      key={item.key}
+                      className={`topbar__nav-item ${category === item.key ? "active" : ""}`}
+                      onClick={() => selectItem(item)}
+                    >
+                      <span className="topbar__nav-item-label mono">{item.label}</span>
+                      <span className="topbar__nav-item-desc">{item.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              ))}
+
+              {onGoHome && (
+                <button
+                  type="button"
+                  className="btn btn--block-flat topbar__nav-home"
+                  onClick={() => {
+                    setNavOpen(false);
+                    onGoHome();
+                  }}
+                >
+                  <Home size={14} /> ALL CATEGORIES
+                </button>
+              )}
+            </nav>
+          </>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="topbar" ref={rootRef}>
@@ -47,7 +122,7 @@ export default function TopBar({ category, onCategoryChange, onGoHome }) {
       <div className="topbar__tabs">
         {CATEGORIES.map((cat) => {
           const isActiveCategory = activeCategory?.key === cat.key;
-          const activeItem = cat.items.find((item) => item.key === category);
+          const catItem = cat.items.find((item) => item.key === category);
           const isOpen = openMenu === cat.key;
           return (
             <div className="topbar__dropdown" key={cat.key}>
@@ -58,8 +133,8 @@ export default function TopBar({ category, onCategoryChange, onGoHome }) {
                 aria-expanded={isOpen}
               >
                 {cat.label}
-                {isActiveCategory && activeItem && (
-                  <span className="topbar__category-sub">/ {activeItem.label}</span>
+                {isActiveCategory && catItem && (
+                  <span className="topbar__category-sub">/ {catItem.label}</span>
                 )}
                 <ChevronDown size={13} className={`topbar__chevron ${isOpen ? "open" : ""}`} />
               </button>

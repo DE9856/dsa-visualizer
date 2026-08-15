@@ -13,6 +13,20 @@ Usability and playback-smoothness pass across every visualizer.
 
 ### Added
 
+- **Phone layout.** Below 760px the two-column workspace rearranges instead of shrinking:
+  the visualization takes the screen, the sidebar becomes a **bottom sheet** (capped so the
+  canvas stays visible behind it, and self-closing when you run/apply/shuffle), and a fixed
+  **action bar** carries play/pause, the sheet toggle and shuffle within thumb reach.
+  Top-bar dropdowns collapse into one **menu sheet** behind a ☰ button. New
+  `Workspace` component and `useMediaQuery` hook; `MOBILE_QUERY` is the single breakpoint.
+- **Tap-to-connect graph vertices on touch** — tap one vertex, then another. Drag-to-connect
+  stays on the cursor; a finger drag off an SVG shape gets claimed as a page scroll, so the
+  pointer was cancelled mid-gesture.
+- **Portrait graph layout and readable trees on small screens** — the vertex ring becomes an
+  ellipse that fills a tall canvas, and trees keep a fixed slot per node, scrolling sideways
+  inside the panel rather than shrinking to fit.
+- **Touch-sized controls** — buttons, rows, sliders and slider thumbs grow under any coarse
+  pointer, and text inputs move to 16px so iOS Safari stops zooming in on focus.
 - **Scrubbable timeline** under the transport bar in every view — drag or click to jump to
   any step of a run. Focusable, so arrow keys scrub it too.
 - **Keyboard shortcuts** (`src/hooks/useKeyboardShortcuts.js`):
@@ -70,6 +84,9 @@ Usability and playback-smoothness pass across every visualizer.
 - **Duplicate keys in the `usePolynomial` return object** (`atEnd`, `runOperation`,
   `togglePlay` were each listed twice).
 - **Top-bar dropdowns now close on <kbd>Esc</kbd>**, not only on outside click.
+- **Stacked layout shrank to its content width** below 900px — `align-items: flex-start` on
+  the row layout also applied once it became a column. The visualization now also comes
+  first in that stacked order, instead of sitting below a full-width sidebar.
 
 ---
 

@@ -50,7 +50,7 @@ export default function TreeSidebar({
 
       <div className="sidebar__section">
         <div className="label">NEW / CUSTOM TREE</div>
-        <button className="btn" style={{ width: "100%", marginBottom: 8 }} onClick={onShuffle}>
+        <button className="btn btn--block-flat" style={{ marginBottom: 8 }} onClick={onShuffle}>
           <Shuffle size={13} /> RANDOM TREE
         </button>
 
@@ -61,7 +61,7 @@ export default function TreeSidebar({
           onChange={(e) => setCustomInput(e.target.value)}
           rows={2}
         />
-        <button className="btn" style={{ width: "100%", marginTop: 6 }} onClick={onApplyCustom}>
+        <button className="btn btn--block-flat btn--tight" onClick={onApplyCustom}>
           APPLY
         </button>
       </div>
