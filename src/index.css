@@ -12,6 +12,7 @@
   --red: #ff6b6b;
   --green: #5fd6a0;
   --purple: #b18cff;
+  --yellow: #f5c451;
   /* Duration of step-driven animations. App.jsx overrides it from the current
      playback speed so fast runs snap instead of smearing into each other. */
   --step-anim: 240ms;
@@ -371,6 +372,24 @@ input[type="range"] {
   padding: 6px 4px;
   font-size: 11px;
   border-radius: 8px;
+}
+
+/* Three long labels (SEPARATE CHAINING, LINEAR, QUADRATIC) don't survive
+   being squeezed onto one row at sidebar width. */
+.type-toggle--stacked {
+  flex-direction: column;
+  gap: 5px;
+}
+
+.type-toggle--stacked .btn {
+  padding: 9px 8px;
+}
+
+.sidebar__hint {
+  margin-top: 8px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-dim);
 }
 
 .algo-list {
@@ -1329,6 +1348,527 @@ input[type="range"] {
   padding: 12px 20px;
 }
 
+/* ---------- union-find ---------- */
+
+.uf-canvas {
+  align-items: center;
+}
+
+.uf-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.uf-head__count {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+.uf-node circle {
+  transition: fill var(--step-anim) ease, stroke var(--step-anim) ease, filter var(--step-anim) ease;
+}
+
+.uf-node__size {
+  font-size: 8.5px;
+  letter-spacing: 0.04em;
+  fill: var(--green);
+  opacity: 0.8;
+}
+
+.uf-array-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.uf-array__label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.uf-array {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  padding-bottom: 2px;
+}
+
+.uf-cell-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.uf-cell {
+  min-width: 34px;
+  height: 30px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--panel-alt);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  transition: all var(--step-anim) ease;
+}
+
+/* A cell holding its own label is a root — the walk stops there. */
+.uf-cell--root {
+  color: var(--green);
+}
+
+.uf-cell__index {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-dim);
+  opacity: 0.8;
+}
+
+/* ---------- trie ---------- */
+
+.tr-canvas {
+  align-items: center;
+}
+
+.tr-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 4px;
+  min-height: 20px;
+}
+
+.tr-head__count {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+/* The prefix spelled out so far, as the walk descends. */
+.tr-head__prefix {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  letter-spacing: 0.04em;
+}
+
+.tr-node circle {
+  transition: fill var(--step-anim) ease, stroke var(--step-anim) ease, filter var(--step-anim) ease;
+}
+
+.tr-node__root {
+  font-size: 8.5px;
+  letter-spacing: 0.06em;
+  fill: var(--text-dim);
+  opacity: 0.7;
+}
+
+.tr-collected {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  width: 100%;
+}
+
+.tr-chip {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--green);
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(95, 214, 160, 0.12);
+  border: 1px solid rgba(95, 214, 160, 0.35);
+  animation: boot-fade-in 0.25s ease both;
+}
+
+/* ---------- heap ---------- */
+
+.hp-canvas {
+  align-items: center;
+}
+
+.hp-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.hp-head__kind {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--green);
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: rgba(95, 214, 160, 0.12);
+  border: 1px solid rgba(95, 214, 160, 0.35);
+}
+
+.hp-head__rule {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.hp-node circle {
+  transition: fill var(--step-anim) ease, stroke var(--step-anim) ease, filter var(--step-anim) ease;
+}
+
+/* The array index, under each node — the tie between the picture and the
+   flat array below it. */
+.hp-node__index {
+  font-size: 9px;
+  fill: var(--text-dim);
+  opacity: 0.75;
+}
+
+.hp-node__tag {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  fill: var(--primary);
+}
+
+.hp-array-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.hp-array__label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.hp-array {
+  display: flex;
+  align-items: flex-start;
+  gap: 3px;
+  padding-bottom: 2px;
+}
+
+.hp-cell-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.hp-cell {
+  min-width: 40px;
+  height: 32px;
+  padding: 0 6px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--panel-alt);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  transition: all var(--step-anim) ease;
+}
+
+.hp-cell__index {
+  font-size: 9px;
+  color: var(--text-dim);
+  opacity: 0.75;
+}
+
+/* The index arithmetic for whatever the current step is touching. */
+.hp-formula {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.hp-formula span {
+  white-space: nowrap;
+}
+
+/* ---------- hash table ---------- */
+
+.ht-canvas {
+  height: auto;
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 18px 16px;
+}
+
+.ht-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ht-head__strategy {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--yellow);
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: rgba(245, 196, 81, 0.13);
+  border: 1px solid rgba(245, 196, 81, 0.35);
+  white-space: nowrap;
+}
+
+.ht-head__stat {
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* The load factor, drawn as a bar against the limit that triggers a resize —
+   the tick is the moment the next insert grows the table. */
+.ht-load {
+  position: relative;
+  flex: 1;
+  min-width: 40px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.ht-load__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--blue);
+  transition: width var(--step-anim) ease, background-color var(--step-anim) ease;
+}
+
+.ht-load__fill--over {
+  background: var(--primary);
+}
+
+.ht-load__limit {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--text-dim);
+}
+
+.ht-head__alpha {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.ht-head__alpha--over {
+  color: var(--primary);
+}
+
+.ht-subhead {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 26px;
+  padding: 6px 0 8px;
+}
+
+.ht-hash {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.ht-hash--idle {
+  color: var(--text-dim);
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+.ht-resizing {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--yellow);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(245, 196, 81, 0.13);
+  border: 1px solid rgba(245, 196, 81, 0.4);
+  animation: ll-pulse 0.9s ease-in-out infinite;
+}
+
+.ht-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* Past a resize or two the array is taller than the panel; scrolling here
+     keeps the header, the hash line and the message all in view. */
+  max-height: 380px;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding-right: 4px;
+}
+
+.ht-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  transition: background var(--step-anim) ease, border-color var(--step-anim) ease;
+}
+
+.ht-row--probed {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.ht-row--probe {
+  border-color: var(--primary);
+  background: var(--primary-dim);
+}
+
+.ht-row--collision {
+  border-color: var(--red);
+  background: rgba(255, 107, 107, 0.1);
+}
+
+.ht-row__marker {
+  width: 9px;
+  font-size: 11px;
+  color: var(--primary);
+}
+
+.ht-row__index {
+  width: 20px;
+  text-align: right;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.ht-row__index--home {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.ht-row__slots {
+  display: flex;
+  align-items: center;
+  min-height: 34px;
+}
+
+.ht-chain-link {
+  display: flex;
+  align-items: center;
+}
+
+/* SlotBox is shared with the stack and queue canvases for its colour
+   language; inside a bucket row it just needs to be smaller. */
+.ht-row .sq-slot-wrap {
+  padding: 0;
+}
+
+.ht-row .sq-slot {
+  width: 54px;
+  height: 32px;
+  border-radius: 8px;
+}
+
+.ht-row .sq-slot__value {
+  font-size: 13px;
+}
+
+.ht-slot {
+  width: 54px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ht-slot--empty {
+  border: 1.5px dashed var(--border);
+}
+
+/* A deleted slot in an open-addressed table. It still blocks the bucket, and
+   it still has to be walked past, so it stays on screen. */
+.ht-slot--tomb {
+  border: 1.5px dashed rgba(255, 107, 107, 0.5);
+  background: rgba(255, 107, 107, 0.06);
+}
+
+.ht-slot--fresh-tomb {
+  animation: ll-pulse 0.9s ease-in-out infinite;
+}
+
+.ht-slot__tomb-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--red);
+  opacity: 0.75;
+}
+
+.ht-arrow {
+  padding: 0 5px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.ht-tag {
+  margin-left: 8px;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.ht-tag--home {
+  color: var(--primary);
+  background: var(--primary-dim);
+  border: 1px solid rgba(255, 138, 61, 0.4);
+}
+
+.ht-canvas .ll-message {
+  margin-top: 14px;
+}
+
 /* ---------- graph ---------- */
 
 .graph-canvas {
@@ -2182,6 +2722,10 @@ input[type="range"] {
 
   .ll-canvas,
   .sq-canvas,
+  .ht-canvas,
+  .hp-canvas,
+  .tr-canvas,
+  .uf-canvas,
   .graph-canvas {
     height: auto;
   }
@@ -2227,6 +2771,66 @@ input[type="range"] {
   .sq-slot {
     width: 56px;
     height: 44px;
+  }
+
+  .ht-canvas,
+  .hp-canvas,
+  .tr-canvas,
+  .uf-canvas {
+    min-height: 0;
+    padding: 14px 12px 12px;
+  }
+
+  .uf-array__label {
+    display: none;
+  }
+
+  .uf-cell {
+    min-width: 30px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .tr-head {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  /* The label would eat a third of the row; the cells are self-explanatory. */
+  .hp-array__label {
+    display: none;
+  }
+
+  .hp-cell {
+    min-width: 34px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .hp-formula {
+    font-size: 10px;
+  }
+
+  /* The bucket rows are the one part worth keeping full-size; the header
+     wraps instead of shrinking the array. */
+  .ht-head {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .ht-load {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .ht-grid {
+    max-height: 46dvh;
+  }
+
+  .ht-row .sq-slot,
+  .ht-slot {
+    width: 48px;
+    height: 30px;
   }
 
   .graph-canvas {

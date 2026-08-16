@@ -37,8 +37,12 @@ The visualizer also supports interactive operations for:
 
 - 🌳 Trees (Binary Tree, BST, AVL)
 - 🌲 2-3 Trees
+- ⛰️ Heaps (max & min, sift up/down)
+- 🔤 Tries (prefix tree & autocomplete)
 - 🔗 Linked Lists (singly, doubly, circular)
+- 🗂️ Hash Tables (separate chaining, linear & quadratic probing)
 - 📊 Graphs
+- 🧩 Union-Find (disjoint sets with path compression)
 - 📦 Stacks
 - 📥 Queues
 - ➗ Polynomial Operations
@@ -106,12 +110,16 @@ src/
 │
 ├── dataStructures/
 │   ├── graph/
+│   ├── hashTable/
+│   ├── heap/
 │   ├── linkedList/
 │   ├── polynomial/
 │   ├── queue/
 │   ├── stack/
 │   ├── tree/
-│   └── twoThreeTree/
+│   ├── trie/
+│   ├── twoThreeTree/
+│   └── unionFind/
 │
 ├── components/             Canvas, Sidebar, Controls, InfoPanel, ...
 │
@@ -157,8 +165,8 @@ copies it. Open a link and you land straight in the visualizer with the data loa
 #v=graph&w=1&g=A,B,C,D&e=A-B(5),B-C(2),C-D(7),A-D
 ```
 
-Custom arrays, lists, stacks, queues, trees, graphs and polynomials all round-trip
-exactly. See [DOCS.md](DOCS.md#sharing-a-setup) for the full format.
+Custom arrays, lists, stacks, queues, trees, heaps, tries, hash tables, union-finds,
+graphs and polynomials all round-trip exactly. See [DOCS.md](DOCS.md#sharing-a-setup) for the full format.
 
 ---
 
@@ -223,6 +231,27 @@ Interactive visualizations for:
 - 2-3 Tree
   - Insert (with node splits), Delete, Search
   - Inorder, Height, Size, Clear
+
+- Heap — max-heap, min-heap
+  - Insert (sift up), Extract root (sift down), Peek
+  - Build heap bottom-up in O(n), Search, Height, Size, Clear
+  - The tree and the array it lives in, highlighted together, with the index arithmetic
+  - Switch max/min to re-heapify the same values
+
+- Trie — prefix tree over a–z
+  - Insert (creating only the nodes a word needs), Delete (pruning only what nothing needs)
+  - Search (exact word vs. bare prefix), Autocomplete, List words, Size, Clear
+
+- Union-Find — union by size with path compression
+  - Union, Find, Connected?, Components, Add element, Reset
+  - The forest and the parent array side by side, with compression animated pointer by pointer
+  - The same implementation Kruskal's MST uses for its cycle check
+
+- Hash Table — separate chaining, linear probing, quadratic probing
+  - Insert, Search, Delete (tombstones under open addressing)
+  - Load factor read-out, List keys in hash order
+  - Automatic resize + rehash when the load factor crosses its limit, or on demand
+  - Switch the collision strategy to replay the same keys into a new table
 
 - Graphs — directed/undirected, weighted/unweighted
   - Add / remove vertex and edge, drag-to-connect on the canvas

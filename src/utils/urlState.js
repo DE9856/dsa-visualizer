@@ -1,4 +1,6 @@
 import { isLeaf } from "../dataStructures/twoThreeTree/helpers";
+import { INITIAL_CAPACITY as HASH_INITIAL_CAPACITY } from "../dataStructures/hashTable/helpers";
+import { parseWordList } from "../dataStructures/trie/helpers";
 
 /**
  * URL state — the current topic and its data round-trip through the location
@@ -11,6 +13,10 @@ import { isLeaf } from "../dataStructures/twoThreeTree/helpers";
  *   #v=searching&algo=binary&a=5,3,8,1&t=8
  *   #v=linkedlist&type=doubly&a=5,12,3
  *   #v=tree&type=avl&a=50,30,70
+ *   #v=hashtable&type=linear&a=42,13,7
+ *   #v=heap&type=min&a=4,10,3,5,1
+ *   #v=trie&a=car,card,care,cat
+ *   #v=unionfind&p=0,0,2,0,4,4
  *   #v=graph&d=1&w=1&g=A: B(5), C; B: C; D:
  *
  * The hash is written with replaceState, so it tracks the current data without
@@ -28,10 +34,16 @@ const VIEWS = [
   "graph",
   "tree",
   "twothree",
+  "hashtable",
+  "heap",
+  "trie",
+  "unionfind",
 ];
 
 const LIST_TYPES = ["singly", "doubly", "circular"];
 const TREE_TYPES = ["binary", "bst", "avl"];
+const HASH_STRATEGIES = ["chaining", "linear", "quadratic"];
+const HEAP_KINDS = ["max", "min"];
 
 // Values are capped to the same limits the sidebar parsers use, so a
 // hand-edited link can't build something the app wouldn't let you type.
@@ -199,6 +211,29 @@ function fieldsFor(view, s) {
       return { v: view, type: s.tr.treeType, a: serializeTree(s.tr.tree.root, s.tr.treeType) };
     case "twothree":
       return { v: view, a: serializeTwoThree(s.tt.tree.root) };
+    // Insertion order, not bucket order: with probing, the order keys arrive
+    // in is what decides where the collisions land. Capacity travels too — a
+    // table that grew and then had keys deleted is bigger than its key count
+    // alone would rebuild.
+    case "hashtable":
+      return {
+        v: view,
+        type: s.ht.strategy,
+        a: s.ht.table.order.join(","),
+        m: s.ht.table.capacity === HASH_INITIAL_CAPACITY ? undefined : s.ht.table.capacity,
+      };
+    // Array order is the heap itself, so re-heapifying it on load is a no-op
+    // and the shape comes back exactly.
+    case "heap":
+      return { v: view, type: s.hp.kind, a: s.hp.values.join(",") };
+    // A trie's shape depends only on which words it holds, not the order they
+    // arrived in, so the alphabetical list rebuilds it exactly.
+    case "trie":
+      return { v: view, a: s.tri.words.join(",") };
+    // The parent array is the structure — sizes are recomputed from it, and
+    // compression state is part of what makes a given forest interesting.
+    case "unionfind":
+      return { v: view, p: s.uf.uf.parent.join(",") };
     case "graph":
       return {
         v: view,
@@ -237,6 +272,18 @@ export function readSharedState() {
     if (fields.t !== undefined && !Number.isNaN(target)) state.target = target;
   } else if (view === "polynomial") {
     if (fields.p) state.poly = fields.p.slice(0, MAX_TEXT);
+  } else if (view === "unionfind") {
+    // Every entry must be a whole number: dropping a malformed one would shift
+    // every element after it onto the wrong parent. fromParentArray() then
+    // checks the result really is a forest.
+    if (fields.p) {
+      const parent = fields.p.split(",").map((part) => Number(part.trim()));
+      if (parent.every((value) => Number.isInteger(value))) state.parent = parent.slice(0, MAX_VALUES);
+    }
+  } else if (view === "trie") {
+    // Words, not numbers — validated by the same parser the sidebar uses.
+    const words = parseWordList((fields.a || "").slice(0, MAX_TEXT));
+    if (words.length) state.words = words;
   } else if (view === "graph") {
     if (fields.g !== undefined) {
       state.vertices = parseSharedVertices(fields.g.slice(0, MAX_TEXT));
@@ -248,6 +295,14 @@ export function readSharedState() {
     if (values.length) state.values = values;
     if (view === "linkedlist" && LIST_TYPES.includes(fields.type)) state.listType = fields.type;
     if (view === "tree" && TREE_TYPES.includes(fields.type)) state.treeType = fields.type;
+    if (view === "heap" && HEAP_KINDS.includes(fields.type)) state.kind = fields.type;
+    if (view === "hashtable") {
+      if (HASH_STRATEGIES.includes(fields.type)) state.strategy = fields.type;
+      // Only a capacity the table could have grown into is accepted; anything
+      // else falls back to the default and grows from there.
+      const capacity = Number(fields.m);
+      if (Number.isInteger(capacity) && capacity > 0) state.capacity = capacity;
+    }
   }
 
   return state;

@@ -9,10 +9,58 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Usability and playback-smoothness pass across every visualizer.
+Usability and playback-smoothness pass across every visualizer, plus four new structures:
+hash tables, heaps, tries and union-find.
 
 ### Added
 
+- **Binary heaps** — max and min, under TREES. The complete tree and the flat array it
+  actually lives in are drawn together and highlighted in lockstep, with the index
+  arithmetic (`parent ⌊(i−1)/2⌋`, `left 2i+1`, `right 2i+2`) spelled out for whatever the
+  current step is touching, since a heap stores no child pointers at all. Insert sifts up
+  from the end, extract fills the root from the end and sifts down, and new values arrive
+  as a plain array that is heapified on screen — the bottom-up build is O(n), and watching
+  it is the point. Switching max/min re-heapifies the same values. Search prunes subtrees
+  whose root is already outranked by the target, which is a real optimization and still
+  O(n) — a heap is not a search structure. New `src/dataStructures/heap/`, `useHeap`,
+  `HeapCanvas`, `HeapSidebar`.
+- **Tries** — a prefix tree under TREES, where a green ring marks an end-of-word node.
+  That ring carries the structure's central distinction: searching "car" in a trie holding
+  only "card" walks the whole path successfully and still answers PREFIX ONLY. Insert
+  creates only the nodes a word actually needs and reports how many it reused; delete
+  clears the flag and prunes back up, stopping at the first node that still has children
+  or is itself a word; autocomplete walks to a prefix and enumerates the subtree below it,
+  alphabetically, because children are always visited in order. New
+  `src/dataStructures/trie/`, `useTrie`, `TrieCanvas`, `TrieSidebar`.
+- **Union-Find surfaced as its own structure** under GRAPHS, with path compression
+  animated. The forest and the parent array sit side by side: every find walks to the root
+  and then re-points each element it passed straight at that root, one frame per pointer,
+  and the trees visibly flatten — run the same find twice and the second has nothing left
+  to compress. Union by size hangs the smaller tree under the larger, and a union of two
+  elements already in one set reports ALREADY CONNECTED, which is precisely the cycle check
+  Kruskal's runs. New `src/dataStructures/unionFind/`, `useUnionFind`, `UnionFindCanvas`,
+  `UnionFindSidebar`.
+
+- **Hash tables** — a new HASHING category with all three classic collision strategies:
+  separate chaining, linear probing and quadratic probing. The canvas is the bucket array
+  itself, one row per index, so a probe sequence reads top to bottom and its wrap past the
+  last bucket is visible; the header carries the load factor as a bar with a tick at the
+  limit that triggers a resize, and the line below shows the hash being computed. Insert,
+  search and delete all walk the same path through `locate()`, so a lookup provably
+  retraces its insert. Operations: insert, search, delete, load factor, list keys, resize,
+  clear. New `src/dataStructures/hashTable/`, `useHashTable`, `HashTableCanvas`,
+  `HashTableSidebar`.
+- **Load-factor-triggered resizing, animated.** Crossing the limit (0.75 chaining, 0.5
+  probing) grows the table to the next prime capacity mid-run and replays every key into
+  it, one frame per key — a rehash is not a copy, since `h(k)` is taken mod the new
+  capacity. Table sizes are prime (7 → 17 → 37 → …), which keeps `k mod m` from clustering
+  and is what makes quadratic probing's guarantee hold. **Resize** forces the same by hand.
+- **Tombstones.** Deleting from an open-addressed table leaves a `DEL` marker rather than
+  an empty slot, because blanking it would strand every key whose probe sequence runs
+  through it. Searches step over tombstones; later inserts reuse the first one they passed.
+- **Strategy switching replays the keys.** Changing the collision strategy rebuilds the
+  same keys into a fresh table instead of starting over, so the three strategies can be
+  compared on identical input.
 - **Recursion structure for the divide-and-conquer sorts.** Merge and quick sort frames now
   carry `range` (the inclusive subrange the current call owns), `depth`, and the call tree
   itself. Bars outside the active partition fade back — by opacity, not colour, so a sorted
@@ -22,10 +70,11 @@ Usability and playback-smoothness pass across every visualizer.
   tree fills in as the run proceeds; quick sort on sorted input draws its O(n²) staircase.
 - **Shareable links.** The address bar tracks the topic, algorithm and data on screen,
   and a **SHARE** button copies the link; opening one goes straight to the visualizer with
-  that data loaded. Custom arrays, lists, stacks, queues, trees, 2-3 trees, graphs and
-  polynomials all round-trip exactly, tree shape included — trees are written in the order
-  that rebuilds them, and a graph carries its vertices and edges separately so both keep
-  their order. New `src/utils/urlState.js`; each view hook now takes an optional `init`.
+  that data loaded. Custom arrays, lists, stacks, queues, trees, 2-3 trees, hash tables,
+  graphs and polynomials all round-trip exactly, tree shape included — trees are written in
+  the order that rebuilds them, a graph carries its vertices and edges separately so both
+  keep their order, and a hash table carries its keys in insertion order plus its capacity,
+  which depends on how big the table ever got rather than on how many keys it holds now. New `src/utils/urlState.js`; each view hook now takes an optional `init`.
   Written with `replaceState`, so it doesn't fill browser history, and read once on load.
   Anything unrecognised in a link falls back to the default, so a hand-edited link can only
   produce a setup the app could have built itself.
@@ -74,6 +123,10 @@ Usability and playback-smoothness pass across every visualizer.
 
 ### Changed
 
+- **Kruskal's MST now uses the shared union-find** instead of its own copy buried in
+  `kruskalMST.js`. The shared version adds union by size and full path compression (the
+  old local one had neither), so it is strictly faster; the MST it produces is unchanged,
+  since the edge choices depend only on connectivity and not on which root wins a merge.
 - **Playback rewritten as a shared `useStepPlayer` hook**, replacing eight near-identical
   `setInterval` blocks duplicated across the view hooks. It runs on
   `requestAnimationFrame` and reads speed through a ref, so changing speed mid-run retimes

@@ -24,6 +24,14 @@ import TreeSidebar from "./components/TreeSidebar.jsx";
 import TreeCanvas from "./components/TreeCanvas.jsx";
 import TwoThreeTreeSidebar from "./components/TwoThreeTreeSidebar.jsx";
 import TwoThreeTreeCanvas from "./components/TwoThreeTreeCanvas.jsx";
+import HashTableSidebar from "./components/HashTableSidebar.jsx";
+import HashTableCanvas from "./components/HashTableCanvas.jsx";
+import HeapSidebar from "./components/HeapSidebar.jsx";
+import HeapCanvas from "./components/HeapCanvas.jsx";
+import TrieSidebar from "./components/TrieSidebar.jsx";
+import TrieCanvas from "./components/TrieCanvas.jsx";
+import UnionFindSidebar from "./components/UnionFindSidebar.jsx";
+import UnionFindCanvas from "./components/UnionFindCanvas.jsx";
 import TopicPanel from "./components/TopicPanel.jsx";
 import { TOPIC_OVERVIEWS } from "./data/topicOverviews.js";
 import { useVisualizer } from "./hooks/useVisualizer.js";
@@ -34,6 +42,10 @@ import { useQueue } from "./hooks/useQueue.js";
 import { useGraph } from "./hooks/useGraph.js";
 import { useTree } from "./hooks/useTree.js";
 import { useTwoThreeTree } from "./hooks/useTwoThreeTree.js";
+import { useHashTable } from "./hooks/useHashTable.js";
+import { useHeap } from "./hooks/useHeap.js";
+import { useTrie } from "./hooks/useTrie.js";
+import { useUnionFind } from "./hooks/useUnionFind.js";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts.js";
 import { delayForSpeed } from "./hooks/useStepPlayer.js";
 import { readSharedState, shareHashFor, replaceHash, buildShareUrl } from "./utils/urlState.js";
@@ -55,6 +67,10 @@ export default function App() {
   const gr = useGraph(initFor("graph"));
   const tr = useTree(initFor("tree"));
   const tt = useTwoThreeTree(initFor("twothree"));
+  const ht = useHashTable(initFor("hashtable"));
+  const hp = useHeap(initFor("heap"));
+  const tri = useTrie(initFor("trie"));
+  const uf = useUnionFind(initFor("unionfind"));
 
   // The player driving whatever view is on screen — one source for the
   // transport bar, the timeline and the keyboard shortcuts.
@@ -66,6 +82,10 @@ export default function App() {
     graph: gr,
     tree: tr,
     twothree: tt,
+    hashtable: ht,
+    heap: hp,
+    trie: tri,
+    unionfind: uf,
   };
   const active = players[view] || v;
 
@@ -103,7 +123,7 @@ export default function App() {
 
   // The address bar tracks the data on screen, so the link is always ready to
   // copy. Only committed data is encoded — never half-typed sidebar text.
-  const shareHash = shareHashFor(view, { v, ll, poly, st, q, gr, tr, tt });
+  const shareHash = shareHashFor(view, { v, ll, poly, st, q, gr, tr, tt, ht, hp, tri, uf });
   const shareUrl = buildShareUrl(shareHash);
 
   useEffect(() => {
@@ -352,6 +372,110 @@ export default function App() {
           <ListControls {...transport} />
           <ListInfoPanel opMeta={tt.opMeta} />
           <TopicPanel topic={TOPIC_OVERVIEWS.twothree} />
+        </Workspace>
+      ) : view === "hashtable" ? (
+        <Workspace
+          {...shell}
+          panelLabel="HASH TABLE OPS"
+          sidebar={
+            <HashTableSidebar
+              strategy={ht.strategy}
+              onStrategyChange={ht.setStrategy}
+              operation={ht.operation}
+              onOperationChange={ht.setOperation}
+              opMeta={ht.opMeta}
+              keyInput={ht.keyInput}
+              setKeyInput={ht.setKeyInput}
+              onRun={ht.runOperation}
+              customInput={ht.customInput}
+              setCustomInput={ht.setCustomInput}
+              onApplyCustom={ht.applyCustomTable}
+              onShuffle={ht.shuffle}
+            />
+          }
+        >
+          <HashTableCanvas step={ht.step} />
+          <ListControls {...transport} />
+          <ListInfoPanel opMeta={ht.opMeta} />
+          <TopicPanel topic={TOPIC_OVERVIEWS.hashtable} />
+        </Workspace>
+      ) : view === "heap" ? (
+        <Workspace
+          {...shell}
+          panelLabel="HEAP OPS"
+          sidebar={
+            <HeapSidebar
+              kind={hp.kind}
+              onKindChange={hp.setKind}
+              operation={hp.operation}
+              onOperationChange={hp.setOperation}
+              opMeta={hp.opMeta}
+              valueInput={hp.valueInput}
+              setValueInput={hp.setValueInput}
+              onRun={hp.runOperation}
+              customInput={hp.customInput}
+              setCustomInput={hp.setCustomInput}
+              onApplyCustom={hp.applyCustomHeap}
+              onShuffle={hp.shuffle}
+            />
+          }
+        >
+          <HeapCanvas step={hp.step} />
+          <ListControls {...transport} />
+          <ListInfoPanel opMeta={hp.opMeta} />
+          <TopicPanel topic={TOPIC_OVERVIEWS.heap} />
+        </Workspace>
+      ) : view === "trie" ? (
+        <Workspace
+          {...shell}
+          panelLabel="TRIE OPS"
+          sidebar={
+            <TrieSidebar
+              operation={tri.operation}
+              onOperationChange={tri.setOperation}
+              opMeta={tri.opMeta}
+              wordInput={tri.wordInput}
+              setWordInput={tri.setWordInput}
+              onRun={tri.runOperation}
+              customInput={tri.customInput}
+              setCustomInput={tri.setCustomInput}
+              onApplyCustom={tri.applyCustomTrie}
+              onShuffle={tri.shuffle}
+              wordCount={tri.words.length}
+            />
+          }
+        >
+          <TrieCanvas step={tri.step} />
+          <ListControls {...transport} />
+          <ListInfoPanel opMeta={tri.opMeta} />
+          <TopicPanel topic={TOPIC_OVERVIEWS.trie} />
+        </Workspace>
+      ) : view === "unionfind" ? (
+        <Workspace
+          {...shell}
+          panelLabel="UNION-FIND OPS"
+          sidebar={
+            <UnionFindSidebar
+              operation={uf.operation}
+              onOperationChange={uf.setOperation}
+              opMeta={uf.opMeta}
+              elementA={uf.elementA}
+              setElementA={uf.setElementA}
+              elementB={uf.elementB}
+              setElementB={uf.setElementB}
+              onRun={uf.runOperation}
+              customInput={uf.customInput}
+              setCustomInput={uf.setCustomInput}
+              onApplyCustom={uf.applyCustomUnionFind}
+              onShuffle={uf.shuffle}
+              elementCount={uf.uf.n}
+            />
+          }
+        >
+          <UnionFindCanvas step={uf.step} />
+          <ListControls {...transport} />
+          <ListInfoPanel opMeta={uf.opMeta} />
+          <TopicPanel topic={TOPIC_OVERVIEWS.unionfind} />
         </Workspace>
       ) : (
         <Workspace

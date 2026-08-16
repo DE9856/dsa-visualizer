@@ -114,6 +114,129 @@ export const TOPIC_OVERVIEWS = {
     ],
   },
 
+  unionfind: {
+    title: "Union-Find (Disjoint Set Union)",
+    overview:
+      "Union-find answers one question — are these two things in the same group? — and supports one change: merge two groups. That is all it does. It keeps no edges, no paths and no membership lists; each element only stores a pointer to another element, and a group is identified by the one element that points at itself. From those two arrays it answers connectivity queries in effectively constant time, which is why it sits underneath Kruskal's algorithm, connected-component labelling, and every 'are these accounts the same person' merge you have ever written.",
+    howItWorks: [
+      "Each element stores a parent pointer. An element that points at itself is a root, and the root's identity is the name of the set.",
+      "find(x) walks up the parent chain to the root. Two elements are in the same set exactly when their walks end at the same place.",
+      "union(a, b) finds both roots and points one at the other — a single pointer write merges two entire sets.",
+      "Union by size decides which root moves: the smaller tree is hung under the larger, so the elements that gain depth are always the fewer ones.",
+      "Path compression is applied during find: every element the walk passed is re-pointed straight at the root, so the same walk never happens twice and the trees flatten as they are used.",
+      "With both optimizations, m operations on n elements cost O(m · α(n)), where α is the inverse Ackermann function — below 5 for any n that could physically be stored.",
+    ],
+    useCases: [
+      "Kruskal's minimum spanning tree, where the cycle check is exactly 'are these two vertices already connected?'.",
+      "Connected components and image segmentation — labelling which pixels or nodes belong to the same blob.",
+      "Dynamic connectivity in networks: keeping track of what is reachable as links are added.",
+      "Merging equivalence classes, from type inference in compilers to de-duplicating records that turn out to be the same entity.",
+    ],
+    advantages: [
+      "Effectively constant time per operation once both optimizations are in place — faster than any tree- or graph-based alternative for pure connectivity.",
+      "Tiny memory footprint: two integer arrays, no pointers to allocate and no per-set bookkeeping.",
+      "Trivial to implement correctly, and it degrades gracefully — even without path compression, union by size alone keeps trees at O(log n).",
+    ],
+    disadvantages: [
+      "Merges are one-way: there is no undo, no split, and no way to remove an element from a set without rebuilding.",
+      "It knows that two elements are connected but not how — no path, no distance, no edges are retained.",
+      "The groups themselves are never stored; listing the members of a set means walking every element up to its root.",
+    ],
+  },
+
+  trie: {
+    title: "Trie (Prefix Tree)",
+    overview:
+      "A trie stores a set of strings by their characters rather than as whole values: every edge carries one character, and every node is the prefix spelled by the path that reaches it. Nothing in the structure holds a complete word — 'car' and 'card' share three nodes and differ by one — and lookup never compares whole strings, only walks a path. That makes a trie's cost depend on the length of the word you are asking about and not at all on how many words are stored, and it makes prefix queries, which every other dictionary structure struggles with, almost free.",
+    howItWorks: [
+      "Each node holds one child per possible next character, plus a flag marking whether a word ends there.",
+      "That end-of-word flag is essential: in a trie holding only 'card', the word 'car' is spelled out perfectly and is still not stored. Without the flag there would be no way to tell the two cases apart.",
+      "Insert walks the word, creating nodes only where the path runs out, then sets the flag — so inserting 'card' next to 'car' costs a single node.",
+      "Searching walks the same path and checks the flag at the end; running out of edges means nothing stored even begins that way.",
+      "Autocomplete walks to the prefix node and enumerates the subtree beneath it, because every completion of a prefix lives under exactly one node.",
+      "Deleting clears the flag and then prunes back up the path, stopping at the first node that still has children or is itself a word — those are still spelling out other words.",
+      "Visiting each node's children in alphabetical order makes any traversal come out sorted, with no sorting step.",
+    ],
+    useCases: [
+      "Autocomplete and type-ahead suggestions, the canonical use — prefix lookup is what the structure is for.",
+      "Spell checkers and word games, where near-misses and valid-prefix checks matter as much as exact hits.",
+      "IP routing tables and longest-prefix matching, using tries over bits rather than letters.",
+      "Dictionary compression for large word lists that share heavy prefixes.",
+    ],
+    advantages: [
+      "Lookup, insert and delete are O(L) in the length of the word, regardless of how many words are stored.",
+      "Prefix queries and autocomplete come for free; a hash table scatters 'car' and 'card' to unrelated buckets and cannot answer them at all.",
+      "Traversal yields words in alphabetical order without sorting, and shared prefixes are stored only once.",
+      "No hash function, so no collisions to resolve and no worst case caused by unlucky keys.",
+    ],
+    disadvantages: [
+      "Memory-hungry: each node carries a slot per possible character, so a sparse trie over a large alphabet wastes a great deal of space — radix trees and ternary search tries exist to fix exactly this.",
+      "Poor cache locality — a lookup chases one pointer per character, where a hash table computes one index and makes a single probe.",
+      "Only useful for string-like keys that decompose into characters; there is nothing to walk for an arbitrary value.",
+    ],
+  },
+
+  heap: {
+    title: "Binary Heap",
+    overview:
+      "A binary heap is a complete binary tree with one rule: every parent outranks its children — larger in a max-heap, smaller in a min-heap. That is a far weaker promise than a binary search tree makes, and the weakness is the point. Nothing orders the two subtrees under a node against each other, so a heap can never answer 'what comes after 30?', but it can keep the single most extreme value at the root through any sequence of insertions and removals for O(log n) a piece. Because the tree is always complete it needs no pointers at all: it lives in a flat array where index i's children sit at 2i+1 and 2i+2.",
+    howItWorks: [
+      "The tree is complete — every level full except the last, which fills left to right — so the height is always ⌊log₂ n⌋ and no rebalancing machinery is needed.",
+      "That completeness is what lets the tree collapse into an array: the root is index 0, index i's children are 2i+1 and 2i+2, and its parent is ⌊(i−1)/2⌋. No child pointers are stored anywhere.",
+      "Insert puts the value at the end of the array — the only slot that keeps the tree complete — then sifts it up, swapping with its parent while it outranks it.",
+      "Extract returns the root and fills the hole with the last element (again, to stay complete), then sifts that value down, swapping with the better of its two children until both fall below it.",
+      "Building a heap from an arbitrary array is done bottom-up: sift down every internal node from the last one back to the root. This costs O(n), not O(n log n), because half the nodes are leaves that never move and only the root can travel the full height.",
+      "Heap sort is nothing more than build-then-extract-repeatedly, which is why it is O(n log n) with no extra memory.",
+    ],
+    useCases: [
+      "Priority queues — schedulers, event simulations, and bandwidth shapers that always need the next-most-urgent item.",
+      "Dijkstra's and Prim's algorithms, which repeatedly pull the cheapest unvisited vertex.",
+      "Heap sort, where the array being sorted doubles as the heap.",
+      "Streaming top-k problems: keep a k-element min-heap and every new value is one O(log k) comparison away from being accepted or discarded.",
+    ],
+    advantages: [
+      "Insert and extract are O(log n) with a guaranteed height — unlike a BST, a heap cannot degenerate into a list.",
+      "Reading the maximum (or minimum) is O(1), and building a heap from an existing array is O(n).",
+      "No pointers and no wasted nodes: the array representation is as compact as a data structure gets, with excellent cache behaviour.",
+    ],
+    disadvantages: [
+      "No ordering beyond parent-vs-child, so searching for an arbitrary value is O(n) and range queries are impossible.",
+      "Only one end is cheap: a max-heap gives you the maximum in O(1) but says nothing useful about the minimum.",
+      "Not stable, and merging two heaps is O(n) — specialised variants (binomial, Fibonacci) exist precisely because the binary heap is bad at it.",
+    ],
+  },
+
+  hashtable: {
+    title: "Hash Table",
+    overview:
+      "A hash table stores keys in an array of buckets, using a hash function to turn each key directly into an index — h(k) = k mod m here. That skips searching entirely: instead of comparing your way to a key, you compute where it must be. The catch is that a function mapping a huge key space onto a small array must send different keys to the same bucket sometimes, so every hash table is really two designs — a hash function, and a plan for what to do when two keys collide.",
+    howItWorks: [
+      "The hash function maps a key to a bucket index. A table size that is prime keeps (k mod m) from clustering when the keys share a factor with m.",
+      "Separate chaining gives every bucket a linked list, so colliding keys simply queue up in the same bucket and the table can hold more keys than it has buckets.",
+      "Open addressing stores at most one key per bucket and sends collisions elsewhere: linear probing tries the next slot, then the next; quadratic probing jumps 1, 4, 9, 16... slots ahead to break up the clusters linear probing forms.",
+      "A lookup repeats the insert's path exactly — same hash, same chain or probe sequence — and stops at the first free slot, because an insert would have stopped there too.",
+      "Deleting under open addressing cannot blank a slot: that would strand every key whose probe sequence runs through it. The slot gets a tombstone instead, which searches skip and later inserts can reuse.",
+      "The load factor α = n/m tracks how full the table is. Crossing the limit (about 0.75 for chaining, 0.5 for probing) triggers a resize: allocate a larger prime capacity and rehash every key, since h(k) is taken mod the new size.",
+    ],
+    useCases: [
+      "Dictionaries, maps, and sets in essentially every standard library — Python's dict, Java's HashMap, JavaScript's Map.",
+      "Database indexes and caches, where a key must resolve to a record in constant time.",
+      "De-duplication and membership tests, such as tracking which URLs a crawler has already visited.",
+      "Compiler and interpreter symbol tables, mapping identifiers to their declarations.",
+    ],
+    advantages: [
+      "Insert, search, and delete all run in O(1) on average — no comparisons chain, the hash goes straight to the bucket.",
+      "Performance is tunable: the load factor limit trades memory for speed, and resizing keeps that trade in force as the table grows.",
+      "Separate chaining degrades gracefully — it keeps working past a load factor of 1, where open addressing would have no room left.",
+    ],
+    disadvantages: [
+      "No ordering. Keys come out in hash order, so range queries and sorted iteration need a tree instead.",
+      "Worst case is O(n) — a bad hash function, or adversarial keys, can pile every key into one bucket.",
+      "Resizing is an O(n) pause: one unlucky insert rehashes the entire table, which matters for latency even though inserts stay O(1) amortized.",
+      "Open addressing wastes slots on tombstones and slows down as it fills, which is why it needs a much lower load factor than chaining.",
+    ],
+  },
+
   graph: {
     title: "Graph",
     overview:

@@ -1,30 +1,14 @@
 import { cloneGraph } from "./helpers";
-
-function makeUnionFind(ids) {
-  const parent = Object.fromEntries(ids.map((id) => [id, id]));
-  const find = (x) => {
-    while (parent[x] !== x) {
-      parent[x] = parent[parent[x]];
-      x = parent[x];
-    }
-    return x;
-  };
-  const union = (a, b) => {
-    const ra = find(a);
-    const rb = find(b);
-    if (ra === rb) return false;
-    parent[ra] = rb;
-    return true;
-  };
-  return { find, union };
-}
+// The union-find this algorithm needs is a structure in its own right, with
+// its own view under GRAPHS — this is the same code, without the frames.
+import { makeUnionFind } from "../unionFind/helpers";
 
 export const kruskalMST = {
   key: "kruskal",
   label: "Kruskal's MST",
   group: "mst",
   fields: [],
-  desc: "Builds a Minimum Spanning Tree by sorting every edge by weight and greedily adding the cheapest one, as long as it doesn't close a cycle. A union-find (disjoint set) structure tracks which vertices are already connected so cycle-forming edges can be skipped in O(\u03b1(V)) time. Only defined for undirected graphs.",
+  desc: "Builds a Minimum Spanning Tree by sorting every edge by weight and greedily adding the cheapest one, as long as it doesn't close a cycle. A union-find (disjoint set) structure tracks which vertices are already connected so cycle-forming edges can be skipped in O(\u03b1(V)) time \u2014 the same structure has its own view under GRAPHS, where the finds and unions this runs are animated step by step. Only defined for undirected graphs.",
   time: "O(E log E)",
   space: "O(V)",
   run(graph) {
@@ -47,7 +31,7 @@ export const kruskalMST = {
     sortedEdges.forEach((edge) => {
       const fromNode = g.nodes.find((n) => n.id === edge.from);
       const toNode = g.nodes.find((n) => n.id === edge.to);
-      const wouldCycle = uf.find(edge.from) === uf.find(edge.to);
+      const wouldCycle = uf.connected(edge.from, edge.to);
 
       if (wouldCycle) {
         steps.push({

@@ -159,14 +159,22 @@ loaded, skipping the boot and category screens.
 | Stack / queue | `#v=stack&a=7,8,9` |
 | Tree | `#v=tree&type=avl&a=30,20,10,25,40,50` |
 | 2-3 tree | `#v=twothree&a=12,5,30,3,8,21,44` |
+| Heap | `#v=heap&type=min&a=4,10,3,5,1,8` |
+| Hash table | `#v=hashtable&type=linear&a=42,13,7,20&m=17` |
+| Trie | `#v=trie&a=car,card,care,cat,dog` |
+| Union-Find | `#v=unionfind&p=0,0,2,0,4,4` |
 | Graph | `#v=graph&w=1&g=A,B,C,D&e=A-B(5),B-C(2),C-D(7),A-D` |
 | Polynomial | `#v=polynomial&p=6x^4 - 2x^2 + 9` |
 
 The values are the same text the sidebar's custom-data boxes take, so links stay
 readable and can be written by hand. Trees are listed in the order that rebuilds them
 (preorder for BST/AVL, level order for a plain binary tree), and a graph carries its
-vertices and edges separately so both keep their order. Everything round-trips exactly,
-including tree shape.
+vertices and edges separately so both keep their order. A hash table is listed in
+insertion order — with probing, the order keys arrive in decides where the collisions
+land — plus `m`, its capacity, which depends on how big the table ever got rather than
+on how many keys are in it now. A heap is written in array order, which *is* the heap. A
+union-find carries its raw parent array, since path compression is part of the state
+worth sharing. Everything round-trips exactly, including tree shape.
 
 Some details are deliberately not in the link: playback position, speed, which
 operation is selected, and half-typed text in the sidebar. The link is the *data*, not
@@ -264,10 +272,80 @@ says so — and draw `lo` / `mid` / `hi` pointers under the bars.
 | **Queue** | fixed capacity 8 | enqueue, dequeue, peek/front, search, size, isEmpty, isFull, clear |
 | **Tree** | Binary Tree, BST, AVL | insert, delete, search, inorder, preorder, postorder, DFS, BFS (level order), height, size, clear |
 | **2-3 Tree** | balanced multi-way | insert (with splits), delete, search, inorder, height, size, clear |
+| **Heap** | max-heap, min-heap | insert (sift up), extract root (sift down), peek, build heap, search, height, size, clear |
+| **Hash Table** | separate chaining, linear probing, quadratic probing | insert, search, delete, load factor, list keys, resize, clear |
+| **Trie** | prefix tree over a–z | insert, delete (with pruning), search, autocomplete, list words, size, clear |
+| **Union-Find** | union by size + path compression | union, find, connected?, components, add element, reset |
 | **Graph** | directed/undirected, weighted/unweighted | add & remove vertex/edge, neighbours, degree, is-adjacent, BFS, DFS, topological sort, Dijkstra, Floyd–Warshall, Prim's MST, Kruskal's MST |
 
 On the graph canvas you can **drag from one vertex to another** to create an edge, and
 switch the panel below between adjacency-list and adjacency-matrix representations.
+
+### The hash table view
+
+The canvas is the bucket array itself, one row per index, so a probe sequence reads top
+to bottom and its wrap past the last bucket is visible. The header carries the load
+factor as a bar with a tick at the limit that triggers a resize; the line under it shows
+the hash being computed, `h(42) = 42 mod 7 = 2`.
+
+- Table sizes are prime (7 → 17 → 37 → …). A prime modulus keeps `k mod m` from
+  clustering, and it is what makes quadratic probing's guarantee hold.
+- **Resizing is automatic.** Crossing the load factor limit — 0.75 under chaining, 0.5
+  under probing — grows the table on the spot and replays every key into it, one frame
+  per key, since `h(k)` is taken mod the new capacity. **Resize** in the sidebar forces
+  the same thing by hand.
+- **Deleting under open addressing leaves a tombstone** (`DEL`), not an empty slot:
+  blanking it would strand every key whose probe sequence runs through it. Searches step
+  over tombstones and later inserts reuse them.
+- Switching the collision strategy **replays the same keys** into a fresh table rather
+  than starting over, which is the fastest way to see the three strategies deal the same
+  collisions differently.
+
+### The heap view
+
+The tree and the array it actually lives in are both on screen, highlighted in lockstep,
+with the index arithmetic (`parent ⌊(i−1)/2⌋`, `left 2i+1`, `right 2i+2`) spelled out for
+whichever index the current step is touching. A heap stores no child pointers at all —
+the tree is drawn *from* the array, which is the point.
+
+- **New values arrive unheapified.** RANDOM ARRAY and the custom-values box load a plain
+  array and then run the bottom-up build on screen, because watching an array become a
+  heap is the most interesting thing the structure does. It is O(n), not O(n log n) —
+  half the nodes are leaves that never move.
+- **Switching max/min re-heapifies the same values** rather than starting over.
+- Insert sifts up from the end of the array; extract fills the root from the end and
+  sifts down. Both are capped at ⌊log₂ n⌋ swaps because a complete tree cannot be taller.
+- The visualizer stops at 31 nodes (5 full levels) so the tree stays readable.
+
+### The trie view
+
+Every edge is one character, and a **green ring marks an end-of-word node**. That ring is
+the whole distinction between a stored word and a passing prefix: search "car" in a trie
+holding only "card" and the walk succeeds while the answer is still PREFIX ONLY.
+
+- **Insert** creates nodes only where the path runs out — inserting "card" beside "car"
+  costs one node, and the run reports how many characters it reused.
+- **Delete** clears the flag and then prunes back up, stopping at the first node that
+  still has children or is itself a word. Deleting "car" from {car, card} removes nothing.
+- **Autocomplete** walks to the prefix and enumerates the subtree below it; results come
+  out alphabetically because children are always visited in alphabetical order.
+- Up to 12 words of at most 10 letters, a–z only.
+
+### The union-find view
+
+The forest and the parent array are both on screen. A **ringed node is a root** — an
+element that is its own parent — and its `size` is shown above it, because union by size
+decides which root survives a merge.
+
+- **Path compression is animated.** Every find walks to the root and then re-points each
+  element it passed straight at that root, one frame per pointer, and the tree visibly
+  flattens. Run the same find twice and the second one has nothing left to compress.
+- **Union** finds both roots (compressing on the way) and hangs the smaller tree under
+  the larger. A union of two elements already in the same set reports ALREADY CONNECTED —
+  which is exactly the cycle check Kruskal's algorithm runs on every edge.
+- This is the same implementation Kruskal's MST uses: `makeUnionFind()` in
+  `src/dataStructures/unionFind/helpers.js` is the silent version of what this view
+  animates.
 
 ---
 
@@ -283,7 +361,7 @@ Comma-separated integers. Needs at least 2 values; the first 40 are used.
 
 Array size can also be set with the slider (6–40); random values fall in 10–99.
 
-### Custom list / stack / queue / tree
+### Custom list / stack / queue / tree / heap / hash table
 
 Comma-separated integers.
 
@@ -292,7 +370,24 @@ Comma-separated integers.
 ```
 
 For trees the values are inserted in the order given, following the rules of the selected
-tree type.
+tree type. A hash table takes up to 24 keys, inserted in the order given and resized
+along the way as the load factor demands; duplicates are dropped, since keys are unique.
+A heap takes up to 31 values, loaded as a plain array and then heapified on screen —
+duplicates are fine.
+
+### Trie words
+
+Comma- or space-separated words, letters only. Anything else in a word is stripped, and
+duplicates are dropped. Up to 12 words of at most 10 letters.
+
+```
+car, card, care, cat, dog
+```
+
+### Union-Find
+
+A count of elements (2–12), which loads that many singleton sets. Elements are named
+`A`, `B`, `C`… and the operation fields accept either the letter or the index.
 
 ### Polynomial
 
@@ -355,16 +450,20 @@ src/
 │   └── index.js            registry: ALGORITHMS, ALGO_MAP, getSteps()
 │
 ├── dataStructures/
-│   ├── graph/  linkedList/  polynomial/  queue/  stack/  tree/  twoThreeTree/
+│   ├── graph/  hashTable/  heap/  linkedList/  polynomial/  queue/  stack/
+│   │   tree/  trie/  twoThreeTree/  unionFind/
 │   │           each folder = one file per operation + helpers.js + index.js registry
+│   │           unionFind/ also exports the silent makeUnionFind() that
+│   │           graph/kruskalMST.js uses for its cycle check
 │
 ├── components/             canvases, sidebars, panels, the shared transport bar
 │
 ├── hooks/
 │   ├── useStepPlayer.js         shared playback engine (see below)
 │   ├── useKeyboardShortcuts.js  global transport shortcuts
-│   └── useVisualizer.js, useLinkedList.js, usePolynomial.js,
-│       useStack.js, useQueue.js, useGraph.js, useTree.js, useTwoThreeTree.js
+│   └── useVisualizer.js, useLinkedList.js, usePolynomial.js, useStack.js,
+│       useQueue.js, useGraph.js, useTree.js, useTwoThreeTree.js,
+│       useHashTable.js, useHeap.js, useTrie.js, useUnionFind.js
 │
 ├── data/                   category metadata and long-form topic write-ups
 ├── utils/
@@ -510,7 +609,8 @@ pseudocode display are wired automatically from the registry.
 
 1. Add `src/dataStructures/<structure>/myOp.js` exporting an operation object with
    `key`, `label`, `group`, `fields`, `desc`, and a `run(current, params)` that returns
-   `{ steps, finalList | finalTree | finalGraph }`.
+   `{ steps, finalList | finalTree | finalTable | finalHeap | finalTrie | finalUf |
+   finalGraph }`.
 2. Register it in that folder's `index.js` operation map.
 
 The sidebar renders the inputs listed in `fields`, and the transport bar picks up the new

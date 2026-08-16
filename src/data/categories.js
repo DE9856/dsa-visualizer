@@ -37,6 +37,17 @@ export const CATEGORIES = [
     items: [
       { key: "tree", label: "Tree", desc: "BST traversal & search" },
       { key: "twothree", label: "2-3 Tree", desc: "Balanced multi-way tree" },
+      { key: "heap", label: "Heap", desc: "Max/min heap, sift up & down" },
+      { key: "trie", label: "Trie", desc: "Prefix tree & autocomplete" },
+    ],
+  },
+  {
+    key: "hashing",
+    label: "HASHING",
+    accent: "var(--yellow)",
+    blurb: "Keys turned into addresses, and the collisions that follow.",
+    items: [
+      { key: "hashtable", label: "Hash Table", desc: "Chaining, probing & resizing" },
     ],
   },
   {
@@ -46,6 +57,7 @@ export const CATEGORIES = [
     blurb: "Vertices, edges, and the shortest way between them.",
     items: [
       { key: "graph", label: "Graph", desc: "BFS, DFS, MST & shortest paths" },
+      { key: "unionfind", label: "Union-Find", desc: "Disjoint sets & path compression" },
     ],
   },
 ];
