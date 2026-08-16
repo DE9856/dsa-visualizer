@@ -165,6 +165,14 @@ hash tables, heaps, tries and union-find.
 - **Stacked layout shrank to its content width** below 900px — `align-items: flex-start` on
   the row layout also applied once it became a column. The visualization now also comes
   first in that stacked order, instead of sitting below a full-width sidebar.
+- **RUN buttons did nothing in the phone sheet**, on every structure view. Tapping one
+  closed the sheet, and closing unmounted the form before the browser got to the click's
+  default action — the form submission algorithm drops a form that is no longer connected
+  without even firing `submit`, so the operation never started while the sheet slid away as
+  if it had. Buttons that own a form now close the sheet from its bubbled `submit` instead,
+  once the run is under way. The test is `.form` rather than the type alone, since a bare
+  `<button>` reports `type="submit"` even when it has no form to submit — RANDOM and APPLY
+  still close on click.
 
 ---
 

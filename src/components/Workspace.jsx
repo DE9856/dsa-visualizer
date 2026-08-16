@@ -49,8 +49,21 @@ export default function Workspace({
   }
 
   const handleSheetClick = (e) => {
-    if (e.target.closest(RUN_ACTION)) setOpen(false);
+    const action = e.target.closest(RUN_ACTION);
+    if (!action) return;
+    // A button that owns a form submits it as this click's *default action*,
+    // which the browser only runs once the event has finished propagating.
+    // Closing here unmounts the form first, and the submission algorithm drops
+    // a form that is no longer connected — without ever firing `submit`. The
+    // sheet would slide away and the operation would silently never run.
+    // Those close from handleSheetSubmit instead, after the run has started.
+    if (action.form && action.type === "submit") return;
+    setOpen(false);
   };
+
+  // Every sidebar runs its operation from a form's onSubmit, which bubbles to
+  // here once that handler has done its work.
+  const handleSheetSubmit = () => setOpen(false);
 
   return (
     <div className="layout layout--mobile">
@@ -86,7 +99,7 @@ export default function Workspace({
                 <X size={16} />
               </button>
             </div>
-            <div className="sheet__body" onClick={handleSheetClick}>
+            <div className="sheet__body" onClick={handleSheetClick} onSubmit={handleSheetSubmit}>
               {sidebar}
             </div>
           </div>
