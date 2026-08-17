@@ -72,46 +72,50 @@ export default function DynamicHashCanvas({ step }) {
         {extendible && (
           <div className="dh-dir">
             <div className="dh-col__caption mono">DIRECTORY</div>
-            {(step.directory || []).map((target, index) => (
-              <div key={index} className={`dh-dir__row ${step.dirIndex === index ? "dh-dir__row--active" : ""}`}>
-                <span className="dh-dir__bits mono">{binary(index, step.globalDepth)}</span>
-                <span className="dh-dir__arrow mono">&rarr;</span>
-                <span className="dh-dir__target mono">B{target}</span>
-              </div>
-            ))}
+            <div className="dh-list">
+              {(step.directory || []).map((target, index) => (
+                <div key={index} className={`dh-dir__row ${step.dirIndex === index ? "dh-dir__row--active" : ""}`}>
+                  <span className="dh-dir__bits mono">{binary(index, step.globalDepth)}</span>
+                  <span className="dh-dir__arrow mono">&rarr;</span>
+                  <span className="dh-dir__target mono">B{target}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
         <div className="dh-buckets">
           <div className="dh-col__caption mono">BUCKETS</div>
-          {buckets.map((bucket, index) => (
-            <div
-              key={bucket.id}
-              className={`dh-row ${step.bucketIndex === index ? "dh-row--active" : ""} ${
-                step.full && step.bucketIndex === index ? "dh-row--full" : ""
-              }`}
-            >
-              <span className="dh-row__marker mono">{!extendible && step.next === index ? "▸" : ""}</span>
-              <span className="dh-row__label mono">{extendible ? `B${index}` : index}</span>
-              {extendible ? (
-                <span className="dh-row__depth mono" title="local depth">
-                  d{bucket.localDepth}
-                </span>
-              ) : (
-                <span className="dh-row__depth mono" title="hash this bucket answers to">
-                  {index < step.next || index >= levelSize(step) ? `mod ${levelSize(step) * 2}` : `mod ${levelSize(step)}`}
-                </span>
-              )}
-              <Bucket
-                bucket={bucket}
-                size={step.bucketSize}
-                active={step.bucketIndex === index}
-                activeKey={step.activeKey}
-                splitFrom={split?.from === index}
-                splitTo={split?.to === index}
-              />
-            </div>
-          ))}
+          <div className="dh-list">
+            {buckets.map((bucket, index) => (
+              <div
+                key={bucket.id}
+                className={`dh-row ${step.bucketIndex === index ? "dh-row--active" : ""} ${
+                  step.full && step.bucketIndex === index ? "dh-row--full" : ""
+                }`}
+              >
+                <span className="dh-row__marker mono">{!extendible && step.next === index ? "▸" : ""}</span>
+                <span className="dh-row__label mono">{extendible ? `B${index}` : index}</span>
+                {extendible ? (
+                  <span className="dh-row__depth mono" title="local depth">
+                    d{bucket.localDepth}
+                  </span>
+                ) : (
+                  <span className="dh-row__depth mono" title="hash this bucket answers to">
+                    {index < step.next || index >= levelSize(step) ? `mod ${levelSize(step) * 2}` : `mod ${levelSize(step)}`}
+                  </span>
+                )}
+                <Bucket
+                  bucket={bucket}
+                  size={step.bucketSize}
+                  active={step.bucketIndex === index}
+                  activeKey={step.activeKey}
+                  splitFrom={split?.from === index}
+                  splitTo={split?.to === index}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

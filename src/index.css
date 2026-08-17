@@ -1742,13 +1742,17 @@ input[type="range"] {
 
 .ht-grid {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  /* Past a resize or two the array is taller than the panel; scrolling here
-     keeps the header, the hash line and the message all in view. */
+  /* Past a resize or two the array is taller than the panel. Rather than
+     scrolling a single narrow column past the empty half of the canvas, the
+     buckets fill one column top-to-bottom and start another beside it. Column
+     order, not row order: a probe walks consecutive indices, and those have to
+     stay next to each other. */
+  flex-flow: column wrap;
+  align-content: flex-start;
+  gap: 2px 22px;
   max-height: 380px;
-  overflow-y: auto;
-  overscroll-behavior-y: contain;
+  overflow: auto;
+  overscroll-behavior: contain;
   padding-right: 4px;
 }
 
@@ -1926,13 +1930,25 @@ input[type="range"] {
   display: flex;
   gap: 26px;
   align-items: flex-start;
+  /* Bounded so the panel keeps the header, the hash line and the message in
+     one screen. The lists below wrap into columns before this bites, so the
+     scrollbar is a fallback rather than the normal way to read the table. */
+  max-height: 440px;
   overflow: auto;
-  /* A directory doubles every few splits, so past global depth 4 it is taller
-     than the panel. Both columns scroll together, which keeps a directory
-     entry beside the bucket it points at. */
-  max-height: 400px;
   overscroll-behavior: contain;
   padding-bottom: 4px;
+}
+
+/* A directory doubles every few splits — 32 entries by global depth 5 — and
+   the buckets grow with it. Each list fills a column and then starts another
+   one beside it, so the canvas grows sideways into the space it already has
+   instead of turning into a long scroll. */
+.dh-list {
+  display: flex;
+  flex-flow: column wrap;
+  align-content: flex-start;
+  gap: 0 18px;
+  max-height: 400px;
 }
 
 .dh-col__caption {
@@ -3034,7 +3050,10 @@ input[type="range"] {
     flex-basis: 100%;
   }
 
+  /* A phone has no spare width to wrap into, so the buckets stay one column
+     and scroll the way they always did. */
   .ht-grid {
+    flex-wrap: nowrap;
     max-height: 46dvh;
   }
 
@@ -3055,6 +3074,13 @@ input[type="range"] {
   .dh-cols {
     gap: 14px;
     max-height: 46dvh;
+  }
+
+  /* Same as the bucket array: no spare width on a phone, so the lists stay
+     single columns and scroll. */
+  .dh-list {
+    flex-wrap: nowrap;
+    max-height: none;
   }
 
   .dh-slot {

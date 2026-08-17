@@ -14,6 +14,13 @@ hash tables, dynamic hashing, heaps, tries and union-find.
 
 ### Changed
 
+- **Bucket lists flow into columns instead of scrolling.** A 37-bucket table, or a
+  directory at global depth 5, used to be a long scroll through a narrow strip while the
+  right half of the canvas sat empty. Both now fill a column top-to-bottom and start
+  another one beside it, so the whole table is on screen at once. Column order, not row
+  order — a probe walks consecutive indices, and those have to stay next to each other.
+  A phone has no width to spare, so there the lists stay single columns and scroll.
+
 - **The bundle is split three ways, so less of it has to arrive before the app runs.**
   React and the icon set are their own chunk — they change only when a dependency does,
   so an app redeploy no longer invalidates them in anyone's cache. The topic write-ups
