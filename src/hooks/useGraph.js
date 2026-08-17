@@ -207,11 +207,6 @@ export function useGraph(init) {
     [graph, runWith]
   );
 
-  const resetLayout = useCallback(() => {
-    history.record();
-    setPositions({});
-  }, [history]);
-
   /**
    * Ctrl+C. What gets copied depends on where the cursor is: over a vertex it
    * is that vertex, over bare canvas it is the whole graph. Either way the
@@ -289,10 +284,6 @@ export function useGraph(init) {
     },
     [graph, directed, runMeta, history]
   );
-
-  // Only vertices actually on screen count, so the reset affordance doesn't
-  // appear for a graph whose moved vertices have all since been deleted.
-  const hasCustomLayout = graph.nodes.some((n) => positions[n.id]);
 
   const applyCustomGraph = useCallback(() => {
     let next = null;
@@ -384,8 +375,6 @@ export function useGraph(init) {
     addVertexAt,
     deleteVertex,
     setWeightAt,
-    resetLayout,
-    hasCustomLayout,
     setHoveredVertex,
     copySelection,
     pasteClipboard,

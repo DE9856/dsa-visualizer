@@ -53,8 +53,6 @@ export default function GraphCanvas({
   onCreateEdge,
   positions = {},
   onMoveVertex,
-  onResetLayout,
-  hasCustomLayout = false,
   onAddVertexAt,
   onHoverVertex,
   onDeleteVertex,
@@ -330,11 +328,6 @@ export default function GraphCanvas({
     <div className="panel canvas graph-canvas">
       <div className="canvas__note graph-canvas__note">
         <span>{hint}</span>
-        {hasCustomLayout && (
-          <button type="button" className="graph-canvas__reset mono" onClick={onResetLayout}>
-            RESET LAYOUT
-          </button>
-        )}
       </div>
 
       {/* The canvas is drawn even with nothing on it, because the gesture that

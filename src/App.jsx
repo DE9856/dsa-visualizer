@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import BootScreen from "./components/BootScreen.jsx";
 import CategoryLanding from "./components/CategoryLanding.jsx";
 import TopBar from "./components/TopBar.jsx";
 import Workspace from "./components/Workspace.jsx";
@@ -56,7 +55,7 @@ export default function App() {
   const shared = useMemo(() => readSharedState(), []);
   const initFor = (name) => (shared?.view === name ? shared : null);
 
-  const [stage, setStage] = useState(shared ? "app" : "boot");
+  const [stage, setStage] = useState(shared ? "app" : "select");
   const [view, setView] = useState(shared?.view ?? "sorting");
   const [showHelp, setShowHelp] = useState(false);
   const v = useVisualizer(initFor("sorting") || initFor("searching"));
@@ -153,10 +152,6 @@ export default function App() {
     if (next === "sorting" || next === "searching") v.switchCategory(next);
     setStage("app");
   };
-
-  if (stage === "boot") {
-    return <BootScreen onDone={() => setStage("select")} />;
-  }
 
   if (stage === "select") {
     return <CategoryLanding onSelect={handleViewChange} />;
@@ -330,8 +325,6 @@ export default function App() {
             onCreateEdge={gr.createEdgeFromDrag}
             positions={gr.positions}
             onMoveVertex={gr.moveVertex}
-            onResetLayout={gr.resetLayout}
-            hasCustomLayout={gr.hasCustomLayout}
             onAddVertexAt={gr.addVertexAt}
             onHoverVertex={gr.setHoveredVertex}
             onDeleteVertex={gr.deleteVertex}

@@ -215,6 +215,17 @@ hash tables, heaps, tries and union-find.
 - **`DOCS.md`** — setup, shortcuts, input formats, architecture and extension guide.
 - **`CHANGELOG.md`** — this file.
 
+### Removed
+
+- **The boot screen.** The app opens straight on the category picker. A 2.6-second
+  loading animation for a bundle that is already loaded was a delay pretending to be
+  work, and it sat between you and the app every single visit. Its pointer-following
+  glow went with it — that effect existed nowhere else.
+- **RESET LAYOUT on the graph canvas.** Undo already walks back a vertex you dragged
+  somewhere you didn't mean, and SHUFFLE or a newly loaded graph still returns every
+  vertex to the ring, so the button was a third way to do something two other controls
+  already covered — taking room in the hint line to say so.
+
 ### Changed
 
 - **Kruskal's MST now uses the shared union-find** instead of its own copy buried in

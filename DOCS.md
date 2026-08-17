@@ -92,7 +92,6 @@ Also useful:
 | <kbd>Enter</kbd> | Any operation input in the sidebar | Runs the selected operation. |
 | <kbd>Esc</kbd> | Anywhere | Closes an open top-bar dropdown. |
 | <kbd>Tab</kbd> | Anywhere | Moves focus. Every control is keyboard-reachable and shows a focus ring. |
-| <kbd>Enter</kbd> / <kbd>Space</kbd> | Boot screen | Skips the boot animation. |
 
 Shortcuts are deliberately ignored while you're typing in a text field, a textarea, or a
 select, so <kbd>S</kbd> and <kbd>R</kbd> never eat your input. Arrow keys on a focused
@@ -106,7 +105,7 @@ what you did to the heap, and switching views leaves each stack where it was. Up
 edits are remembered per view.
 
 What counts as an edit is *anything that changed the structure*: an operation run from
-the sidebar, a vertex dragged or added on the canvas, RESET LAYOUT, a shuffle, custom
+the sidebar, a vertex dragged or added on the canvas, a shuffle, custom
 data applied, and the type switches that rebuild as they go — list type, tree type, heap
 max/min, hash-table collision strategy. On the sorting and searching views it covers the
 algorithm, the array, its size, and the search target.
@@ -154,10 +153,9 @@ the page, or with the cursor in a sidebar field, is left alone as an ordinary te
 
 ### Flow
 
-1. **Boot screen** — a short loading animation. Click or press <kbd>Enter</kbd> to skip.
-2. **Category picker** — five families (Arrays, Linked Lists, Stacks & Queues, Trees,
+1. **Category picker** — five families (Arrays, Linked Lists, Stacks & Queues, Trees,
    Graphs). Pick a topic to enter.
-3. **Visualizer** — sidebar on the left, canvas + transport + explanation on the right.
+2. **Visualizer** — sidebar on the left, canvas + transport + explanation on the right.
    The top bar switches topics at any time; clicking the `DSA://VISUALIZER` title
    returns to the category picker.
 
@@ -204,7 +202,7 @@ of `0–22`, `0–21`, `0–20`… is the O(n²) worst case, drawn.
 The address bar always holds a link to whatever is on screen — the topic, the
 algorithm, and the data itself. **SHARE** in the top bar (or at the top of the ☰ menu
 on a phone) copies it. Opening that link goes straight to the visualizer with the data
-loaded, skipping the boot and category screens.
+loaded, skipping the category screen.
 
 | Topic | Link |
 | --- | --- |
@@ -423,9 +421,8 @@ to right, or drag the vertices of a subgraph together before running BFS over it
 
 Positions survive everything that keeps the same graph — operations, playback, switching
 directed/weighted, resizing between the desktop and phone layouts (they are stored as a
-fraction of the canvas, not in pixels). **RESET LAYOUT**, which appears next to the hint
-above the canvas once anything has been moved, puts every vertex back on the ring. So do
-SHUFFLE and loading a custom graph, since those replace the graph outright.
+fraction of the canvas, not in pixels). SHUFFLE and loading a custom graph put every
+vertex back on the ring, since those replace the graph outright.
 
 A vertex is clamped to the canvas, so it can't be dropped somewhere it would be invisible.
 
