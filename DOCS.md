@@ -345,7 +345,31 @@ says so — and draw `lo` / `mid` / `hi` pointers under the bars.
 The graph canvas is editable directly: **click two vertices** to connect them, **drag**
 one to move it and **double-click empty space** to add one — see [building and
 arranging](#building-and-arranging-the-graph). The panel below switches between
-adjacency-list and adjacency-matrix representations.
+adjacency-list and adjacency-matrix representations, and the
+[matrix is editable too](#editing-the-adjacency-matrix).
+
+### Editing the adjacency matrix
+
+Click any cell off the diagonal and type. The matrix *is* the graph, so a cell can say
+all three things a cell can mean, and the graph follows:
+
+| You type | What happens |
+| --- | --- |
+| a different number on an existing edge | the edge is reweighted |
+| a number where the cell was `0` | the edge is created with that weight |
+| `0` | the edge is removed |
+
+<kbd>Enter</kbd> or clicking away commits; <kbd>Esc</kbd> cancels and leaves the graph
+alone, as does an empty or unparseable cell. The change animates on the canvas like any
+other operation and is one <kbd>Ctrl</kbd>+<kbd>Z</kbd> away.
+
+On an **undirected** graph an edge occupies both cells, so editing either one moves both.
+On a **directed** graph the cells are independent: setting `[C][A]` gives you C → A and
+leaves A → C exactly as it was.
+
+On an **unweighted** graph there is no weight to set, so the matrix reads `1` and `0` —
+presence, which is all an unweighted matrix means — and any non-zero you type connects the
+pair. The diagonal stays `·` throughout, since self-loops aren't supported.
 
 ### Building and arranging the graph
 

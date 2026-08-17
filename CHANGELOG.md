@@ -14,6 +14,21 @@ hash tables, heaps, tries and union-find.
 
 ### Added
 
+- **The adjacency matrix is editable.** Click a cell off the diagonal, type, and the
+  graph follows. The matrix is the graph, so a cell says all three things a cell can
+  mean: a different number reweights the edge, a number where there was a `0` creates
+  one, and `0` removes it. Enter or clicking away commits, Escape cancels, and an empty
+  or unparseable cell is treated as a slip rather than an instruction.
+
+  One `setEdgeWeight` operation covers all three cases instead of the call site choosing
+  between addEdge and removeEdge — deciding which operation a typed number amounts to is
+  exactly the question the matrix has already answered. Undirected edges occupy both
+  cells and move together; directed ones stay independent.
+
+  An unweighted graph's matrix now reads `1` and `0` rather than showing the weights its
+  edges happen to be carrying unused underneath, which is what an unweighted adjacency
+  matrix means and what makes typing into one coherent.
+
 - **Undo and redo, on every structure.** `Ctrl+Z` takes back the last edit and `Ctrl+Y`
   (or `Ctrl+Shift+Z`) puts it back, on all twelve views. Each keeps its own history of up
   to 50 edits, so the graph's undo can't reach into what you did to the heap and

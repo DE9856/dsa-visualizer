@@ -268,7 +268,8 @@ Interactive visualizations for:
   - Neighbours, Degree, Is-adjacent
   - BFS, DFS, Topological sort
   - Dijkstra, Floyd–Warshall, Prim's MST, Kruskal's MST
-  - Adjacency list and adjacency matrix views
+  - Adjacency list and adjacency matrix views — type into a matrix cell to reweight, add
+    or remove that edge
 
 - Polynomial
   - Linked-list representation

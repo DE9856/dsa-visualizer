@@ -2025,6 +2025,45 @@ input[type="range"] {
   background: var(--primary-dim);
 }
 
+/* Editable cells. The button fills the cell so the whole thing is the target,
+   and inherits its colour so the matrix still reads as a matrix rather than a
+   grid of buttons. */
+.graph-matrix .gm-cell,
+.graph-matrix .gm-input {
+  font: inherit;
+  color: inherit;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: center;
+}
+
+.graph-matrix .gm-cell {
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s ease;
+}
+
+.graph-matrix .gm-cell:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.graph-matrix .gm-cell:focus-visible {
+  outline: 1px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.graph-matrix .gm-input {
+  color: var(--primary);
+  font-weight: 700;
+  outline: 1px solid var(--primary);
+  outline-offset: 1px;
+  border-radius: 4px;
+  /* Chrome's number spinners would not fit in a 28px cell. */
+  appearance: textfield;
+}
+
 .graph-matrix th.gm-active {
   color: var(--blue);
   background: rgba(79, 184, 224, 0.14);

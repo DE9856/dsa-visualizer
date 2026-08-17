@@ -336,7 +336,13 @@ export default function App() {
             onHoverVertex={gr.setHoveredVertex}
             onDeleteVertex={gr.deleteVertex}
           />
-          <GraphRepresentationPanel representation={gr.representation} step={gr.step} directed={gr.directed} />
+          <GraphRepresentationPanel
+            representation={gr.representation}
+            step={gr.step}
+            directed={gr.directed}
+            weighted={gr.weighted}
+            onSetWeight={gr.setWeightAt}
+          />
           <ListControls {...transport} />
           <ListInfoPanel opMeta={gr.opMeta} />
           <TopicPanel topic={TOPIC_OVERVIEWS.graph} />

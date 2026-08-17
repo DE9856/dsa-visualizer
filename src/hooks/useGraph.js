@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { GRAPH_OP_MAP } from "../dataStructures/graph";
 import { duplicateVertex } from "../dataStructures/graph/duplicateVertex";
+import { setEdgeWeight } from "../dataStructures/graph/setEdgeWeight";
 import { useStepPlayer } from "./useStepPlayer.js";
 import { useHistory } from "./useHistory.js";
 import {
@@ -150,6 +151,19 @@ export function useGraph(init) {
       runWith("removeVertex", { vertex: vertexId });
     },
     [runWith]
+  );
+
+  /**
+   * Editing a cell of the adjacency matrix. An unweighted graph has no weights
+   * to set, so a cell there is only ever 1 or 0 — presence, which is all its
+   * matrix means.
+   */
+  const setWeightAt = useCallback(
+    (fromId, toId, value) => {
+      const weight = weighted ? value : value === 0 ? 0 : 1;
+      runMeta(setEdgeWeight, { fromVertex: fromId, toVertex: toId, weight });
+    },
+    [runMeta, weighted]
   );
 
   // Called when the user drags from one node to another on the canvas.
@@ -363,6 +377,7 @@ export function useGraph(init) {
     moveVertex,
     addVertexAt,
     deleteVertex,
+    setWeightAt,
     resetLayout,
     hasCustomLayout,
     setHoveredVertex,
