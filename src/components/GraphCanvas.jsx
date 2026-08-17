@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useIsMobile } from "../hooks/useMediaQuery.js";
 
 // A phone is portrait, so the ring of vertices is laid out tall-and-narrow
@@ -9,36 +9,95 @@ import { useIsMobile } from "../hooks/useMediaQuery.js";
 const DESKTOP_VIEW = { width: 640, height: 300, radius: 22, rx: 104, ry: 104 };
 const MOBILE_VIEW = { width: 330, height: 370, radius: 21, rx: 118, ry: 138 };
 
-function layout(nodes, { width, height, rx, ry }) {
+// How long a finger has to rest on a vertex before it picks it up, and how
+// close together two clicks have to be to count as the double that does the
+// same thing with a cursor.
+const LONG_PRESS_MS = 400;
+const DOUBLE_CLICK_MS = 350;
+// A finger is never perfectly still; anything past this (in CSS pixels) is a
+// scroll, not a press, and cancels the pending pick-up.
+const PRESS_SLOP_PX = 10;
+
+function clamp(v, lo, hi) {
+  return Math.min(hi, Math.max(lo, v));
+}
+
+// `positions` holds the vertices the user has dragged, as 0..1 fractions of
+// the canvas. Everything else falls back to its slot on the ring.
+function layout(nodes, { width, height, radius, rx, ry }, positions) {
   const cx = width / 2;
   const cy = height / 2;
   const n = nodes.length;
   return nodes.map((node, i) => {
+    const custom = positions[node.id];
+    // Clamped on the way out as well as on the way in: a position can arrive
+    // from a hand-edited link, or from the other layout's aspect ratio, and a
+    // vertex hanging half off the canvas isn't something the app would draw.
+    if (custom) {
+      return {
+        ...node,
+        x: clamp(custom.nx * width, radius + 2, width - radius - 2),
+        y: clamp(custom.ny * height, radius + 2, height - radius - 2),
+      };
+    }
     const angle = n > 0 ? (2 * Math.PI * i) / n - Math.PI / 2 : 0;
     return { ...node, x: cx + rx * Math.cos(angle), y: cy + ry * Math.sin(angle) };
   });
 }
 
-export default function GraphCanvas({ step, directed, weighted, onCreateEdge }) {
+export default function GraphCanvas({
+  step,
+  directed,
+  weighted,
+  onCreateEdge,
+  positions = {},
+  onMoveVertex,
+  onResetLayout,
+  hasCustomLayout = false,
+}) {
   const isMobile = useIsMobile();
   const view = isMobile ? MOBILE_VIEW : DESKTOP_VIEW;
   const { width: WIDTH, height: HEIGHT, radius: RADIUS } = view;
 
   const nodes = step.nodes || [];
   const edges = step.edges || [];
-  const positioned = layout(nodes, view);
-  const posById = Object.fromEntries(positioned.map((n) => [n.id, n]));
 
   const svgRef = useRef(null);
   const [drag, setDrag] = useState(null); // { fromId, x, y } — cursor only
   const [linkFrom, setLinkFrom] = useState(null); // tap-to-connect, touch only
+  // The vertex currently being repositioned. Its live coordinates are kept
+  // here rather than pushed up on every pointermove: the committed position
+  // only matters once it lands, and re-rendering just this canvas per frame
+  // keeps the drag smooth even with a big adjacency matrix alongside it.
+  const [moving, setMoving] = useState(null); // { id, dx, dy, x, y }
+
+  const movingRef = useRef(null);
+  const pressRef = useRef(null); // pending long-press: { id, timer, clientX, clientY, grab }
+  const lastDownRef = useRef(null); // { id, time } — double-click detection
+  const suppressTapRef = useRef(false);
 
   // A vertex that was tapped and then deleted must not stay armed.
   const pendingLink = nodes.some((n) => n.id === linkFrom) ? linkFrom : null;
+  const hasNodes = nodes.length > 0;
 
+  const laidOut = layout(nodes, view, positions);
+  const positioned = moving
+    ? laidOut.map((n) => (n.id === moving.id ? { ...n, x: moving.x, y: moving.y } : n))
+    : laidOut;
+  const posById = Object.fromEntries(positioned.map((n) => [n.id, n]));
+
+  // The SVG's own transform, so the mapping stays exact however the viewBox is
+  // letterboxed inside the element — a node has to sit under the cursor, not
+  // near it, and the rect-ratio approximation drifts as you move away from the
+  // centre. Falls back to that approximation if the element isn't rendered.
   const toSvgPoint = useCallback(
     (clientX, clientY) => {
       const svg = svgRef.current;
+      const ctm = svg?.getScreenCTM?.();
+      if (ctm) {
+        const p = new DOMPoint(clientX, clientY).matrixTransform(ctm.inverse());
+        return { x: p.x, y: p.y };
+      }
       const rect = svg.getBoundingClientRect();
       return {
         x: ((clientX - rect.left) / rect.width) * WIDTH,
@@ -48,11 +107,61 @@ export default function GraphCanvas({ step, directed, weighted, onCreateEdge }) 
     [WIDTH, HEIGHT]
   );
 
+  // A finger dragging a vertex would otherwise scroll the page, and the
+  // browser cancels the pointer the moment it decides the gesture is a scroll.
+  // touch-action can't prevent that here (it is ignored on SVG children), so
+  // the scroll is refused directly — but only while a vertex is actually being
+  // moved, so the canvas stays scrollable past the rest of the time. The
+  // listener has to be non-passive, which React's own onTouchMove is not.
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return undefined;
+    const refuseScroll = (e) => {
+      if (movingRef.current) e.preventDefault();
+    };
+    svg.addEventListener("touchmove", refuseScroll, { passive: false });
+    return () => svg.removeEventListener("touchmove", refuseScroll);
+  }, [hasNodes]);
+
+  const cancelPress = () => {
+    if (pressRef.current) clearTimeout(pressRef.current.timer);
+    pressRef.current = null;
+  };
+
+  // Leaving the graph view mid-press must not pick a vertex up afterwards.
+  useEffect(() => () => cancelPress(), []);
+
+  const beginMove = (nodeId, grab, p) => {
+    cancelPress();
+    setDrag(null);
+    const next = {
+      id: nodeId,
+      dx: grab.dx,
+      dy: grab.dy,
+      x: clamp(p.x + grab.dx, RADIUS + 2, WIDTH - RADIUS - 2),
+      y: clamp(p.y + grab.dy, RADIUS + 2, HEIGHT - RADIUS - 2),
+    };
+    movingRef.current = next;
+    setMoving(next);
+    // A phone gives no cursor to change, so the pick-up is confirmed by feel.
+    if (isMobile) navigator.vibrate?.(12);
+  };
+
+  const endMove = () => {
+    const m = movingRef.current;
+    movingRef.current = null;
+    setMoving(null);
+    if (m) onMoveVertex?.(m.id, m.x / WIDTH, m.y / HEIGHT);
+    return m;
+  };
+
   // Touch can't use drag-to-connect: the browser claims a finger drag off an
-  // SVG shape as a page scroll and cancels the pointer mid-gesture (it ignores
-  // touch-action on SVG children). So a phone connects two vertices by tapping
-  // one and then the other, which is the friendlier gesture there anyway.
+  // SVG shape as a page scroll and cancels the pointer mid-gesture. So a phone
+  // connects two vertices by tapping one and then the other, which is the
+  // friendlier gesture there anyway.
   const handleNodeTap = (nodeId) => {
+    // The click that closes a long-press drag isn't a tap on the vertex.
+    if (suppressTapRef.current) return;
     if (pendingLink === null) setLinkFrom(nodeId);
     else if (pendingLink === nodeId) setLinkFrom(null);
     else {
@@ -63,19 +172,76 @@ export default function GraphCanvas({ step, directed, weighted, onCreateEdge }) 
 
   // Pointer (not mouse) events so a stylus works like a cursor too.
   const handleNodeDown = (e, nodeId) => {
-    e.preventDefault();
     e.currentTarget.setPointerCapture?.(e.pointerId);
     const p = toSvgPoint(e.clientX, e.clientY);
+    const node = posById[nodeId];
+    // Grab offset, so a vertex picked up by its edge doesn't jump so that its
+    // centre snaps under the pointer.
+    const grab = node ? { dx: node.x - p.x, dy: node.y - p.y } : { dx: 0, dy: 0 };
+    suppressTapRef.current = false;
+
+    if (isMobile) {
+      // Hold to pick up. The tap-to-connect gesture is unaffected: it resolves
+      // on click, long after this timer has been cancelled by the release.
+      cancelPress();
+      pressRef.current = {
+        id: nodeId,
+        clientX: e.clientX,
+        clientY: e.clientY,
+        timer: setTimeout(() => beginMove(nodeId, grab, p), LONG_PRESS_MS),
+      };
+      return;
+    }
+
+    e.preventDefault();
+    const now = Date.now();
+    const last = lastDownRef.current;
+    lastDownRef.current = { id: nodeId, time: now };
+    if (last && last.id === nodeId && now - last.time < DOUBLE_CLICK_MS) {
+      // Second press of a double-click on the same vertex: pick it up instead
+      // of starting another edge. A third press starts over rather than
+      // re-arming, so a rapid triple-click can't drop and re-grab.
+      lastDownRef.current = null;
+      beginMove(nodeId, grab, p);
+      return;
+    }
     setDrag({ fromId: nodeId, x: p.x, y: p.y });
   };
 
   const handleMove = (e) => {
+    if (movingRef.current) {
+      const p = toSvgPoint(e.clientX, e.clientY);
+      const m = movingRef.current;
+      // Clamped so a vertex can't be parked outside the canvas, where it would
+      // be invisible and unrecoverable.
+      const next = {
+        ...m,
+        x: clamp(p.x + m.dx, RADIUS + 2, WIDTH - RADIUS - 2),
+        y: clamp(p.y + m.dy, RADIUS + 2, HEIGHT - RADIUS - 2),
+      };
+      movingRef.current = next;
+      setMoving(next);
+      return;
+    }
+
+    const press = pressRef.current;
+    if (press && Math.hypot(e.clientX - press.clientX, e.clientY - press.clientY) > PRESS_SLOP_PX) {
+      cancelPress();
+    }
+
     if (!drag) return;
     const p = toSvgPoint(e.clientX, e.clientY);
     setDrag((d) => (d ? { ...d, x: p.x, y: p.y } : d));
   };
 
   const handleUp = (e) => {
+    cancelPress();
+    if (movingRef.current) {
+      endMove();
+      // A drag that ends on the vertex it started on still emits a click.
+      suppressTapRef.current = true;
+      return;
+    }
     if (!drag) return;
     const p = toSvgPoint(e.clientX, e.clientY);
     let target = null;
@@ -93,6 +259,14 @@ export default function GraphCanvas({ step, directed, weighted, onCreateEdge }) 
     setDrag(null);
   };
 
+  const handleCancel = () => {
+    cancelPress();
+    // A cancelled pointer still leaves the vertex where it had been dragged to;
+    // silently springing it back to the ring would read as a bug.
+    if (movingRef.current) endMove();
+    setDrag(null);
+  };
+
   const isVisited = (id) => step.visited && step.visited.includes(id);
   const isActive = (id) => step.active && step.active.includes(id);
   const isCurrent = (id) => step.current === id;
@@ -101,14 +275,25 @@ export default function GraphCanvas({ step, directed, weighted, onCreateEdge }) 
   const isActiveEdge = (id) => step.activeEdges && step.activeEdges.includes(id);
   const isTreeEdge = (id) => step.treeEdges && step.treeEdges.includes(id);
 
+  const hint = moving
+    ? isMobile
+      ? "DRAG TO REPOSITION · LIFT YOUR FINGER TO DROP"
+      : "DRAG TO REPOSITION · RELEASE TO DROP"
+    : isMobile
+      ? pendingLink
+        ? "NOW TAP THE VERTEX TO CONNECT IT TO"
+        : "TAP TWO VERTICES TO CONNECT · HOLD ONE TO MOVE IT"
+      : "DRAG BETWEEN VERTICES TO CONNECT · DOUBLE-CLICK AND DRAG TO MOVE ONE";
+
   return (
     <div className="panel canvas graph-canvas">
-      <div className="canvas__note">
-        {isMobile
-          ? pendingLink
-            ? "NOW TAP THE VERTEX TO CONNECT IT TO"
-            : "TAP TWO VERTICES TO CONNECT THEM"
-          : "DRAG FROM ONE VERTEX TO ANOTHER TO CONNECT THEM"}
+      <div className="canvas__note graph-canvas__note">
+        <span>{hint}</span>
+        {hasCustomLayout && (
+          <button type="button" className="graph-canvas__reset mono" onClick={onResetLayout}>
+            RESET LAYOUT
+          </button>
+        )}
       </div>
 
       {nodes.length === 0 ? (
@@ -122,7 +307,7 @@ export default function GraphCanvas({ step, directed, weighted, onCreateEdge }) 
           className={`graph-svg ${isMobile ? "graph-svg--portrait" : ""}`}
           onPointerMove={handleMove}
           onPointerUp={handleUp}
-          onPointerCancel={() => setDrag(null)}
+          onPointerCancel={handleCancel}
         >
           <defs>
             <marker id="graph-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -220,14 +405,16 @@ export default function GraphCanvas({ step, directed, weighted, onCreateEdge }) 
               stroke = "var(--primary)";
               glow = "rgba(255,138,61,0.55)";
             }
+            const isMoving = moving?.id === node.id;
 
             return (
               <g
                 key={node.id}
-                className="graph-node"
+                className={`graph-node${isMoving ? " graph-node--moving" : ""}`}
                 onClick={isMobile ? () => handleNodeTap(node.id) : undefined}
-                onPointerDown={isMobile ? undefined : (e) => handleNodeDown(e, node.id)}
+                onPointerDown={(e) => handleNodeDown(e, node.id)}
               >
+                {isMoving && <circle cx={node.x} cy={node.y} r={RADIUS + 7} className="graph-node__halo" />}
                 <circle
                   cx={node.x}
                   cy={node.y}

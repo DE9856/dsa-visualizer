@@ -164,6 +164,7 @@ loaded, skipping the boot and category screens.
 | Trie | `#v=trie&a=car,card,care,cat,dog` |
 | Union-Find | `#v=unionfind&p=0,0,2,0,4,4` |
 | Graph | `#v=graph&w=1&g=A,B,C,D&e=A-B(5),B-C(2),C-D(7),A-D` |
+| Graph, rearranged | `#v=graph&g=A,B,C&e=A-B,B-C&xy=A:0.2:0.15,C:0.75:0.8` |
 | Polynomial | `#v=polynomial&p=6x^4 - 2x^2 + 9` |
 
 The values are the same text the sidebar's custom-data boxes take, so links stay
@@ -175,6 +176,11 @@ land — plus `m`, its capacity, which depends on how big the table ever got rat
 on how many keys are in it now. A heap is written in array order, which *is* the heap. A
 union-find carries its raw parent array, since path compression is part of the state
 worth sharing. Everything round-trips exactly, including tree shape.
+
+A graph you have [rearranged](#arranging-the-graph) also carries an `xy` field —
+`label:x:y` per vertex, each coordinate a fraction of the canvas rather than a pixel, so
+the arrangement survives being opened on a phone. Only the vertices actually dragged off
+the ring are listed, so an untouched graph's link is exactly what it was before.
 
 Some details are deliberately not in the link: playback position, speed, which
 operation is selected, and half-typed text in the sidebar. The link is the *data*, not
@@ -219,7 +225,9 @@ Below 760px wide the app rearranges itself rather than shrinking:
   the ☰ button.
 - **Graphs** lay their vertices out in a portrait ring, and you connect two of them by
   **tapping one and then the other** (drag-to-connect is a cursor gesture; browsers
-  claim a finger drag off an SVG shape as a page scroll).
+  claim a finger drag off an SVG shape as a page scroll). **Holding** a vertex picks it
+  up instead, so you can [rearrange the graph](#arranging-the-graph) with one finger —
+  that drag refuses the page scroll outright for as long as it lasts.
 - **Trees** keep their nodes at a readable size and scroll sideways inside the canvas
   instead of shrinking to fit.
 
@@ -279,7 +287,38 @@ says so — and draw `lo` / `mid` / `hi` pointers under the bars.
 | **Graph** | directed/undirected, weighted/unweighted | add & remove vertex/edge, neighbours, degree, is-adjacent, BFS, DFS, topological sort, Dijkstra, Floyd–Warshall, Prim's MST, Kruskal's MST |
 
 On the graph canvas you can **drag from one vertex to another** to create an edge, and
-switch the panel below between adjacency-list and adjacency-matrix representations.
+switch the panel below between adjacency-list and adjacency-matrix representations. The
+vertices can also be [moved anywhere on the canvas](#arranging-the-graph).
+
+### Arranging the graph
+
+Vertices start on a ring, which keeps a fresh graph readable but says nothing about the
+graph itself. Any vertex can be picked up and dropped wherever you want it:
+
+| | Pick a vertex up | Move it |
+| --- | --- | --- |
+| **Cursor** | double-click and keep the button held on the second click | drag, then release to drop |
+| **Touch** | press and hold it for about a moment | drag with the same finger, then lift |
+
+The gesture is deliberately not a plain drag, because that one already means *connect
+these two vertices* — a single drag from A to B still draws an edge, and a single tap on
+a phone still arms A to connect to whatever you tap next. A vertex being moved wears a
+dashed ring, and a phone buzzes once when it comes loose, since there is no cursor there
+to change shape.
+
+Edges follow their endpoints live, so you can pull a crossing apart, line a path up left
+to right, or drag the vertices of a subgraph together before running BFS over it.
+
+Positions survive everything that keeps the same graph — operations, playback, switching
+directed/weighted, resizing between the desktop and phone layouts (they are stored as a
+fraction of the canvas, not in pixels). **RESET LAYOUT**, which appears next to the hint
+above the canvas once anything has been moved, puts every vertex back on the ring. So do
+SHUFFLE and loading a custom graph, since those replace the graph outright.
+
+A vertex is clamped to the canvas, so it can't be dropped somewhere it would be invisible.
+
+An arrangement travels in the [shared link](#sharing-a-setup) as an `xy` field, so
+whoever opens it sees the graph laid out the way you left it.
 
 ### The hash table view
 

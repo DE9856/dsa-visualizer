@@ -14,10 +14,23 @@ import {
 
 const EMPTY_STEP = { nodes: [], edges: [], message: "" };
 
+// A shared link keys positions by vertex label, since ids are per-session
+// counters that would mean nothing in the tab the link is opened in. Labels
+// the graph doesn't have are dropped; their vertices just stay on the ring.
+function positionsById(graph, byLabel) {
+  if (!byLabel) return {};
+  const out = {};
+  graph.nodes.forEach((node) => {
+    const p = byLabel[node.label];
+    if (p) out[node.id] = p;
+  });
+  return out;
+}
+
 /**
  * `init` is the setup decoded from a shared link ({ vertices, edges, directed,
- * weighted }) — an explicit vertex and edge order, so the graph comes back
- * laid out exactly as it was shared.
+ * weighted, positions }) — an explicit vertex and edge order, so the graph
+ * comes back laid out exactly as it was shared.
  */
 export function useGraph(init) {
   const [graph, setGraph] = useState(() =>
@@ -26,6 +39,18 @@ export function useGraph(init) {
   const [representation, setRepresentation] = useState("list");
   const [directed, setDirected] = useState(init?.directed ?? false);
   const [weighted, setWeighted] = useState(init?.weighted ?? false);
+
+  // Where the user has dragged a vertex, as a fraction of the canvas (0..1)
+  // keyed by vertex id. Fractions rather than pixels so a layout arranged on a
+  // desktop survives the switch to the phone's taller, narrower viewBox.
+  // Vertices absent from this map fall back to their slot on the default ring.
+  // Entries for deleted vertices are left alone: ids are never reused, so a
+  // stale one can't land on a new vertex, and pruning them the moment the
+  // graph changes would yank a vertex back to the ring halfway through the
+  // remove animation that is still playing.
+  // `graph` above is already bound by the time this initialiser runs, so the
+  // link's labels can be resolved against the vertices it just built.
+  const [positions, setPositions] = useState(() => positionsById(graph, init?.positions));
 
   const [operation, setOperation] = useState("addVertex");
   const [vertexLabelInput, setVertexLabelInput] = useState("");
@@ -98,6 +123,18 @@ export function useGraph(init) {
     [runWith, weighted, weightInput]
   );
 
+  // Committed once per drag, when the vertex is dropped — the live position
+  // while a finger or cursor is moving is the canvas's own business.
+  const moveVertex = useCallback((vertexId, nx, ny) => {
+    setPositions((prev) => ({ ...prev, [vertexId]: { nx, ny } }));
+  }, []);
+
+  const resetLayout = useCallback(() => setPositions({}), []);
+
+  // Only vertices actually on screen count, so the reset affordance doesn't
+  // appear for a graph whose moved vertices have all since been deleted.
+  const hasCustomLayout = graph.nodes.some((n) => positions[n.id]);
+
   const applyCustomGraph = useCallback(() => {
     let next = null;
 
@@ -127,6 +164,9 @@ export function useGraph(init) {
     if (!next) return;
     setBuildError("");
     setGraph(next);
+    // A wholly new graph is the one moment nothing on screen can still be
+    // holding an old vertex, so it's where stale positions get dropped.
+    setPositions({});
     setSteps([{ ...next, message: "Custom graph loaded" }]);
     setStepIdx(0);
     setPlaying(false);
@@ -136,6 +176,7 @@ export function useGraph(init) {
   const shuffle = useCallback(() => {
     const next = randomGraph();
     setGraph(next);
+    setPositions({});
     setSteps([{ ...next, message: "New random graph" }]);
     setStepIdx(0);
     setPlaying(false);
@@ -179,5 +220,9 @@ export function useGraph(init) {
     step,
     runOperation,
     createEdgeFromDrag,
+    positions,
+    moveVertex,
+    resetLayout,
+    hasCustomLayout,
   };
 }

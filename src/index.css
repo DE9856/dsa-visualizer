@@ -1887,10 +1887,53 @@ input[type="range"] {
 
 .graph-node {
   cursor: grab;
+  /* A long press on a vertex picks it up, so the phone must not answer it with
+     a selection handle or the iOS callout menu instead. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
-.graph-node:active {
+.graph-node:active,
+.graph-node--moving {
   cursor: grabbing;
+}
+
+/* Ring around the vertex being repositioned — kept separate from the node's
+   own stroke, which is busy carrying algorithm state. */
+.graph-node__halo {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 4;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.graph-canvas__note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.graph-canvas__reset {
+  font-family: inherit;
+  font-size: inherit;
+  letter-spacing: inherit;
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 9px;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.graph-canvas__reset:hover {
+  border-color: rgba(255, 138, 61, 0.4);
+  color: var(--primary);
 }
 
 .graph-node__label {
@@ -2416,9 +2459,14 @@ input[type="range"] {
   display: block;
 }
 
-/* Vertices are tapped, not dragged, in the phone layout. */
+/* Vertices are tapped to connect in the phone layout, not dragged — held down
+   to move, which the grabbing cursor below still covers. */
 .graph-svg--portrait .graph-node {
   cursor: pointer;
+}
+
+.graph-svg--portrait .graph-node--moving {
+  cursor: grabbing;
 }
 
 /* The graph's ring of vertices goes tall-and-narrow on a phone. */
@@ -2862,6 +2910,13 @@ input[type="range"] {
 
   .canvas__note {
     font-size: 9.5px;
+  }
+
+  /* The graph hint is long enough on a phone that the reset button needs its
+     own line rather than squeezing the text. */
+  .graph-canvas__note {
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
   /* transport: buttons on one row, slider on the next, read-outs last */

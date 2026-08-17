@@ -163,10 +163,12 @@ copies it. Open a link and you land straight in the visualizer with the data loa
 ```
 #v=tree&type=avl&a=30,20,10,25,40,50
 #v=graph&w=1&g=A,B,C,D&e=A-B(5),B-C(2),C-D(7),A-D
+#v=graph&g=A,B,C&e=A-B,B-C&xy=A:0.2:0.15,C:0.75:0.8
 ```
 
 Custom arrays, lists, stacks, queues, trees, heaps, tries, hash tables, union-finds,
-graphs and polynomials all round-trip exactly. See [DOCS.md](DOCS.md#sharing-a-setup) for the full format.
+graphs and polynomials all round-trip exactly — including a graph you have rearranged by
+hand. See [DOCS.md](DOCS.md#sharing-a-setup) for the full format.
 
 ---
 
@@ -175,8 +177,9 @@ graphs and polynomials all round-trip exactly. See [DOCS.md](DOCS.md#sharing-a-s
 The app is built for small screens too, not just scaled down for them. Below 760px the
 visualization takes the whole screen, the sidebar becomes a bottom sheet, and a fixed
 action bar keeps play/pause, the controls sheet and shuffle within thumb reach. Graphs
-lay out in a portrait ring and connect by tapping two vertices; trees stay readable and
-scroll sideways. See [DOCS.md](DOCS.md#on-a-phone) for the details.
+lay out in a portrait ring, connect by tapping two vertices and rearrange by holding one
+and dragging it; trees stay readable and scroll sideways. See
+[DOCS.md](DOCS.md#on-a-phone) for the details.
 
 ---
 
@@ -255,6 +258,8 @@ Interactive visualizations for:
 
 - Graphs — directed/undirected, weighted/unweighted
   - Add / remove vertex and edge, drag-to-connect on the canvas
+  - Drag the vertices anywhere — double-click and drag with a cursor, hold and drag on a
+    phone — to lay the graph out yourself instead of leaving it on the default ring
   - Neighbours, Degree, Is-adjacent
   - BFS, DFS, Topological sort
   - Dijkstra, Floyd–Warshall, Prim's MST, Kruskal's MST

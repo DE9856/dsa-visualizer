@@ -14,6 +14,24 @@ hash tables, heaps, tries and union-find.
 
 ### Added
 
+- **Free-moving graph vertices.** The ring the vertices start on keeps a fresh graph
+  readable but says nothing about the graph, so any vertex can now be picked up and
+  dropped anywhere on the canvas: double-click and hold on the second click with a
+  cursor, press and hold on a phone. Neither gesture is a plain drag, because that one
+  already means *connect these two* — dragging A to B still draws an edge, and tapping A
+  on a phone still arms it to connect. Edges follow their endpoints live, so a crossing
+  can be pulled apart or a path lined up left to right before running a traversal over
+  it. Positions are stored as a fraction of the canvas rather than in pixels, so a layout
+  arranged on a desktop survives the switch to the phone's taller viewBox; they outlast
+  operations and playback, and reset with **RESET LAYOUT**, SHUFFLE or a newly loaded
+  graph. An arrangement also travels in the shared link, as an `xy` field listing
+  `label:x:y` for the vertices actually dragged off the ring — so an untouched graph's
+  link is byte-for-byte what it was before, and a rearranged one hands someone else the
+  layout you built. A moving vertex wears a dashed ring, and a phone buzzes once as it
+  comes loose.
+  The touch drag also refuses the page scroll for as long as it lasts, which is what
+  makes it possible at all — the browser otherwise claims a finger drag off an SVG shape
+  as a scroll and cancels the pointer mid-gesture.
 - **Binary heaps** — max and min, under TREES. The complete tree and the flat array it
   actually lives in are drawn together and highlighted in lockstep, with the index
   arithmetic (`parent ⌊(i−1)/2⌋`, `left 2i+1`, `right 2i+2`) spelled out for whatever the
@@ -150,6 +168,12 @@ hash tables, heaps, tries and union-find.
 
 ### Fixed
 
+- **Cursor-to-canvas mapping on the graph.** Client coordinates were converted to the SVG
+  viewBox by scaling against the element's bounding box, which is only correct when the
+  two share an aspect ratio — the desktop graph is fluid-width against a fixed 640×300
+  viewBox, so `preserveAspectRatio` letterboxes it and the error grew with distance from
+  the centre. It now goes through the SVG's own `getScreenCTM()`. Drag-to-connect was
+  forgiving enough to hide this; dragging a vertex is not.
 - **Playback stutter when moving the speed slider.** The old playback effect depended on
   `[playing, speed, steps]`, so every slider change destroyed and recreated the interval,
   resetting its phase mid-run.

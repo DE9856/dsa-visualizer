@@ -317,7 +317,16 @@ export default function App() {
             />
           }
         >
-          <GraphCanvas step={gr.step} directed={gr.directed} weighted={gr.weighted} onCreateEdge={gr.createEdgeFromDrag} />
+          <GraphCanvas
+            step={gr.step}
+            directed={gr.directed}
+            weighted={gr.weighted}
+            onCreateEdge={gr.createEdgeFromDrag}
+            positions={gr.positions}
+            onMoveVertex={gr.moveVertex}
+            onResetLayout={gr.resetLayout}
+            hasCustomLayout={gr.hasCustomLayout}
+          />
           <GraphRepresentationPanel representation={gr.representation} step={gr.step} directed={gr.directed} />
           <ListControls {...transport} />
           <ListInfoPanel opMeta={gr.opMeta} />

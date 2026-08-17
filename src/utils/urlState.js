@@ -18,6 +18,7 @@ import { parseWordList } from "../dataStructures/trie/helpers";
  *   #v=trie&a=car,card,care,cat
  *   #v=unionfind&p=0,0,2,0,4,4
  *   #v=graph&d=1&w=1&g=A: B(5), C; B: C; D:
+ *   #v=graph&g=A,B,C&e=A-B,B-C&xy=A:0.2:0.15,C:0.75:0.8
  *
  * The hash is written with replaceState, so it tracks the current data without
  * filling up browser history. It is read once, on load — editing the hash by
@@ -183,6 +184,44 @@ export function parseSharedEdges(text) {
     .slice(0, MAX_VALUES);
 }
 
+// Only the vertices the user actually dragged are listed, so a graph left on
+// the default ring adds nothing to the link at all. Three decimals puts the
+// rounding error under a pixel on either canvas, and Number() drops the
+// trailing zeros that toFixed leaves behind.
+const roundPos = (n) => String(Number(n.toFixed(3)));
+
+function serializePositions(graph, positions) {
+  if (!graph || !positions) return "";
+  return graph.nodes
+    .filter((n) => positions[n.id])
+    .map((n) => `${n.label}:${roundPos(positions[n.id].nx)}:${roundPos(positions[n.id].ny)}`)
+    .join(",");
+}
+
+/**
+ * Parses the layout field: "A:0.12:0.34,C:0.8:0.2" -> { A: { nx, ny }, ... }.
+ * Keyed by label, like the vertex and edge fields — vertex ids are per-session
+ * counters and would mean nothing in someone else's tab.
+ */
+export function parseSharedPositions(text) {
+  const out = {};
+  String(text || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, MAX_VALUES)
+    .forEach((token) => {
+      const [label, xPart, yPart, ...rest] = token.split(":");
+      if (!label || rest.length) return;
+      const nx = Number(xPart);
+      const ny = Number(yPart);
+      if (!Number.isFinite(nx) || !Number.isFinite(ny)) return;
+      // A fraction of the canvas, so anything outside 0..1 is off-screen.
+      out[label.trim()] = { nx: Math.min(1, Math.max(0, nx)), ny: Math.min(1, Math.max(0, ny)) };
+    });
+  return out;
+}
+
 /** Parses the vertex field: "A,B,C" -> ["A", "B", "C"]. */
 export function parseSharedVertices(text) {
   return String(text || "")
@@ -234,6 +273,8 @@ function fieldsFor(view, s) {
     // compression state is part of what makes a given forest interesting.
     case "unionfind":
       return { v: view, p: s.uf.uf.parent.join(",") };
+    // `xy` carries only the vertices dragged off the ring, so it is absent
+    // from the link of a graph nobody has rearranged.
     case "graph":
       return {
         v: view,
@@ -241,6 +282,7 @@ function fieldsFor(view, s) {
         w: s.gr.weighted ? "1" : undefined,
         g: serializeVertices(s.gr.graph),
         e: serializeEdges(s.gr.graph),
+        xy: serializePositions(s.gr.graph, s.gr.positions),
       };
     default:
       return { v: view };
@@ -288,6 +330,9 @@ export function readSharedState() {
     if (fields.g !== undefined) {
       state.vertices = parseSharedVertices(fields.g.slice(0, MAX_TEXT));
       state.edges = parseSharedEdges((fields.e || "").slice(0, MAX_TEXT));
+      // Labels naming a vertex the link doesn't declare are simply never
+      // matched up, so they fall back to the ring like any other.
+      state.positions = parseSharedPositions((fields.xy || "").slice(0, MAX_TEXT));
     }
     state.directed = fields.d === "1";
     state.weighted = fields.w === "1";
