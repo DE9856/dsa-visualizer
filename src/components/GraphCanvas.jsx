@@ -19,8 +19,76 @@ const PRESS_SLOP_PX = 10;
 // which is what lets one press both connect and move.
 const DRAG_THRESHOLD_PX = 3;
 
+// The loop's shape, measured in its own frame: how much of the rim it stands
+// on, and where its two control points sit — along the loop's axis, and out to
+// either side of it. The last two are multiples of the vertex radius, so the
+// loop shrinks with the phone's smaller vertices instead of swamping them.
+const LOOP_SPREAD = 0.5; // radians, half the footprint on the rim
+const LOOP_CTRL_OUT = 2.31;
+const LOOP_CTRL_WIDE = 1.15;
+
 function clamp(v, lo, hi) {
   return Math.min(hi, Math.max(lo, v));
+}
+
+/**
+ * A self-loop has no far endpoint to run to, so it is drawn as a loop that
+ * leaves the vertex's rim and comes back to it.
+ *
+ * It points away from the centre of the canvas, which on the default ring is
+ * the side with no other edges on it — but a vertex near an edge of the canvas
+ * would have its loop hanging off, so the direction turns away from outward in
+ * steps until the loop lands back inside.
+ */
+function selfLoopPath(node, radius, { width, height }, directed) {
+  const outward = Math.atan2(node.y - height / 2, node.x - width / 2);
+  // Where the curve actually peaks — a cubic at t = 0.5 — rather than where
+  // its control points are, which is nowhere the loop ever reaches.
+  const tip = (radius * (2 * Math.cos(LOOP_SPREAD) + 6 * LOOP_CTRL_OUT)) / 8;
+
+  let angle = outward;
+  for (const turn of [0, 0.7, -0.7, 1.4, -1.4, 2.1, -2.1, Math.PI]) {
+    const x = node.x + tip * Math.cos(outward + turn);
+    const y = node.y + tip * Math.sin(outward + turn);
+    if (x > 2 && x < width - 2 && y > 2 && y < height - 2) {
+      angle = outward + turn;
+      break;
+    }
+  }
+
+  // The loop's own frame: `out` runs along it, `side` across it.
+  const ox = Math.cos(angle);
+  const oy = Math.sin(angle);
+  const at = (out, side) => [node.x + out * ox - side * oy, node.y + out * oy + side * ox];
+
+  // The arrowhead's tip lands just off the rim, where a directed edge's does.
+  const endScale = directed ? (radius + 3) / radius : 1;
+  const rimOut = radius * Math.cos(LOOP_SPREAD);
+  const rimSide = radius * Math.sin(LOOP_SPREAD);
+  const [x1, y1] = at(rimOut, -rimSide);
+  const [x2, y2] = at(rimOut * endScale, rimSide * endScale);
+  const [c1x, c1y] = at(radius * LOOP_CTRL_OUT, -radius * LOOP_CTRL_WIDE);
+  const [c2x, c2y] = at(radius * LOOP_CTRL_OUT, radius * LOOP_CTRL_WIDE);
+  const [labelX, labelY] = at(tip, 0);
+
+  return {
+    d: `M ${x1} ${y1} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${x2} ${y2}`,
+    // On the loop's crown, so the badge sits on the curve exactly as a
+    // straight edge's sits on its line.
+    labelX,
+    labelY,
+  };
+}
+
+function EdgeWeight({ x, y, weight }) {
+  return (
+    <g>
+      <rect x={x - 11} y={y - 9} width={22} height={16} rx={4} style={{ fill: "var(--bg)", opacity: 0.85 }} />
+      <text x={x} y={y + 3} textAnchor="middle" className="graph-edge-label mono">
+        {weight}
+      </text>
+    </g>
+  );
 }
 
 // `positions` holds the vertices the user has dragged, as 0..1 fractions of
@@ -169,7 +237,8 @@ export default function GraphCanvas({
   // Two vertices are connected by picking one and then the other, on both a
   // cursor and a finger. Dragging is what moves a vertex, so it can't also be
   // what draws an edge, and touch could never drag-to-connect anyway: the
-  // browser claims a finger drag off an SVG shape as a page scroll.
+  // browser claims a finger drag off an SVG shape as a page scroll. Picking
+  // the same vertex twice names it as both endpoints, which is a self-loop.
   const handleNodeClick = (e, nodeId) => {
     // The click a drag leaves behind is not a click on the vertex.
     if (suppressClickRef.current) return;
@@ -184,8 +253,15 @@ export default function GraphCanvas({
     }
 
     if (pendingLink === null) setLinkFrom(nodeId);
-    else if (pendingLink === nodeId) setLinkFrom(null);
-    else {
+    else if (pendingLink === nodeId) {
+      // Inside a burst, this is the second click of a double- or triple-click,
+      // both of which mean something else on a cursor — only a click standing
+      // on its own makes the loop, so a double-click still just disarms. Touch
+      // has no rival gesture here, and its synthesized clicks don't carry a
+      // reliable count anyway.
+      if (isMobile || e.detail === 1) onCreateEdge?.(nodeId, nodeId);
+      setLinkFrom(null);
+    } else {
       onCreateEdge?.(pendingLink, nodeId);
       setLinkFrom(null);
     }
@@ -318,10 +394,10 @@ export default function GraphCanvas({
       : "DRAG TO REPOSITION · RELEASE TO DROP"
     : isMobile
       ? pendingLink
-        ? "NOW TAP THE VERTEX TO CONNECT IT TO"
+        ? "NOW TAP THE VERTEX TO CONNECT IT TO · OR THIS ONE AGAIN FOR A SELF-LOOP"
         : "TAP TWO VERTICES TO CONNECT · HOLD ONE TO MOVE IT · HOLD SPACE TO ADD ONE"
       : pendingLink
-        ? "NOW CLICK THE VERTEX TO CONNECT IT TO"
+        ? "NOW CLICK THE VERTEX TO CONNECT IT TO · OR THIS ONE AGAIN FOR A SELF-LOOP"
         : "CLICK TWO TO CONNECT · DRAG TO MOVE · TRIPLE-CLICK TO DELETE · DOUBLE-CLICK SPACE TO ADD";
 
   return (
@@ -369,6 +445,22 @@ export default function GraphCanvas({
             if (!from || !to) return null;
             const active = isActiveEdge(edge.id);
             const inTree = isTreeEdge(edge.id);
+            const stroke = active ? "var(--blue)" : inTree ? "var(--green)" : "var(--border-strong)";
+            const strokeWidth = active || inTree ? 2.5 : 1.6;
+            const markerEnd = directed
+              ? `url(#${active ? "graph-arrow-active" : inTree ? "graph-arrow-tree" : "graph-arrow"})`
+              : undefined;
+
+            if (edge.from === edge.to) {
+              const loop = selfLoopPath(from, RADIUS, view, directed);
+              return (
+                <g key={edge.id}>
+                  <path d={loop.d} fill="none" style={{ stroke }} strokeWidth={strokeWidth} markerEnd={markerEnd} />
+                  {weighted && <EdgeWeight x={loop.labelX} y={loop.labelY} weight={edge.weight} />}
+                </g>
+              );
+            }
+
             const midX = (from.x + to.x) / 2;
             const midY = (from.y + to.y) / 2;
             const dx = to.x - from.x;
@@ -386,22 +478,11 @@ export default function GraphCanvas({
                   y1={from.y}
                   x2={directed ? x2 : to.x}
                   y2={directed ? y2 : to.y}
-                  style={{ stroke: active ? "var(--blue)" : inTree ? "var(--green)" : "var(--border-strong)" }}
-                  strokeWidth={active ? 2.5 : inTree ? 2.5 : 1.6}
-                  markerEnd={
-                    directed
-                      ? `url(#${active ? "graph-arrow-active" : inTree ? "graph-arrow-tree" : "graph-arrow"})`
-                      : undefined
-                  }
+                  style={{ stroke }}
+                  strokeWidth={strokeWidth}
+                  markerEnd={markerEnd}
                 />
-                {weighted && (
-                  <g>
-                    <rect x={midX - 11} y={midY - 9} width={22} height={16} rx={4} style={{ fill: "var(--bg)", opacity: 0.85 }} />
-                    <text x={midX} y={midY + 3} textAnchor="middle" className="graph-edge-label mono">
-                      {edge.weight}
-                    </text>
-                  </g>
-                )}
+                {weighted && <EdgeWeight x={midX} y={midY} weight={edge.weight} />}
               </g>
             );
           })}

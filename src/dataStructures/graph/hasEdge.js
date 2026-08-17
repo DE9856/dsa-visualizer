@@ -21,14 +21,29 @@ export const hasEdge = {
       (e) => (e.from === from.id && e.to === to.id) || (!directed && e.from === to.id && e.to === from.id)
     );
 
+    // A vertex asked about itself is asking whether it has a self-loop, which
+    // is the one case where "adjacent" is about one vertex rather than a pair.
+    const selfLoop = from.id === to.id;
     const steps = [
       {
         ...g,
-        active: [from.id, to.id],
+        active: selfLoop ? [from.id] : [from.id, to.id],
         activeEdges: found ? [found.id] : [],
         notFound: !found,
-        resultBadge: found ? `TRUE \u2014 ${from.label} \u2192 ${to.label} EXISTS` : "FALSE \u2014 NOT ADJACENT",
-        message: found ? `${from.label} and ${to.label} are adjacent` : `${from.label} and ${to.label} are not directly connected`,
+        resultBadge: selfLoop
+          ? found
+            ? `TRUE \u2014 ${from.label} HAS A SELF-LOOP`
+            : `FALSE \u2014 ${from.label} HAS NO SELF-LOOP`
+          : found
+            ? `TRUE \u2014 ${from.label} \u2192 ${to.label} EXISTS`
+            : "FALSE \u2014 NOT ADJACENT",
+        message: selfLoop
+          ? found
+            ? `${from.label} is adjacent to itself`
+            : `${from.label} is not connected to itself`
+          : found
+            ? `${from.label} and ${to.label} are adjacent`
+            : `${from.label} and ${to.label} are not directly connected`,
       },
     ];
     return { steps, finalGraph: graph };

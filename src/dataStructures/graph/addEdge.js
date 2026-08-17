@@ -5,7 +5,7 @@ export const addEdge = {
   label: "Add Edge",
   group: "build",
   fields: ["fromVertex", "toVertex", "weight"],
-  desc: "Connects two vertices with an edge. An adjacency list appends each endpoint to the other's list (only one direction if the graph is directed); an adjacency matrix sets matrix[from][to] (and matrix[to][from] if undirected) to the edge weight.",
+  desc: "Connects two vertices with an edge. An adjacency list appends each endpoint to the other's list (only one direction if the graph is directed); an adjacency matrix sets matrix[from][to] (and matrix[to][from] if undirected) to the edge weight. Both endpoints may be the same vertex \u2014 that's a self-loop, which occupies the single diagonal cell matrix[v][v] and makes the vertex its own neighbour.",
   time: "O(1)",
   space: "O(1)",
   run(graph, { fromVertex, toVertex, weight, directed }) {
@@ -16,15 +16,24 @@ export const addEdge = {
     if (!from || !to) {
       return { steps: [{ ...g, notFound: true, message: "Choose both endpoints for the new edge" }], finalGraph: graph };
     }
-    if (from.id === to.id) {
-      return {
-        steps: [{ ...g, active: [from.id], notFound: true, message: "Self-loops aren't supported \u2014 pick two different vertices" }],
-        finalGraph: graph,
-      };
-    }
+
+    // A self-loop's two endpoints are one vertex, so highlighting it twice
+    // would be the same vertex named twice over.
+    const selfLoop = from.id === to.id;
+    const ends = selfLoop ? [from.id] : [from.id, to.id];
+
     if (edgeExists(g.edges, from.id, to.id, directed)) {
       return {
-        steps: [{ ...g, active: [from.id, to.id], notFound: true, message: `Edge ${from.label}\u2013${to.label} already exists` }],
+        steps: [
+          {
+            ...g,
+            active: ends,
+            notFound: true,
+            message: selfLoop
+              ? `${from.label} already has a self-loop`
+              : `Edge ${from.label}\u2013${to.label} already exists`,
+          },
+        ],
         finalGraph: graph,
       };
     }
@@ -33,13 +42,21 @@ export const addEdge = {
     const newEdge = { id: nextEdgeId(), from: from.id, to: to.id, weight: w };
     const withEdge = { nodes: g.nodes, edges: [...g.edges, newEdge] };
 
+    // A self-loop has nothing to mirror \u2014 it is one cell of the matrix and one
+    // entry of one list whether the graph is directed or not.
     const steps = [
-      { ...g, active: [from.id, to.id], message: `Connecting ${from.label} \u2192 ${to.label}` },
+      {
+        ...g,
+        active: ends,
+        message: selfLoop ? `Looping ${from.label} back to itself` : `Connecting ${from.label} \u2192 ${to.label}`,
+      },
       {
         ...withEdge,
-        active: [from.id, to.id],
+        active: ends,
         activeEdges: [newEdge.id],
-        message: `Edge ${from.label}\u2013${to.label} added${directed ? "" : " (both directions)"}`,
+        message: selfLoop
+          ? `Self-loop on ${from.label} added`
+          : `Edge ${from.label}\u2013${to.label} added${directed ? "" : " (both directions)"}`,
       },
     ];
     return { steps, finalGraph: withEdge };

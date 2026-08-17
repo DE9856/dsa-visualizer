@@ -64,8 +64,8 @@ export default function GraphRepresentationPanel({ representation, step, directe
         <div className="canvas__note">
           {onSetWeight
             ? weighted
-              ? "CLICK A CELL TO SET THAT EDGE'S WEIGHT · 0 REMOVES IT"
-              : "CLICK A CELL TO CONNECT OR DISCONNECT · 1 OR 0"
+              ? "CLICK A CELL TO SET THAT EDGE'S WEIGHT · 0 REMOVES IT · THE DIAGONAL IS A SELF-LOOP"
+              : "CLICK A CELL TO CONNECT OR DISCONNECT · 1 OR 0 · THE DIAGONAL IS A SELF-LOOP"
             : null}
         </div>
         <div className="graph-matrix-wrap">
@@ -90,14 +90,15 @@ export default function GraphRepresentationPanel({ representation, step, directe
                     // it shows 1 rather than whatever weight the edge happens
                     // to be carrying unused underneath.
                     const shown = w ? (weighted ? w : 1) : 0;
-                    const isSelf = row.id === col.id;
                     const isEditing = editing && editing.from === row.id && editing.to === col.id;
+                    // "from A to A" is a mouthful for the one cell that has a
+                    // name of its own.
+                    const cellName =
+                      row.id === col.id ? `${row.label}'s self-loop` : `${row.label} to ${col.label}`;
 
                     return (
                       <td key={col.id} className={w ? "gm-edge" : ""}>
-                        {isSelf ? (
-                          "\u00b7"
-                        ) : isEditing ? (
+                        {isEditing ? (
                           <input
                             className="gm-input mono"
                             value={draft}
@@ -106,14 +107,14 @@ export default function GraphRepresentationPanel({ representation, step, directe
                             onChange={(e) => setDraft(e.target.value)}
                             onKeyDown={onCellKeyDown}
                             onBlur={commitCell}
-                            aria-label={`Weight from ${row.label} to ${col.label}`}
+                            aria-label={`Weight of ${cellName}`}
                           />
                         ) : onSetWeight ? (
                           <button
                             type="button"
                             className="gm-cell"
                             onClick={() => openCell(row.id, col.id, shown)}
-                            aria-label={`Edit weight from ${row.label} to ${col.label}, currently ${shown}`}
+                            aria-label={`Edit weight of ${cellName}, currently ${shown}`}
                           >
                             {shown}
                           </button>

@@ -32,13 +32,17 @@ export const duplicateVertex = {
 
     // One new edge per edge touching the original, pointing the same way round
     // so a directed graph's in- and out-edges don't get swapped.
+    // A self-loop is a property of the vertex rather than a link to a
+    // neighbour, so the copy gets a loop of its own instead of an edge back to
+    // the original.
     const copied = [];
     g.edges.forEach((e) => {
-      if (e.from === source.id) copied.push({ id: nextEdgeId(), from: copy.id, to: e.to, weight: e.weight });
-      else if (e.to === source.id) copied.push({ id: nextEdgeId(), from: e.from, to: copy.id, weight: e.weight });
+      const fromSelf = e.from === source.id;
+      const toSelf = e.to === source.id;
+      if (fromSelf && toSelf) copied.push({ id: nextEdgeId(), from: copy.id, to: copy.id, weight: e.weight });
+      else if (fromSelf) copied.push({ id: nextEdgeId(), from: copy.id, to: e.to, weight: e.weight });
+      else if (toSelf) copied.push({ id: nextEdgeId(), from: e.from, to: copy.id, weight: e.weight });
     });
-    // A self-loop on the original would have matched both arms above; keep the
-    // single copy of it rather than the pair.
     const deduped = copied.filter((e, i) => copied.findIndex((o) => o.from === e.from && o.to === e.to) === i);
 
     const withCopy = { nodes, edges: [...g.edges, ...deduped] };

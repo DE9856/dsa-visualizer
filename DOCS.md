@@ -353,6 +353,11 @@ arranging](#building-and-arranging-the-graph). The panel below switches between
 adjacency-list and adjacency-matrix representations, and the
 [matrix is editable too](#editing-the-adjacency-matrix).
 
+A vertex may be joined to **itself**: an edge with both endpoints on one vertex is a
+**self-loop**, drawn as a loop leaving the vertex's rim and coming back to it, pointing
+away from the middle of the canvas where there is room for it. See
+[self-loops](#self-loops).
+
 ### Editing the adjacency matrix
 
 Click any cell off the diagonal and type. The matrix *is* the graph, so a cell can say
@@ -374,7 +379,39 @@ leaves A → C exactly as it was.
 
 On an **unweighted** graph there is no weight to set, so the matrix reads `1` and `0` —
 presence, which is all an unweighted matrix means — and any non-zero you type connects the
-pair. The diagonal stays `·` throughout, since self-loops aren't supported.
+pair. The **diagonal** is an ordinary cell like any other: `[A][A]` is A's
+[self-loop](#self-loops), and it is one cell rather than a mirrored pair, so an
+undirected graph edits it on its own.
+
+### Self-loops
+
+An edge whose two endpoints are the same vertex is a self-loop, and every part of the
+view treats it as the one edge it is:
+
+| | |
+| --- | --- |
+| **On the canvas** | click a vertex to arm it, then click it **again** — naming it as both ends of the edge. A loop is drawn away from the centre of the canvas, turning aside if it would otherwise hang off the edge. On a directed graph it carries an arrowhead like any other edge; a weight sits on its crown. |
+| **In the sidebar** | ADD EDGE with FROM and TO set to the same vertex. Both selects stay usable on a one-vertex graph for exactly this reason. |
+| **In the matrix** | type into the diagonal cell `[A][A]`; `0` clears it again. |
+| **In the text formats** | `A-A` in the EDGES box, `A: A` in the LIST box, a `1` on the diagonal in the MATRIX box — and the same forms in a [shared link](#sharing-a-setup). |
+
+A vertex can hold at most one, the same rule that stops an edge being added twice.
+
+What the operations make of one:
+
+- **Degree** counts a self-loop **twice** on an undirected graph — it leaves the vertex
+  and arrives back at it, the convention that keeps the degrees summing to 2*E*. On a
+  directed graph it adds one to the in-degree and one to the out-degree.
+- **Get neighbours** lists the vertex among its own neighbours, which is what its
+  adjacency row says.
+- **BFS** and **DFS** walk over it without effect: the vertex it leads to is the one
+  already being visited.
+- **Dijkstra** never relaxes through it — the vertex is locked in by the time its own
+  edges are scanned — so it can't shorten anything, which is exactly right.
+- **Kruskal's** reports it as a cycle and skips it; **Prim's** ignores it, since its far
+  end is already in the tree.
+- **Topological sort** finds the cycle it is: a self-loop gives its vertex an in-degree
+  that never reaches 0, so no full order exists.
 
 ### Building and arranging the graph
 
@@ -389,6 +426,7 @@ Everything the canvas does, on both a cursor and a finger:
 | | Cursor | Touch |
 | --- | --- | --- |
 | **Connect two vertices** | click one, then the other | tap one, then the other |
+| **Add a self-loop** | click one, then click it again | tap one, then tap it again |
 | **Move a vertex** | drag it | press and hold it, then drag |
 | **Add a vertex** | double-click empty canvas | press and hold empty canvas |
 | **Delete a vertex** | triple-click it | REMOVE VERTEX in the sidebar |
@@ -415,6 +453,12 @@ Deleting is a **triple-click**, and takes the vertex's edges with it, exactly as
 sidebar's REMOVE VERTEX does. It counts clicks using the browser's own notion of a burst,
 the one behind a double click, rather than inventing a second timing rule — so a plain
 double-click still just arms and disarms the vertex, and never deletes.
+
+The same burst is what separates a double-click from the two clicks that make a
+[self-loop](#self-loops). Clicking an armed vertex again loops it back to itself only
+when that click stands on its own; inside a burst it is the middle of a double- or
+triple-click, which mean something else, and it disarms as it always did. Touch has no
+rival gesture, so a second tap always makes the loop.
 
 Because each click in the burst is answered as it arrives, triple-clicking a vertex while
 *another* one is armed will make the edge on the first click and then delete the vertex

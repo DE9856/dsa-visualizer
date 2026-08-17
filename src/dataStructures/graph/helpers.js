@@ -211,9 +211,11 @@ export function buildGraphFromAdjacencyMatrix(matrix, directed) {
   }));
   const edges = [];
   for (let i = 0; i < n; i++) {
-    const jStart = directed ? 0 : i + 1;
+    // An undirected graph reads only the upper triangle, since the lower half
+    // says the same thing — but the diagonal is its own half, so it starts at
+    // i rather than i + 1 and a self-loop written there survives.
+    const jStart = directed ? 0 : i;
     for (let j = jStart; j < n; j++) {
-      if (i === j) continue;
       const w = matrix[i][j];
       if (w) edges.push({ id: nextEdgeId(), from: nodes[i].id, to: nodes[j].id, weight: w });
     }

@@ -275,15 +275,15 @@ Interactive visualizations for:
 
 - Graphs — directed/undirected, weighted/unweighted
   - Add / remove vertex and edge from the sidebar, or build the graph on the canvas
-    itself: click two vertices to connect them, double-click empty space to add one,
-    triple-click a vertex to delete it
+    itself: click two vertices to connect them, click one twice for a self-loop,
+    double-click empty space to add one, triple-click a vertex to delete it
   - Drag the vertices anywhere — hold first on a phone — to lay the graph out yourself
     instead of leaving it on the default ring
   - Neighbours, Degree, Is-adjacent
   - BFS, DFS, Topological sort
   - Dijkstra, Floyd–Warshall, Prim's MST, Kruskal's MST
   - Adjacency list and adjacency matrix views — type into a matrix cell to reweight, add
-    or remove that edge
+    or remove that edge, the diagonal included
 
 - Polynomial
   - Linked-list representation

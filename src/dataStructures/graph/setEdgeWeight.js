@@ -17,7 +17,7 @@ import { cloneGraph, nextEdgeId } from "./helpers";
 export const setEdgeWeight = {
   key: "setEdgeWeight",
   label: "Set Edge Weight",
-  desc: "Sets matrix[from][to] — adding, reweighting or removing the edge to match.",
+  desc: "Sets matrix[from][to] — adding, reweighting or removing the edge to match. A diagonal cell works the same way, and gives that vertex a self-loop.",
   time: "O(E)",
   space: "O(1)",
   run(graph, { fromVertex, toVertex, weight, directed }) {
@@ -25,7 +25,7 @@ export const setEdgeWeight = {
     const from = g.nodes.find((n) => n.id === fromVertex);
     const to = g.nodes.find((n) => n.id === toVertex);
 
-    if (!from || !to || from.id === to.id) {
+    if (!from || !to) {
       return { steps: [{ ...g, notFound: true, message: "That cell isn't an edge" }], finalGraph: graph };
     }
 
@@ -34,20 +34,35 @@ export const setEdgeWeight = {
       (e) =>
         (e.from === from.id && e.to === to.id) || (!directed && e.from === to.id && e.to === from.id)
     );
-    const both = directed ? "" : " (both directions)";
+    // A diagonal cell is one cell — a self-loop has no mirrored half to move
+    // with it, whichever way round the graph is, and it names one vertex
+    // rather than a pair.
+    const selfLoop = from.id === to.id;
+    const both = directed || selfLoop ? "" : " (both directions)";
+    const ends = selfLoop ? [from.id] : [from.id, to.id];
+    const what = selfLoop ? `${from.label}'s self-loop` : `edge ${from.label}–${to.label}`;
+    const whatCap = what.charAt(0).toUpperCase() + what.slice(1);
 
     // 0 is the matrix's way of saying "not connected".
     if (weight === 0) {
       if (!existing) {
         return {
-          steps: [{ ...g, active: [from.id, to.id], message: `${from.label} and ${to.label} were already unconnected` }],
+          steps: [
+            {
+              ...g,
+              active: ends,
+              message: selfLoop
+                ? `${from.label} had no self-loop to clear`
+                : `${from.label} and ${to.label} were already unconnected`,
+            },
+          ],
           finalGraph: graph,
         };
       }
       const final = { nodes: g.nodes, edges: g.edges.filter((e) => e.id !== existing.id) };
       const steps = [
-        { ...g, active: [from.id, to.id], activeEdges: [existing.id], message: `Clearing ${from.label}–${to.label}` },
-        { ...final, active: [from.id, to.id], message: `Edge ${from.label}–${to.label} removed${both}` },
+        { ...g, active: ends, activeEdges: [existing.id], message: `Clearing ${what}` },
+        { ...final, active: ends, message: `${whatCap} removed${both}` },
       ];
       return { steps, finalGraph: final };
     }
@@ -55,7 +70,7 @@ export const setEdgeWeight = {
     if (existing) {
       if (existing.weight === weight) {
         return {
-          steps: [{ ...g, active: [from.id, to.id], activeEdges: [existing.id], message: `${from.label}–${to.label} is already ${weight}` }],
+          steps: [{ ...g, active: ends, activeEdges: [existing.id], message: `${whatCap} is already ${weight}` }],
           finalGraph: graph,
         };
       }
@@ -64,8 +79,8 @@ export const setEdgeWeight = {
         edges: g.edges.map((e) => (e.id === existing.id ? { ...e, weight } : e)),
       };
       const steps = [
-        { ...g, active: [from.id, to.id], activeEdges: [existing.id], message: `${from.label}–${to.label} was ${existing.weight}` },
-        { ...final, active: [from.id, to.id], activeEdges: [existing.id], message: `${from.label}–${to.label} is now ${weight}` },
+        { ...g, active: ends, activeEdges: [existing.id], message: `${whatCap} was ${existing.weight}` },
+        { ...final, active: ends, activeEdges: [existing.id], message: `${whatCap} is now ${weight}` },
       ];
       return { steps, finalGraph: final };
     }
@@ -73,12 +88,16 @@ export const setEdgeWeight = {
     const created = { id: nextEdgeId(), from: from.id, to: to.id, weight };
     const final = { nodes: g.nodes, edges: [...g.edges, created] };
     const steps = [
-      { ...g, active: [from.id, to.id], message: `Connecting ${from.label} → ${to.label}` },
+      {
+        ...g,
+        active: ends,
+        message: selfLoop ? `Looping ${from.label} back to itself` : `Connecting ${from.label} → ${to.label}`,
+      },
       {
         ...final,
-        active: [from.id, to.id],
+        active: ends,
         activeEdges: [created.id],
-        message: `Edge ${from.label}–${to.label} added with weight ${weight}${both}`,
+        message: `${whatCap} added with weight ${weight}${both}`,
       },
     ];
     return { steps, finalGraph: final };

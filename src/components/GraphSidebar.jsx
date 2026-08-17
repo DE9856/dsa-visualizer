@@ -67,8 +67,9 @@ export default function GraphSidebar({
     setOpenGroups((prev) => new Set(prev).add(op.group));
   };
 
+  // One vertex is enough for a FROM/TO pair now that both ends may name it —
+  // that pair is a self-loop.
   const noVertices = nodes.length === 0;
-  const fewerThanTwo = nodes.length < 2;
 
   return (
     <div className="panel sidebar">
@@ -221,10 +222,10 @@ export default function GraphSidebar({
               className="text-input"
               value={fromVertexInput}
               onChange={(e) => setFromVertexInput(e.target.value)}
-              disabled={fewerThanTwo}
+              disabled={noVertices}
               style={{ marginBottom: 10 }}
             >
-              {fewerThanTwo && <option value="">need 2+ vertices</option>}
+              {noVertices && <option value="">no vertices</option>}
               {nodes.map((n) => (
                 <option key={n.id} value={n.id}>
                   {n.label}
@@ -241,10 +242,10 @@ export default function GraphSidebar({
               className="text-input"
               value={toVertexInput}
               onChange={(e) => setToVertexInput(e.target.value)}
-              disabled={fewerThanTwo}
+              disabled={noVertices}
               style={{ marginBottom: 10 }}
             >
-              {fewerThanTwo && <option value="">need 2+ vertices</option>}
+              {noVertices && <option value="">no vertices</option>}
               {nodes.map((n) => (
                 <option key={n.id} value={n.id}>
                   {n.label}

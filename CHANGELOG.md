@@ -39,6 +39,17 @@ hash tables, dynamic hashing, heaps, tries and union-find.
 
 ### Added
 
+- **Self-loops on the graph.** An edge may now have both endpoints on one vertex. Click a
+  vertex to arm it and click it again to loop it back to itself, set FROM and TO to the
+  same vertex in ADD EDGE, or type into the matrix's diagonal — which is an ordinary
+  editable cell now rather than a `·`, and one cell rather than a mirrored pair. `A-A`,
+  `A: A` and a `1` on the diagonal all build one from text, and it travels in a shared
+  link like any other edge. The loop is drawn away from the middle of the canvas, turning
+  aside if it would hang off the edge, and carries an arrowhead and a weight like any
+  other edge does. Degree counts one twice on an undirected graph — it leaves the vertex
+  and arrives back at it — Kruskal's reports it as the cycle it is, and a topological sort
+  now finds the cycle a self-loop makes.
+
 - **Dynamic hashing, as its own view: extendible and linear.** The thing a plain hash
   table cannot do — grow without rehashing everything at once. **Extendible** keeps a
   directory of 2^d pointers, drawn as a column of `0110 → B2` entries beside the buckets,
