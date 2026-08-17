@@ -18,20 +18,29 @@ export const keys = {
       return { steps, finalTable: table };
     }
 
-    for (let i = 0; i < before.capacity; i++) {
-      const live = before.buckets[i].filter((entry) => !entry.deleted);
-      if (live.length === 0) {
-        steps.push({ ...before, probe: i, message: `Bucket ${i} is empty — skip` });
-        continue;
+    // Cuckoo keeps two tables, and the walk has to cover both — the second one
+    // is not an overflow area, it is half the table.
+    const tables = before.buckets2 ? [before.buckets, before.buckets2] : [before.buckets];
+
+    tables.forEach((buckets, t) => {
+      const name = before.buckets2 ? `T${t + 1}[` : "Bucket ";
+      const close = before.buckets2 ? "]" : "";
+      for (let i = 0; i < buckets.length; i++) {
+        const live = buckets[i].filter((entry) => !entry.deleted);
+        const at = t === 0 ? { probe: i } : { probe2: i };
+        if (live.length === 0) {
+          steps.push({ ...before, ...at, message: `${name}${i}${close} is empty — skip` });
+          continue;
+        }
+        collected.push(...live.map((entry) => entry.value));
+        steps.push({
+          ...before,
+          ...at,
+          active: live.map((entry) => entry.id),
+          message: `${name}${i}${close}: ${live.map((e) => e.value).join(", ")} — collected so far: ${collected.join(", ")}`,
+        });
       }
-      collected.push(...live.map((entry) => entry.value));
-      steps.push({
-        ...before,
-        probe: i,
-        active: live.map((entry) => entry.id),
-        message: `Bucket ${i}: ${live.map((e) => e.value).join(", ")} — collected so far: ${collected.join(", ")}`,
-      });
-    }
+    });
 
     steps.push({
       ...before,

@@ -9,10 +9,18 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Usability and playback-smoothness pass across every visualizer, plus four new structures:
-hash tables, heaps, tries and union-find.
+Usability and playback-smoothness pass across every visualizer, plus five new structures:
+hash tables, dynamic hashing, heaps, tries and union-find.
 
 ### Changed
+
+- **The bundle is split three ways, so less of it has to arrive before the app runs.**
+  React and the icon set are their own chunk — they change only when a dependency does,
+  so an app redeploy no longer invalidates them in anyone's cache. The topic write-ups
+  are another: `TopicPanel` starts collapsed, so its 30 kB of prose is fetched the first
+  time someone expands it rather than on every visit, and the panel's heading now lives
+  in `topicTitles.js` so the collapsed state needs nothing else. Initial download is
+  ~151 kB gzipped, and Rollup's 500 kB chunk warning is gone.
 
 - **The graph view opens empty, on the adjacency matrix.** It used to land on a random
   graph with the adjacency list showing. The graph is the topic you build yourself now
@@ -23,6 +31,37 @@ hash tables, heaps, tries and union-find.
   building. Shared links are unaffected: they arrive with the graph they carry.
 
 ### Added
+
+- **Dynamic hashing, as its own view: extendible and linear.** The thing a plain hash
+  table cannot do — grow without rehashing everything at once. **Extendible** keeps a
+  directory of 2^d pointers, drawn as a column of `0110 → B2` entries beside the buckets,
+  each carrying its own local depth; an overflowing bucket splits, and the directory only
+  doubles when that bucket was already as deep as the directory itself. **Linear** has no
+  directory at all, just a level and a split pointer, and the bucket that splits is the
+  one the pointer is on — not the one that overflowed, which chains into an overflow
+  block and waits its turn. Each bucket is labelled with the hash it currently answers
+  to, since that one comparison is the whole of a directoryless lookup.
+
+  Switching scheme replays the same keys in the same arrival order, which is the
+  comparison worth making: in both, where a key ends up depends on how many splits had
+  happened when it got there. Insert, search, delete and list keys are joined by
+  **Depths & Pointers**, which reads out the numbers that decide what the next insert
+  will do.
+
+- **Three more collision strategies, and a hash function to choose.** **Double hashing**
+  steps by `h₂(k) = 1 + k mod (m−2)`, a stride each key computes for itself, so two keys
+  that collide once don't collide all the way along. **Robin Hood** probes forward but
+  swaps the key it is carrying with any sitting key closer to home — each slot shows its
+  probe distance, and evening those out lets it run at α 0.75, stop a search early, and
+  delete by shifting the run back instead of leaving a tombstone. **Cuckoo hashing** puts
+  two tables side by side: a key takes its T1 slot outright and evicts whoever was there
+  into T2, so no lookup ever costs more than two probes, and an eviction chain that won't
+  end is a cycle that only a bigger table can break.
+
+  **HASH FUNCTION** is now a separate axis above collision handling, because it decides
+  where keys land before any collision rule gets a say: division, multiplication,
+  mid-square and digit folding. Switching one redeals the same keys, the way switching
+  strategy already did.
 
 - **Threaded binary trees, as a fourth tree type.** THREADED builds and searches like a
   BST; what it does differently is spend the null pointers. A tree of *n* nodes carries

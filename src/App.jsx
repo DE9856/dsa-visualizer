@@ -25,6 +25,8 @@ import TwoThreeTreeSidebar from "./components/TwoThreeTreeSidebar.jsx";
 import TwoThreeTreeCanvas from "./components/TwoThreeTreeCanvas.jsx";
 import HashTableSidebar from "./components/HashTableSidebar.jsx";
 import HashTableCanvas from "./components/HashTableCanvas.jsx";
+import DynamicHashSidebar from "./components/DynamicHashSidebar.jsx";
+import DynamicHashCanvas from "./components/DynamicHashCanvas.jsx";
 import HeapSidebar from "./components/HeapSidebar.jsx";
 import HeapCanvas from "./components/HeapCanvas.jsx";
 import TrieSidebar from "./components/TrieSidebar.jsx";
@@ -32,7 +34,6 @@ import TrieCanvas from "./components/TrieCanvas.jsx";
 import UnionFindSidebar from "./components/UnionFindSidebar.jsx";
 import UnionFindCanvas from "./components/UnionFindCanvas.jsx";
 import TopicPanel from "./components/TopicPanel.jsx";
-import { TOPIC_OVERVIEWS } from "./data/topicOverviews.js";
 import { useVisualizer } from "./hooks/useVisualizer.js";
 import { useLinkedList } from "./hooks/useLinkedList.js";
 import { usePolynomial } from "./hooks/usePolynomial.js";
@@ -42,6 +43,7 @@ import { useGraph } from "./hooks/useGraph.js";
 import { useTree } from "./hooks/useTree.js";
 import { useTwoThreeTree } from "./hooks/useTwoThreeTree.js";
 import { useHashTable } from "./hooks/useHashTable.js";
+import { useDynamicHash } from "./hooks/useDynamicHash.js";
 import { useHeap } from "./hooks/useHeap.js";
 import { useTrie } from "./hooks/useTrie.js";
 import { useUnionFind } from "./hooks/useUnionFind.js";
@@ -67,6 +69,7 @@ export default function App() {
   const tr = useTree(initFor("tree"));
   const tt = useTwoThreeTree(initFor("twothree"));
   const ht = useHashTable(initFor("hashtable"));
+  const dh = useDynamicHash(initFor("dynamichash"));
   const hp = useHeap(initFor("heap"));
   const tri = useTrie(initFor("trie"));
   const uf = useUnionFind(initFor("unionfind"));
@@ -82,6 +85,7 @@ export default function App() {
     tree: tr,
     twothree: tt,
     hashtable: ht,
+    dynamichash: dh,
     heap: hp,
     trie: tri,
     unionfind: uf,
@@ -122,7 +126,7 @@ export default function App() {
 
   // The address bar tracks the data on screen, so the link is always ready to
   // copy. Only committed data is encoded — never half-typed sidebar text.
-  const shareHash = shareHashFor(view, { v, ll, poly, st, q, gr, tr, tt, ht, hp, tri, uf });
+  const shareHash = shareHashFor(view, { v, ll, poly, st, q, gr, tr, tt, ht, dh, hp, tri, uf });
   const shareUrl = buildShareUrl(shareHash);
 
   useEffect(() => {
@@ -199,7 +203,7 @@ export default function App() {
           <ListCanvas step={ll.step} listType={ll.listType} />
           <ListControls {...transport} />
           <ListInfoPanel opMeta={ll.opMeta} />
-          <TopicPanel topic={TOPIC_OVERVIEWS.linkedlist} />
+          <TopicPanel topicKey="linkedlist" />
         </Workspace>
       ) : view === "polynomial" ? (
         <Workspace
@@ -231,7 +235,7 @@ export default function App() {
           />
           <ListControls {...transport} />
           <ListInfoPanel opMeta={poly.opMeta} />
-          <TopicPanel topic={TOPIC_OVERVIEWS.polynomial} />
+          <TopicPanel topicKey="polynomial" />
         </Workspace>
       ) : view === "stack" ? (
         <Workspace
@@ -255,7 +259,7 @@ export default function App() {
           <StackCanvas step={st.step} />
           <ListControls {...transport} />
           <ListInfoPanel opMeta={st.opMeta} />
-          <TopicPanel topic={TOPIC_OVERVIEWS.stack} />
+          <TopicPanel topicKey="stack" />
         </Workspace>
       ) : view === "queue" ? (
         <Workspace
@@ -279,7 +283,7 @@ export default function App() {
           <QueueCanvas step={q.step} />
           <ListControls {...transport} />
           <ListInfoPanel opMeta={q.opMeta} />
-          <TopicPanel topic={TOPIC_OVERVIEWS.queue} />
+          <TopicPanel topicKey="queue" />
         </Workspace>
       ) : view === "graph" ? (
         <Workspace
@@ -338,7 +342,7 @@ export default function App() {
           />
           <ListControls {...transport} />
           <ListInfoPanel opMeta={gr.opMeta} />
-          <TopicPanel topic={TOPIC_OVERVIEWS.graph} />
+          <TopicPanel topicKey="graph" />
         </Workspace>
       ) : view === "tree" ? (
         <Workspace
@@ -366,7 +370,7 @@ export default function App() {
           <TreeCanvas step={tr.step} treeType={tr.treeType} threadMode={tr.threadMode} />
           <ListControls {...transport} />
           <ListInfoPanel opMeta={tr.opMeta} />
-          <TopicPanel topic={TOPIC_OVERVIEWS.tree} />
+          <TopicPanel topicKey="tree" />
         </Workspace>
       ) : view === "twothree" ? (
         <Workspace
@@ -390,7 +394,7 @@ export default function App() {
           <TwoThreeTreeCanvas step={tt.step} />
           <ListControls {...transport} />
           <ListInfoPanel opMeta={tt.opMeta} />
-          <TopicPanel topic={TOPIC_OVERVIEWS.twothree} />
+          <TopicPanel topicKey="twothree" />
         </Workspace>
       ) : view === "hashtable" ? (
         <Workspace
@@ -400,6 +404,8 @@ export default function App() {
             <HashTableSidebar
               strategy={ht.strategy}
               onStrategyChange={ht.setStrategy}
+              hashFn={ht.hashFn}
+              onHashFnChange={ht.setHashFn}
               operation={ht.operation}
               onOperationChange={ht.setOperation}
               opMeta={ht.opMeta}
@@ -416,7 +422,34 @@ export default function App() {
           <HashTableCanvas step={ht.step} />
           <ListControls {...transport} />
           <ListInfoPanel opMeta={ht.opMeta} />
-          <TopicPanel topic={TOPIC_OVERVIEWS.hashtable} />
+          <TopicPanel topicKey="hashtable" />
+        </Workspace>
+      ) : view === "dynamichash" ? (
+        <Workspace
+          {...shell}
+          panelLabel="DYNAMIC HASHING OPS"
+          sidebar={
+            <DynamicHashSidebar
+              kind={dh.kind}
+              onKindChange={dh.setKind}
+              operation={dh.operation}
+              onOperationChange={dh.setOperation}
+              opMeta={dh.opMeta}
+              keyInput={dh.keyInput}
+              setKeyInput={dh.setKeyInput}
+              onRun={dh.runOperation}
+              customInput={dh.customInput}
+              setCustomInput={dh.setCustomInput}
+              onApplyCustom={dh.applyCustomTable}
+              onShuffle={dh.shuffle}
+              onReset={dh.resetTable}
+            />
+          }
+        >
+          <DynamicHashCanvas step={dh.step} />
+          <ListControls {...transport} />
+          <ListInfoPanel opMeta={dh.opMeta} />
+          <TopicPanel topicKey="dynamichash" />
         </Workspace>
       ) : view === "heap" ? (
         <Workspace
@@ -442,7 +475,7 @@ export default function App() {
           <HeapCanvas step={hp.step} />
           <ListControls {...transport} />
           <ListInfoPanel opMeta={hp.opMeta} />
-          <TopicPanel topic={TOPIC_OVERVIEWS.heap} />
+          <TopicPanel topicKey="heap" />
         </Workspace>
       ) : view === "trie" ? (
         <Workspace
@@ -467,7 +500,7 @@ export default function App() {
           <TrieCanvas step={tri.step} />
           <ListControls {...transport} />
           <ListInfoPanel opMeta={tri.opMeta} />
-          <TopicPanel topic={TOPIC_OVERVIEWS.trie} />
+          <TopicPanel topicKey="trie" />
         </Workspace>
       ) : view === "unionfind" ? (
         <Workspace
@@ -494,7 +527,7 @@ export default function App() {
           <UnionFindCanvas step={uf.step} />
           <ListControls {...transport} />
           <ListInfoPanel opMeta={uf.opMeta} />
-          <TopicPanel topic={TOPIC_OVERVIEWS.unionfind} />
+          <TopicPanel topicKey="unionfind" />
         </Workspace>
       ) : (
         <Workspace

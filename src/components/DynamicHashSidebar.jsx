@@ -1,19 +1,10 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Shuffle } from "lucide-react";
-import {
-  HASH_OPERATIONS,
-  HASH_GROUPS,
-  HASH_STRATEGIES,
-  HASH_FUNCTIONS,
-  HASH_FN_MAP,
-  STRATEGY_MAP,
-} from "../dataStructures/hashTable";
+import { ChevronDown, ChevronRight, Shuffle, Eraser } from "lucide-react";
+import { DYNAMIC_OPERATIONS, DYNAMIC_GROUPS, DYNAMIC_KINDS, KIND_MAP, BUCKET_SIZE } from "../dataStructures/dynamicHash";
 
-export default function HashTableSidebar({
-  strategy,
-  onStrategyChange,
-  hashFn,
-  onHashFnChange,
+export default function DynamicHashSidebar({
+  kind,
+  onKindChange,
   operation,
   onOperationChange,
   opMeta,
@@ -24,8 +15,9 @@ export default function HashTableSidebar({
   setCustomInput,
   onApplyCustom,
   onShuffle,
+  onReset,
 }) {
-  const activeGroup = HASH_OPERATIONS.find((op) => op.key === operation)?.group;
+  const activeGroup = DYNAMIC_OPERATIONS.find((op) => op.key === operation)?.group;
   const [openGroups, setOpenGroups] = useState(() => new Set([activeGroup]));
 
   const toggleGroup = (key) => {
@@ -42,41 +34,21 @@ export default function HashTableSidebar({
     setOpenGroups((prev) => new Set(prev).add(op.group));
   };
 
-  const active = STRATEGY_MAP[strategy];
-  const activeFn = HASH_FN_MAP[hashFn];
+  const active = KIND_MAP[kind];
 
   return (
     <div className="panel sidebar">
-      <div className="label">HASH FUNCTION</div>
-      <div className="type-toggle type-toggle--grid">
-        {HASH_FUNCTIONS.map((f) => (
-          <button
-            key={f.key}
-            className={`btn ${hashFn === f.key ? "active" : ""}`}
-            onClick={() => onHashFnChange(f.key)}
-          >
-            {f.short}
+      <div className="label">SCHEME</div>
+      <div className="type-toggle type-toggle--stacked">
+        {DYNAMIC_KINDS.map((k) => (
+          <button key={k.key} className={`btn ${kind === k.key ? "active" : ""}`} onClick={() => onKindChange(k.key)}>
+            {k.short}
+            <span className="dh-kind__tag mono">{k.tag}</span>
           </button>
         ))}
       </div>
       <div className="sidebar__hint">
-        <span className="mono">{activeFn.formula}</span> — {activeFn.note}
-      </div>
-
-      <div className="label" style={{ marginTop: 16 }}>COLLISION HANDLING</div>
-      <div className="type-toggle type-toggle--grid">
-        {HASH_STRATEGIES.map((s) => (
-          <button
-            key={s.key}
-            className={`btn ${strategy === s.key ? "active" : ""}`}
-            onClick={() => onStrategyChange(s.key)}
-          >
-            {s.short}
-          </button>
-        ))}
-      </div>
-      <div className="sidebar__hint">
-        On a collision, {active.resolution}. Resizes past &alpha; {active.loadLimit.toFixed(2)}.
+        {active.summary} Buckets hold {BUCKET_SIZE} keys.
       </div>
 
       <div className="sidebar__section">
@@ -84,10 +56,13 @@ export default function HashTableSidebar({
         <button className="btn btn--block-flat" style={{ marginBottom: 8 }} onClick={onShuffle}>
           <Shuffle size={13} /> RANDOM KEYS
         </button>
+        <button className="btn btn--block-flat" style={{ marginBottom: 8 }} onClick={onReset}>
+          <Eraser size={13} /> START EMPTY
+        </button>
 
         <textarea
           className="text-input textarea-input"
-          placeholder="42, 13, 7, 20, 34"
+          placeholder="12, 5, 30, 3, 8, 21"
           value={customInput}
           onChange={(e) => setCustomInput(e.target.value)}
           rows={2}
@@ -99,8 +74,8 @@ export default function HashTableSidebar({
 
       <div className="label" style={{ marginTop: 16 }}>OPERATIONS</div>
       <div className="algo-list">
-        {HASH_GROUPS.map((group) => {
-          const ops = HASH_OPERATIONS.filter((op) => op.group === group.key);
+        {DYNAMIC_GROUPS.map((group) => {
+          const ops = DYNAMIC_OPERATIONS.filter((op) => op.group === group.key);
           if (ops.length === 0) return null;
           const isOpen = openGroups.has(group.key);
           return (

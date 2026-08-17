@@ -40,7 +40,8 @@ The visualizer also supports interactive operations for:
 - ⛰️ Heaps (max & min, sift up/down)
 - 🔤 Tries (prefix tree & autocomplete)
 - 🔗 Linked Lists (singly, doubly, circular)
-- 🗂️ Hash Tables (separate chaining, linear & quadratic probing)
+- 🗂️ Hash Tables (chaining, linear/quadratic probing, double hashing, Robin Hood, cuckoo)
+- 🧭 Dynamic Hashing (extendible & linear — directory and directoryless)
 - 📊 Graphs
 - 🧩 Union-Find (disjoint sets with path compression)
 - 📦 Stacks
@@ -109,6 +110,7 @@ src/
 │   └── index.js            algorithm registry
 │
 ├── dataStructures/
+│   ├── dynamicHash/
 │   ├── graph/
 │   ├── hashTable/
 │   ├── heap/
@@ -255,11 +257,21 @@ Interactive visualizations for:
   - The forest and the parent array side by side, with compression animated pointer by pointer
   - The same implementation Kruskal's MST uses for its cycle check
 
-- Hash Table — separate chaining, linear probing, quadratic probing
-  - Insert, Search, Delete (tombstones under open addressing)
+- Hash Table — separate chaining, linear probing, quadratic probing, double hashing,
+  Robin Hood, cuckoo hashing
+  - Four hash functions on a separate axis: division, multiplication, mid-square, digit
+    folding — switch one and the same keys are redealt into different buckets
+  - Insert, Search, Delete (tombstones under probing, backward shifting under Robin
+    Hood, eviction chains under cuckoo)
   - Load factor read-out, List keys in hash order
   - Automatic resize + rehash when the load factor crosses its limit, or on demand
   - Switch the collision strategy to replay the same keys into a new table
+
+- Dynamic Hashing — extendible (directory) and linear (directoryless)
+  - Insert with bucket splits, directory doubling, and overflow blocks
+  - Search, Delete, List keys
+  - Depths & Pointers: global vs local depth, or the level and split pointer
+  - Switch scheme to replay the same arrival order into the other shape
 
 - Graphs — directed/undirected, weighted/unweighted
   - Add / remove vertex and edge from the sidebar, or build the graph on the canvas

@@ -215,6 +215,8 @@ loaded, skipping the category screen.
 | 2-3 tree | `#v=twothree&a=12,5,30,3,8,21,44` |
 | Heap | `#v=heap&type=min&a=4,10,3,5,1,8` |
 | Hash table | `#v=hashtable&type=linear&a=42,13,7,20&m=17` |
+| Hash table, cuckoo | `#v=hashtable&type=cuckoo&hf=midsquare&a=42,13,7,20` |
+| Dynamic hashing | `#v=dynamichash&type=extendible&a=12,5,30,3,8,21` |
 | Trie | `#v=trie&a=car,card,care,cat,dog` |
 | Union-Find | `#v=unionfind&p=0,0,2,0,4,4` |
 | Graph | `#v=graph&w=1&g=A,B,C,D&e=A-B(5),B-C(2),C-D(7),A-D` |
@@ -228,7 +230,9 @@ threaded tree adds `tm`, which of its null pointers are threaded), and a graph c
 vertices and edges separately so both keep their order. A hash table is listed in
 insertion order — with probing, the order keys arrive in decides where the collisions
 land — plus `m`, its capacity, which depends on how big the table ever got rather than
-on how many keys are in it now. A heap is written in array order, which *is* the heap. A
+on how many keys are in it now, and `hf` when the hash function isn't the default
+division. A dynamically hashed table carries its arrival order alone: both schemes grow
+one split at a time, so replaying the keys reproduces every depth and pointer with them. A heap is written in array order, which *is* the heap. A
 union-find carries its raw parent array, since path compression is part of the state
 worth sharing. Everything round-trips exactly, including tree shape.
 
@@ -337,7 +341,8 @@ says so — and draw `lo` / `mid` / `hi` pointers under the bars.
 | **Tree** | Binary Tree, BST, AVL, Threaded (single/double) | insert, delete, search, inorder, preorder, postorder, DFS, BFS (level order), height, size, clear — plus threaded inorder, reverse inorder and inorder successor on a threaded tree |
 | **2-3 Tree** | balanced multi-way | insert (with splits), delete, search, inorder, height, size, clear |
 | **Heap** | max-heap, min-heap | insert (sift up), extract root (sift down), peek, build heap, search, height, size, clear |
-| **Hash Table** | separate chaining, linear probing, quadratic probing | insert, search, delete, load factor, list keys, resize, clear |
+| **Hash Table** | separate chaining, linear probing, quadratic probing, double hashing, Robin Hood, cuckoo — each over division, multiplication, mid-square or digit-folding hashing | insert, search, delete, load factor, list keys, resize, clear |
+| **Dynamic Hashing** | extendible (directory), linear (directoryless) | insert (with bucket splits, directory doubling and overflow blocks), search, delete, depths & pointers, list keys, clear |
 | **Trie** | prefix tree over a–z | insert, delete (with pruning), search, autocomplete, list words, size, clear |
 | **Union-Find** | union by size + path compression | union, find, connected?, components, add element, reset |
 | **Graph** | directed/undirected, weighted/unweighted | add & remove vertex/edge, neighbours, degree, is-adjacent, BFS, DFS, topological sort, Dijkstra, Floyd–Warshall, Prim's MST, Kruskal's MST |
@@ -468,6 +473,20 @@ to bottom and its wrap past the last bucket is visible. The header carries the l
 factor as a bar with a tick at the limit that triggers a resize; the line under it shows
 the hash being computed, `h(42) = 42 mod 7 = 2`.
 
+- **HASH FUNCTION** is a separate axis from collision handling, because it decides where
+  keys land *before* any collision rule gets a say. Division (`k mod m`), multiplication
+  (`⌊m × frac(k × 0.6180)⌋`), mid-square (the middle digits of k²) and digit folding
+  (the sum of k's digits) all deal the same keys into different buckets, and switching
+  redeals them rather than starting over.
+- Six collision strategies share the one canvas. Beyond chaining and linear/quadratic
+  probing: **double hashing** steps by `h₂(k) = 1 + k mod (m−2)`, a stride the key
+  computes for itself, so two keys that collide once do not then collide all the way
+  along. **Robin Hood** probes linearly but swaps the key it is carrying with any sitting
+  key closer to home — the `+n` badge on each slot is that distance, and evening them out
+  is what lets it run at α 0.75 and stop a search early. **Cuckoo hashing** gets two
+  tables side by side: a key takes its T1 slot outright and evicts whoever was there into
+  T2, so a lookup is two probes worst case, and a chain that will not terminate is a
+  cycle only a bigger table can break.
 - Table sizes are prime (7 → 17 → 37 → …). A prime modulus keeps `k mod m` from
   clustering, and it is what makes quadratic probing's guarantee hold.
 - **Resizing is automatic.** Crossing the load factor limit — 0.75 under chaining, 0.5
@@ -480,6 +499,36 @@ the hash being computed, `h(42) = 42 mod 7 = 2`.
 - Switching the collision strategy **replays the same keys** into a fresh table rather
   than starting over, which is the fastest way to see the three strategies deal the same
   collisions differently.
+
+### The dynamic hashing view
+
+Two schemes that grow a table one bucket at a time instead of rehashing all of it at
+once — the thing a plain hash table cannot do, and the reason database indexes use these
+instead. **SCHEME** switches between them and replays the same keys in the same arrival
+order, because in both of them where a key lands depends on how many splits had happened
+when it got there. Buckets hold two keys, which keeps a split never more than a couple of
+inserts away.
+
+- **Extendible hashing** keeps a **directory** of 2^d pointers, drawn as a column of
+  `0110 → B2` entries beside the buckets. Several entries pointing at one bucket is the
+  normal state, not a bug: a bucket at local depth d' is named by 2^(d − d') of them.
+- Each bucket shows its **local depth**. That number against the global depth is the
+  whole decision: below it, a split just re-aims directory entries that already exist;
+  equal to it, the directory has to double first. A split can also send every key to the
+  same side, in which case it simply happens again.
+- **Linear hashing** has no directory at all — just a level and a **split pointer**,
+  marked `▸`. Each bucket is labelled with the hash it currently answers to (`mod 4`
+  or `mod 8`), which is the one comparison a lookup makes.
+- The bucket that splits is **the one the pointer is on, not the one that overflowed**.
+  An overflowing bucket chains its extra keys into a dashed **overflow block** and waits
+  its turn. Splitting in rotation is what spreads growth evenly instead of chasing
+  whichever bucket is currently unlucky.
+- When the pointer has been all the way round, every bucket has been rehashed, the level
+  goes up and the pointer restarts at 0 — the table has doubled without any one insert
+  costing more than a single bucket split.
+- **Depths & Pointers** reads out the numbers that decide what the next insert does, and
+  neither scheme shrinks on delete here — that is the part real implementations usually
+  leave out too.
 
 ### The heap view
 
@@ -553,7 +602,8 @@ For trees the values are inserted in the order given, following the rules of the
 tree type. A hash table takes up to 24 keys, inserted in the order given and resized
 along the way as the load factor demands; duplicates are dropped, since keys are unique.
 A heap takes up to 31 values, loaded as a plain array and then heapified on screen —
-duplicates are fine.
+duplicates are fine. Dynamic hashing takes up to 20 non-negative keys and grows through
+the splits their arrival forces.
 
 ### Trie words
 
@@ -630,8 +680,8 @@ src/
 │   └── index.js            registry: ALGORITHMS, ALGO_MAP, getSteps()
 │
 ├── dataStructures/
-│   ├── graph/  hashTable/  heap/  linkedList/  polynomial/  queue/  stack/
-│   │   tree/  trie/  twoThreeTree/  unionFind/
+│   ├── dynamicHash/  graph/  hashTable/  heap/  linkedList/  polynomial/
+│   │   queue/  stack/  tree/  trie/  twoThreeTree/  unionFind/
 │   │           each folder = one file per operation + helpers.js + index.js registry
 │   │           unionFind/ also exports the silent makeUnionFind() that
 │   │           graph/kruskalMST.js uses for its cycle check

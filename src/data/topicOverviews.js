@@ -4,7 +4,6 @@
 
 export const TOPIC_OVERVIEWS = {
   linkedlist: {
-    title: "Linked List",
     overview:
       "A linked list is a linear data structure made of nodes scattered anywhere in memory, each holding a value and a pointer (or two) to its neighbor(s). Unlike an array, elements aren't stored contiguously, so there's no single block of memory to resize — growing or shrinking the list is just a matter of relinking pointers.",
     howItWorks: [
@@ -31,7 +30,6 @@ export const TOPIC_OVERVIEWS = {
   },
 
   polynomial: {
-    title: "Polynomial (Linked List Representation)",
     overview:
       "A polynomial can be represented as a linked list where each node stores one term — a coefficient and an exponent — kept in decreasing order of exponent. This representation naturally handles polynomials of any degree without wasting memory on zero coefficients, since terms that don't exist simply have no node.",
     howItWorks: [
@@ -59,7 +57,6 @@ export const TOPIC_OVERVIEWS = {
   },
 
   stack: {
-    title: "Stack",
     overview:
       "A stack is a Last-In-First-Out (LIFO) data structure: the most recently added element is always the first one removed, just like a stack of plates — you add to and take from the top only.",
     howItWorks: [
@@ -87,7 +84,6 @@ export const TOPIC_OVERVIEWS = {
   },
 
   queue: {
-    title: "Queue",
     overview:
       "A queue is a First-In-First-Out (FIFO) data structure: elements are added at the back and removed from the front, just like people waiting in a line — whoever arrived first gets served first.",
     howItWorks: [
@@ -115,7 +111,6 @@ export const TOPIC_OVERVIEWS = {
   },
 
   unionfind: {
-    title: "Union-Find (Disjoint Set Union)",
     overview:
       "Union-find answers one question — are these two things in the same group? — and supports one change: merge two groups. That is all it does. It keeps no edges, no paths and no membership lists; each element only stores a pointer to another element, and a group is identified by the one element that points at itself. From those two arrays it answers connectivity queries in effectively constant time, which is why it sits underneath Kruskal's algorithm, connected-component labelling, and every 'are these accounts the same person' merge you have ever written.",
     howItWorks: [
@@ -145,7 +140,6 @@ export const TOPIC_OVERVIEWS = {
   },
 
   trie: {
-    title: "Trie (Prefix Tree)",
     overview:
       "A trie stores a set of strings by their characters rather than as whole values: every edge carries one character, and every node is the prefix spelled by the path that reaches it. Nothing in the structure holds a complete word — 'car' and 'card' share three nodes and differ by one — and lookup never compares whole strings, only walks a path. That makes a trie's cost depend on the length of the word you are asking about and not at all on how many words are stored, and it makes prefix queries, which every other dictionary structure struggles with, almost free.",
     howItWorks: [
@@ -177,7 +171,6 @@ export const TOPIC_OVERVIEWS = {
   },
 
   heap: {
-    title: "Binary Heap",
     overview:
       "A binary heap is a complete binary tree with one rule: every parent outranks its children — larger in a max-heap, smaller in a min-heap. That is a far weaker promise than a binary search tree makes, and the weakness is the point. Nothing orders the two subtrees under a node against each other, so a heap can never answer 'what comes after 30?', but it can keep the single most extreme value at the root through any sequence of insertions and removals for O(log n) a piece. Because the tree is always complete it needs no pointers at all: it lives in a flat array where index i's children sit at 2i+1 and 2i+2.",
     howItWorks: [
@@ -207,7 +200,6 @@ export const TOPIC_OVERVIEWS = {
   },
 
   hashtable: {
-    title: "Hash Table",
     overview:
       "A hash table stores keys in an array of buckets, using a hash function to turn each key directly into an index — h(k) = k mod m here. That skips searching entirely: instead of comparing your way to a key, you compute where it must be. The catch is that a function mapping a huge key space onto a small array must send different keys to the same bucket sometimes, so every hash table is really two designs — a hash function, and a plan for what to do when two keys collide.",
     howItWorks: [
@@ -237,8 +229,35 @@ export const TOPIC_OVERVIEWS = {
     ],
   },
 
+  dynamichash: {
+    overview:
+      "An ordinary hash table grows by rehashing: allocate a bigger array, recompute every key's index, copy them all across. That is O(n) in one go, and while it runs the table is unusable — fine for an in-memory map, unacceptable for a database index holding millions of records on disk. Dynamic hashing grows a table one bucket at a time instead. Extendible hashing keeps a directory of pointers and splits a single bucket at a time; linear hashing has no directory at all and splits buckets in a fixed rotation, regardless of which one actually overflowed.",
+    howItWorks: [
+      "Both schemes address a key by its low bits rather than by a remainder against an arbitrary size: doubling the number of buckets then means looking at exactly one more bit, and a key either stays where it is or moves to one specific new bucket.",
+      "Extendible hashing keeps a directory of 2^d pointers, where d is the global depth — the number of bits it indexes on. Each bucket records its own local depth: how many bits that bucket has actually been split on. Several directory entries can point at the same bucket, and a bucket with local depth d' is pointed at by 2^(d − d') of them.",
+      "When an extendible bucket overflows it splits in two and its keys are redealt by the next bit. If its local depth was below the global depth, the directory already has spare entries to re-aim and nothing else changes. Only when the two are equal must the directory itself double — which costs a copy of the directory, not of the data.",
+      "Linear hashing drops the directory and keeps two numbers: the level L, giving the base hash h_L(k) = k mod N·2^L, and a split pointer. A bucket the pointer has already passed has been rehashed to the next level, so it answers to h_(L+1) instead — one comparison decides which hash to apply.",
+      "The defining trick is that the bucket that splits is the one the pointer is on, not the one that overflowed. An overflowing bucket chains its extra keys into an overflow block and waits its turn. Splits are triggered by the overall load factor, so growth is spread evenly instead of chasing whichever bucket is currently unlucky.",
+      "When the split pointer has been all the way round, every bucket has been rehashed, the level goes up, and the pointer restarts at bucket 0 — the table has doubled without any single operation costing more than one bucket split.",
+    ],
+    useCases: [
+      "Database and file-system indexes, where the table lives on disk and a full rehash would mean rewriting the entire index file.",
+      "Any table that must stay responsive while it grows: no single insert pays more than the cost of splitting one bucket.",
+      "Extendible hashing where lookups must be exactly one bucket read and the directory is small enough to keep in memory; linear hashing where even that directory is unwelcome, or where it would be a contention point between concurrent writers.",
+    ],
+    advantages: [
+      "Growth is incremental. There is no O(n) rehashing pause, so worst-case insert latency stays flat as the table fills.",
+      "Extendible hashing guarantees a lookup in one bucket access after the directory read, no matter how skewed the keys are.",
+      "Linear hashing needs no directory at all — just a level and a pointer — so it costs nothing in space and has no structure that all writers have to share.",
+    ],
+    disadvantages: [
+      "Extendible hashing's directory doubles when a bucket at the global depth splits, and a badly skewed set of keys can make it much larger than the data warrants.",
+      "Linear hashing tolerates overflow chains by design, so a lookup can degrade to walking one — the price of splitting in rotation rather than where the pressure actually is.",
+      "Both are more code than a plain table with a resize, and neither is worth it until a rehash of everything is genuinely too expensive to accept.",
+    ],
+  },
+
   graph: {
-    title: "Graph",
     overview:
       "A graph is a collection of vertices (nodes) connected by edges, capable of modeling relationships that are far more flexible than the strictly linear or hierarchical connections in lists and trees. Edges can be directed or undirected, and weighted or unweighted, depending on what the relationship represents.",
     howItWorks: [
@@ -267,7 +286,6 @@ export const TOPIC_OVERVIEWS = {
   },
 
   tree: {
-    title: "Tree (Binary Search Tree)",
     overview:
       "A tree is a hierarchical data structure made of nodes connected by parent-child relationships, starting from a single root and branching outward with no cycles. A binary search tree (BST) adds an ordering rule: every node's left subtree holds smaller values and its right subtree holds larger values, which makes searching, inserting, and deleting efficient. An AVL tree keeps that ordering and adds rotations that hold the height down; a threaded tree keeps it and instead puts the tree's many null pointers to work as shortcuts to each node's in-order neighbours.",
     howItWorks: [
@@ -302,7 +320,6 @@ export const TOPIC_OVERVIEWS = {
   },
 
   twothree: {
-    title: "2-3 Tree",
     overview:
       "A 2-3 tree is a self-balancing search tree where every node is either a 2-node (one value, two children) or a 3-node (two values, three children), and every leaf sits at exactly the same depth. Instead of rebalancing after every operation like a red-black tree, a 2-3 tree keeps itself balanced by growing upward — splitting nodes when they overflow and merging them when they underflow.",
     howItWorks: [

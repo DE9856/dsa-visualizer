@@ -87,7 +87,11 @@ there and the sidebar, info panel, counters and pseudocode display wire up autom
    setup the app could have built itself. Serialization is per-structure and deliberate
    (BST/AVL by preorder, binary tree by level order, hash table by *insertion* order plus
    capacity, union-find by parent array).
-2. **`src/data/topicOverviews.js`** — the long-form write-up rendered by `TopicPanel`.
+2. **`src/data/topicTitles.js` and `src/data/topicOverviews.js`** — the heading and the
+   long-form write-up rendered by `TopicPanel`. They are separate files on purpose: the
+   panel starts collapsed, so the title ships in the main bundle while the prose is
+   imported dynamically on first expand. `topicOverviews.js` must stay imported *only*
+   by that dynamic import, or it lands back in the initial chunk.
 
 ## Conventions
 

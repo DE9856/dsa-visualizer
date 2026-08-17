@@ -47,7 +47,8 @@ export const CATEGORIES = [
     accent: "var(--yellow)",
     blurb: "Keys turned into addresses, and the collisions that follow.",
     items: [
-      { key: "hashtable", label: "Hash Table", desc: "Chaining, probing & resizing" },
+      { key: "hashtable", label: "Hash Table", desc: "Chaining, probing, cuckoo & resizing" },
+      { key: "dynamichash", label: "Dynamic Hashing", desc: "Extendible & linear, split by split" },
     ],
   },
   {

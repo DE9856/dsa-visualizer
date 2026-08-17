@@ -15,6 +15,8 @@ import { parseWordList } from "../dataStructures/trie/helpers";
  *   #v=tree&type=avl&a=50,30,70
  *   #v=tree&type=threaded&tm=single&a=50,30,70
  *   #v=hashtable&type=linear&a=42,13,7
+ *   #v=hashtable&type=cuckoo&hf=midsquare&a=42,13,7
+ *   #v=dynamichash&type=extendible&a=12,5,30,3
  *   #v=heap&type=min&a=4,10,3,5,1
  *   #v=trie&a=car,card,care,cat
  *   #v=unionfind&p=0,0,2,0,4,4
@@ -37,6 +39,7 @@ const VIEWS = [
   "tree",
   "twothree",
   "hashtable",
+  "dynamichash",
   "heap",
   "trie",
   "unionfind",
@@ -45,7 +48,9 @@ const VIEWS = [
 const LIST_TYPES = ["singly", "doubly", "circular"];
 const TREE_TYPES = ["binary", "bst", "avl", "threaded"];
 const THREAD_MODES = ["double", "single"];
-const HASH_STRATEGIES = ["chaining", "linear", "quadratic"];
+const HASH_STRATEGIES = ["chaining", "linear", "quadratic", "double", "robinhood", "cuckoo"];
+const HASH_FUNCTIONS = ["division", "multiplication", "midsquare", "folding"];
+const DYNAMIC_KINDS = ["extendible", "linear"];
 const HEAP_KINDS = ["max", "min"];
 
 // Values are capped to the same limits the sidebar parsers use, so a
@@ -267,9 +272,16 @@ function fieldsFor(view, s) {
       return {
         v: view,
         type: s.ht.strategy,
+        // The hash function is the other half of where a key lands, so it
+        // travels too — but only when it isn't the default.
+        hf: s.ht.hashFn === "division" ? undefined : s.ht.hashFn,
         a: s.ht.table.order.join(","),
         m: s.ht.table.capacity === HASH_INITIAL_CAPACITY ? undefined : s.ht.table.capacity,
       };
+    // Both dynamic schemes grow one split at a time, so the arrival order is
+    // the whole shape — no capacity to carry alongside it.
+    case "dynamichash":
+      return { v: view, type: s.dh.kind, a: s.dh.table.order.join(",") };
     // Array order is the heap itself, so re-heapifying it on load is a no-op
     // and the shape comes back exactly.
     case "heap":
@@ -353,8 +365,10 @@ export function readSharedState() {
       if (THREAD_MODES.includes(fields.tm)) state.threadMode = fields.tm;
     }
     if (view === "heap" && HEAP_KINDS.includes(fields.type)) state.kind = fields.type;
+    if (view === "dynamichash" && DYNAMIC_KINDS.includes(fields.type)) state.kind = fields.type;
     if (view === "hashtable") {
       if (HASH_STRATEGIES.includes(fields.type)) state.strategy = fields.type;
+      if (HASH_FUNCTIONS.includes(fields.hf)) state.hashFn = fields.hf;
       // Only a capacity the table could have grown into is accepted; anything
       // else falls back to the default and grows from there.
       const capacity = Number(fields.m);

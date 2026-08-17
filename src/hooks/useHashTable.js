@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { HASH_OP_MAP, STRATEGY_MAP } from "../dataStructures/hashTable";
+import { HASH_OP_MAP, HASH_FN_MAP, STRATEGY_MAP } from "../dataStructures/hashTable";
 import {
   buildTableFromKeys,
+  DEFAULT_HASH_FN,
   INITIAL_CAPACITY,
   parseKeyList,
   randomTable,
@@ -12,14 +13,16 @@ import { useHistory } from "./useHistory.js";
 
 const EMPTY_STEP = { buckets: [], capacity: 0, message: "" };
 
-/** `init` is the setup decoded from a shared link ({ values, strategy, capacity }). */
+/** `init` is the setup decoded from a shared link ({ values, strategy, capacity, hashFn }). */
 export function useHashTable(init) {
   const initialStrategy = init?.strategy ?? "chaining";
+  const initialHashFn = init?.hashFn ?? DEFAULT_HASH_FN;
   const [strategy, setStrategyState] = useState(initialStrategy);
+  const [hashFn, setHashFnState] = useState(initialHashFn);
   const [table, setTable] = useState(() =>
     init?.values
-      ? buildTableFromKeys(init.values, initialStrategy, init.capacity ?? INITIAL_CAPACITY)
-      : randomTable(initialStrategy)
+      ? buildTableFromKeys(init.values, initialStrategy, init.capacity ?? INITIAL_CAPACITY, initialHashFn)
+      : randomTable(initialStrategy, initialHashFn)
   );
 
   const [operation, setOperation] = useState("insert");
@@ -33,10 +36,11 @@ export function useHashTable(init) {
   const opMeta = HASH_OP_MAP[operation];
 
   const history = useHistory(
-    () => ({ table, strategy }),
+    () => ({ table, strategy, hashFn }),
     (doc, message) => {
       setTable(doc.table);
       setStrategyState(doc.strategy);
+      setHashFnState(doc.hashFn);
       setSteps([{ ...doc.table, message }]);
       setStepIdx(0);
       setPlaying(false);
@@ -62,23 +66,23 @@ export function useHashTable(init) {
   const applyCustomTable = useCallback(() => {
     const parsed = parseKeyList(customInput);
     if (parsed.length === 0) return;
-    const next = buildTableFromKeys(parsed, strategy);
+    const next = buildTableFromKeys(parsed, strategy, INITIAL_CAPACITY, hashFn);
     history.record();
     setTable(next);
     setSteps([{ ...next, message: "Custom keys loaded" }]);
     setStepIdx(0);
     setPlaying(false);
     setCustomInput("");
-  }, [customInput, strategy, history]);
+  }, [customInput, strategy, hashFn, history]);
 
   const shuffle = useCallback(() => {
-    const next = randomTable(strategy);
+    const next = randomTable(strategy, hashFn);
     history.record();
     setTable(next);
     setSteps([{ ...next, message: "New random keys" }]);
     setStepIdx(0);
     setPlaying(false);
-  }, [strategy, history]);
+  }, [strategy, hashFn, history]);
 
   // Switching strategy replays the same keys into a fresh table rather than
   // starting over — the whole point is watching where those keys land when
@@ -87,13 +91,28 @@ export function useHashTable(init) {
     (next) => {
       history.record();
       setStrategyState(next);
-      const rebuilt = buildTableFromKeys(tableKeys(table), next);
+      const rebuilt = buildTableFromKeys(tableKeys(table), next, INITIAL_CAPACITY, hashFn);
       setTable(rebuilt);
       setSteps([{ ...rebuilt, message: `Same keys, resolved by ${STRATEGY_MAP[next].label.toLowerCase()}` }]);
       setStepIdx(0);
       setPlaying(false);
     },
-    [table, history]
+    [table, hashFn, history]
+  );
+
+  // Same idea one level down: the hash function decides where keys land before
+  // any collision rule gets a say, so changing it redeals the same keys.
+  const setHashFn = useCallback(
+    (next) => {
+      history.record();
+      setHashFnState(next);
+      const rebuilt = buildTableFromKeys(tableKeys(table), strategy, INITIAL_CAPACITY, next);
+      setTable(rebuilt);
+      setSteps([{ ...rebuilt, message: `Same keys, hashed by ${HASH_FN_MAP[next].formula}` }]);
+      setStepIdx(0);
+      setPlaying(false);
+    },
+    [table, strategy, history]
   );
 
   const step = steps[Math.min(stepIdx, steps.length - 1)] || EMPTY_STEP;
@@ -103,6 +122,8 @@ export function useHashTable(init) {
     table,
     strategy,
     setStrategy,
+    hashFn,
+    setHashFn,
     operation,
     setOperation,
     opMeta,

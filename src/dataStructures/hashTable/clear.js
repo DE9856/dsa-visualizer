@@ -10,7 +10,7 @@ export const clearTable = {
   space: "O(1)",
   run(table) {
     const before = cloneTable(table);
-    const fresh = emptyTable(before.strategy, INITIAL_CAPACITY);
+    const fresh = emptyTable(before.strategy, INITIAL_CAPACITY, before.hashFn);
 
     if (before.order.length === 0 && before.capacity === INITIAL_CAPACITY) {
       return { steps: [{ ...before, message: "Table is already empty" }], finalTable: table };
@@ -19,7 +19,7 @@ export const clearTable = {
     const steps = [
       {
         ...before,
-        active: before.buckets.flatMap((bucket) => bucket.map((entry) => entry.id)),
+        active: [...before.buckets, ...(before.buckets2 || [])].flatMap((bucket) => bucket.map((entry) => entry.id)),
         message: "Dropping every key and tombstone",
       },
       { ...fresh, message: `Table cleared — back to ${INITIAL_CAPACITY} empty buckets` },

@@ -1875,8 +1875,228 @@ input[type="range"] {
   border: 1px solid rgba(255, 138, 61, 0.4);
 }
 
+/* Robin Hood's probe distance, shown per slot because the invariant it keeps
+   is a comparison between two of these numbers. */
+.ht-tag--dist {
+  color: var(--blue);
+  background: rgba(79, 184, 224, 0.12);
+  border: 1px solid rgba(79, 184, 224, 0.35);
+}
+
+/* Cuckoo hashing's two tables sit side by side — a key is in one or the
+   other, never spread across both, so neither reads as an overflow area. */
+.ht-tables {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.ht-tables .ht-table {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.ht-table__caption {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  padding-left: 22px;
+}
+
 .ht-canvas .ll-message {
   margin-top: 14px;
+}
+
+/* ---------- dynamic hashing (extendible / linear) ---------- */
+
+.dh-canvas {
+  height: auto;
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px 20px;
+}
+
+/* The directory is a column of pointers beside the buckets rather than lines
+   drawn between them: several entries share one bucket, and a list of "→ B0"
+   says that more legibly than four arrows converging would. */
+.dh-cols {
+  display: flex;
+  gap: 26px;
+  align-items: flex-start;
+  overflow: auto;
+  /* A directory doubles every few splits, so past global depth 4 it is taller
+     than the panel. Both columns scroll together, which keeps a directory
+     entry beside the bucket it points at. */
+  max-height: 400px;
+  overscroll-behavior: contain;
+  padding-bottom: 4px;
+}
+
+.dh-col__caption {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.dh-dir {
+  flex: 0 0 auto;
+}
+
+.dh-dir__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 7px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  transition: background var(--step-anim) ease, border-color var(--step-anim) ease;
+}
+
+.dh-dir__row--active {
+  border-color: var(--primary);
+  background: var(--primary-dim);
+}
+
+.dh-dir__bits {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.08em;
+}
+
+.dh-dir__arrow {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.dh-dir__target {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--yellow);
+}
+
+.dh-buckets {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.dh-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 6px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  transition: background var(--step-anim) ease, border-color var(--step-anim) ease;
+}
+
+.dh-row--active {
+  border-color: var(--primary);
+  background: var(--primary-dim);
+}
+
+.dh-row--full {
+  border-color: var(--red);
+  background: rgba(255, 107, 107, 0.1);
+}
+
+.dh-row__marker {
+  width: 9px;
+  font-size: 11px;
+  color: var(--primary);
+}
+
+.dh-row__label {
+  width: 24px;
+  text-align: right;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+/* Local depth under extendible hashing, and which hash a bucket answers to
+   under linear hashing — the same slot, because it is the same question. */
+.dh-row__depth {
+  min-width: 52px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--blue);
+  background: rgba(79, 184, 224, 0.1);
+  border: 1px solid rgba(79, 184, 224, 0.3);
+  border-radius: 4px;
+  padding: 1px 5px;
+  text-align: center;
+}
+
+.dh-bucket {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 5px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  transition: border-color var(--step-anim) ease, box-shadow var(--step-anim) ease;
+}
+
+.dh-bucket--split-from {
+  border-color: var(--yellow);
+  box-shadow: 0 0 0 1px rgba(245, 196, 81, 0.25);
+}
+
+.dh-bucket--split-to {
+  border-color: var(--green);
+  box-shadow: 0 0 0 1px rgba(95, 214, 160, 0.25);
+}
+
+.dh-slot {
+  width: 46px;
+  height: 30px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--panel-alt);
+  border: 1.5px solid var(--border-strong);
+}
+
+.dh-slot--empty {
+  border: 1.5px dashed var(--border);
+  background: none;
+}
+
+/* An overflow block is not extra capacity — it is a separate block hanging
+   off a bucket that had none left, so it is drawn as one. */
+.dh-slot--overflow {
+  border-style: dashed;
+  border-color: rgba(245, 196, 81, 0.55);
+  background: rgba(245, 196, 81, 0.08);
+}
+
+.dh-slot--active {
+  border-color: var(--primary);
+  background: var(--primary-dim);
+  color: var(--primary);
+}
+
+.dh-overflow {
+  display: flex;
+  gap: 4px;
+}
+
+.dh-kind__tag {
+  margin-left: 7px;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  opacity: 0.65;
 }
 
 /* ---------- graph ---------- */
@@ -2816,6 +3036,35 @@ input[type="range"] {
 
   .ht-grid {
     max-height: 46dvh;
+  }
+
+  /* Two tables won't sit side by side on a phone without shrinking the slots
+     past reading size, so cuckoo's second table goes underneath. */
+  .ht-tables {
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* The directory and the buckets stay side by side — reading one against the
+     other is the point — and scroll together inside the panel instead. */
+  .dh-canvas {
+    min-height: 0;
+    padding: 14px 12px 12px;
+  }
+
+  .dh-cols {
+    gap: 14px;
+    max-height: 46dvh;
+  }
+
+  .dh-slot {
+    width: 40px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .ht-tables .ht-grid {
+    max-height: 30dvh;
   }
 
   .ht-row .sq-slot,
