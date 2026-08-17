@@ -373,6 +373,12 @@ pair. The diagonal stays `·` throughout, since self-loops aren't supported.
 
 ### Building and arranging the graph
 
+The graph view opens **empty**, with the adjacency **matrix** showing rather than the
+list — this is the topic you build yourself, and an empty canvas is a starting point
+where a graph already on screen is something to clear first. RANDOM GRAPH in the sidebar
+is one click away when you want one to play with, and a [shared
+link](#sharing-a-setup) still arrives with the graph it carries.
+
 Everything the canvas does, on both a cursor and a finger:
 
 | | Cursor | Touch |

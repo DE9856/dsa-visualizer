@@ -37,10 +37,16 @@ function positionsById(graph, byLabel) {
  * comes back laid out exactly as it was shared.
  */
 export function useGraph(init) {
+  // An empty canvas rather than a random graph: the graph view is the one you
+  // build yourself, and something already on screen is something to clear
+  // before you can start. RANDOM GRAPH is one click away for a graph to play
+  // with. A shared link still arrives with its own.
   const [graph, setGraph] = useState(() =>
-    init?.vertices ? buildGraphFromLabelsAndEdges(init.vertices, init.edges) : randomGraph()
+    init?.vertices ? buildGraphFromLabelsAndEdges(init.vertices, init.edges) : { nodes: [], edges: [] }
   );
-  const [representation, setRepresentation] = useState("list");
+  // The matrix leads: it is the representation you can type into, and it shows
+  // the pairs that *aren't* connected too, which is most of an empty graph.
+  const [representation, setRepresentation] = useState("matrix");
   const [directed, setDirected] = useState(init?.directed ?? false);
   const [weighted, setWeighted] = useState(init?.weighted ?? false);
 

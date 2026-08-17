@@ -12,6 +12,16 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Usability and playback-smoothness pass across every visualizer, plus four new structures:
 hash tables, heaps, tries and union-find.
 
+### Changed
+
+- **The graph view opens empty, on the adjacency matrix.** It used to land on a random
+  graph with the adjacency list showing. The graph is the topic you build yourself now
+  that the canvas and the matrix are both editable, and a graph already on screen is
+  something to clear before you can start; RANDOM GRAPH is one click away when you want
+  one. The matrix leads because it is the representation you can type into, and it shows
+  the pairs that *aren't* connected too — which is most of a graph you are still
+  building. Shared links are unaffected: they arrive with the graph they carry.
+
 ### Added
 
 - **The adjacency matrix is editable.** Click a cell off the diagonal, type, and the
