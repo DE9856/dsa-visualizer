@@ -13,6 +13,7 @@ import { parseWordList } from "../dataStructures/trie/helpers";
  *   #v=searching&algo=binary&a=5,3,8,1&t=8
  *   #v=linkedlist&type=doubly&a=5,12,3
  *   #v=tree&type=avl&a=50,30,70
+ *   #v=tree&type=threaded&tm=single&a=50,30,70
  *   #v=hashtable&type=linear&a=42,13,7
  *   #v=heap&type=min&a=4,10,3,5,1
  *   #v=trie&a=car,card,care,cat
@@ -42,7 +43,8 @@ const VIEWS = [
 ];
 
 const LIST_TYPES = ["singly", "doubly", "circular"];
-const TREE_TYPES = ["binary", "bst", "avl"];
+const TREE_TYPES = ["binary", "bst", "avl", "threaded"];
+const THREAD_MODES = ["double", "single"];
 const HASH_STRATEGIES = ["chaining", "linear", "quadratic"];
 const HEAP_KINDS = ["max", "min"];
 
@@ -108,8 +110,9 @@ function parseValues(text) {
 
 const nodeValues = (nodes) => (nodes || []).map((n) => n.value).join(",");
 
-// A BST or AVL rebuilds exactly from its preorder, since inserting a parent
-// before its children reproduces the same shape.
+// Any ordered tree (BST, AVL, threaded) rebuilds exactly from its preorder,
+// since inserting a parent before its children reproduces the same shape —
+// and a threaded tree's threads follow from that shape.
 function preorderValues(node, out = []) {
   if (!node) return out;
   out.push(node.value);
@@ -246,8 +249,14 @@ function fieldsFor(view, s) {
       return { v: view, a: nodeValues(s.st.stack) };
     case "queue":
       return { v: view, a: nodeValues(s.q.queue) };
+    // `tm` only means anything to a threaded tree, so it travels with one.
     case "tree":
-      return { v: view, type: s.tr.treeType, a: serializeTree(s.tr.tree.root, s.tr.treeType) };
+      return {
+        v: view,
+        type: s.tr.treeType,
+        a: serializeTree(s.tr.tree.root, s.tr.treeType),
+        tm: s.tr.treeType === "threaded" ? s.tr.threadMode : undefined,
+      };
     case "twothree":
       return { v: view, a: serializeTwoThree(s.tt.tree.root) };
     // Insertion order, not bucket order: with probing, the order keys arrive
@@ -339,7 +348,10 @@ export function readSharedState() {
   } else {
     if (values.length) state.values = values;
     if (view === "linkedlist" && LIST_TYPES.includes(fields.type)) state.listType = fields.type;
-    if (view === "tree" && TREE_TYPES.includes(fields.type)) state.treeType = fields.type;
+    if (view === "tree") {
+      if (TREE_TYPES.includes(fields.type)) state.treeType = fields.type;
+      if (THREAD_MODES.includes(fields.tm)) state.threadMode = fields.tm;
+    }
     if (view === "heap" && HEAP_KINDS.includes(fields.type)) state.kind = fields.type;
     if (view === "hashtable") {
       if (HASH_STRATEGIES.includes(fields.type)) state.strategy = fields.type;

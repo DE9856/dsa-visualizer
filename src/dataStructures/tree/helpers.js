@@ -139,12 +139,19 @@ export function parseValueList(input) {
     .slice(0, 30);
 }
 
+// Every tree type except the plain binary tree obeys the BST ordering rule and
+// so shares its insert/delete/search walk — a threaded tree is a BST whose
+// spare null pointers happen to be spoken for.
+export function isOrderedTree(treeType) {
+  return treeType === "bst" || treeType === "avl" || treeType === "threaded";
+}
+
 export function buildTreeFromValues(values, treeType) {
   let root = null;
   values.forEach((v) => {
     const id = nextNodeId();
-    if (treeType === "bst") root = bstInsertByValue(root, v, id);
-    else if (treeType === "avl") root = avlInsertByValue(root, v, id);
+    if (treeType === "avl") root = avlInsertByValue(root, v, id);
+    else if (isOrderedTree(treeType)) root = bstInsertByValue(root, v, id);
     else root = levelOrderInsert(root, v, id);
   });
   return { root };

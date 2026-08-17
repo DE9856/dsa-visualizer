@@ -211,6 +211,7 @@ loaded, skipping the category screen.
 | Linked list | `#v=linkedlist&type=doubly&a=5,12,3,44` |
 | Stack / queue | `#v=stack&a=7,8,9` |
 | Tree | `#v=tree&type=avl&a=30,20,10,25,40,50` |
+| Threaded tree | `#v=tree&type=threaded&tm=single&a=30,20,10,25,40,50` |
 | 2-3 tree | `#v=twothree&a=12,5,30,3,8,21,44` |
 | Heap | `#v=heap&type=min&a=4,10,3,5,1,8` |
 | Hash table | `#v=hashtable&type=linear&a=42,13,7,20&m=17` |
@@ -222,7 +223,8 @@ loaded, skipping the category screen.
 
 The values are the same text the sidebar's custom-data boxes take, so links stay
 readable and can be written by hand. Trees are listed in the order that rebuilds them
-(preorder for BST/AVL, level order for a plain binary tree), and a graph carries its
+(preorder for a BST, AVL or threaded tree, level order for a plain binary tree — a
+threaded tree adds `tm`, which of its null pointers are threaded), and a graph carries its
 vertices and edges separately so both keep their order. A hash table is listed in
 insertion order — with probing, the order keys arrive in decides where the collisions
 land — plus `m`, its capacity, which depends on how big the table ever got rather than
@@ -332,7 +334,7 @@ says so — and draw `lo` / `mid` / `hi` pointers under the bars.
 | **Polynomial** | linked-list backed | add, multiply, evaluate P(x) |
 | **Stack** | fixed capacity 8 | push, pop, peek/top, search, size, isEmpty, isFull, clear |
 | **Queue** | fixed capacity 8 | enqueue, dequeue, peek/front, search, size, isEmpty, isFull, clear |
-| **Tree** | Binary Tree, BST, AVL | insert, delete, search, inorder, preorder, postorder, DFS, BFS (level order), height, size, clear |
+| **Tree** | Binary Tree, BST, AVL, Threaded (single/double) | insert, delete, search, inorder, preorder, postorder, DFS, BFS (level order), height, size, clear — plus threaded inorder, reverse inorder and inorder successor on a threaded tree |
 | **2-3 Tree** | balanced multi-way | insert (with splits), delete, search, inorder, height, size, clear |
 | **Heap** | max-heap, min-heap | insert (sift up), extract root (sift down), peek, build heap, search, height, size, clear |
 | **Hash Table** | separate chaining, linear probing, quadratic probing | insert, search, delete, load factor, list keys, resize, clear |
@@ -428,6 +430,36 @@ A vertex is clamped to the canvas, so it can't be dropped somewhere it would be 
 
 An arrangement travels in the [shared link](#sharing-a-setup) as an `xy` field, so
 whoever opens it sees the graph laid out the way you left it.
+
+### The threaded tree
+
+**THREADED** is the fourth tree type. It builds and searches exactly like a BST — the
+difference is what happens to the null pointers. A tree of *n* nodes has 2*n* child
+pointers of which *n* + 1 are null, and a threaded tree spends them on shortcuts: a null
+right pointer becomes a **thread** to the node's inorder successor, and, under double
+threading, a null left pointer becomes a thread to its predecessor.
+
+- Threads are drawn as **dashed curves** — purple for a right thread (→ successor),
+  yellow for a left one (→ predecessor) — and the thread a step is following lights up
+  orange. Real child links stay solid, exactly as the two kinds of pointer differ in a
+  real implementation only by a flag on the node.
+- **THREADING** switches between **DOUBLE** (both null pointers threaded) and
+  **SINGLE (RIGHT)** (only the right ones). It re-threads the tree you already have
+  rather than building a new one.
+- **Threaded Inorder** walks the tree in order with no stack and no recursion: visit,
+  then take the right thread if there is one, otherwise the leftmost node of the right
+  subtree. It is the payoff — O(1) space where the ordinary Inorder needs O(h).
+- **Reverse Inorder** is the mirror image, and needs the left threads, so it is offered
+  only under double threading.
+- **Inorder Successor** shows the other payoff: from a node with no right child the
+  successor is one hop along the thread, where an unthreaded tree would have to climb
+  back up through the parents it doesn't store.
+- Insert and delete relink the threads as they go, and say which ones changed. The first
+  and last nodes in inorder have no neighbour to point at — their threads go to a dummy
+  header node, which isn't drawn.
+
+Threads are derived from the tree's shape rather than stored on the node, so they cannot
+fall out of sync with it and every other tree operation works on the same nodes unchanged.
 
 ### The hash table view
 
@@ -763,6 +795,12 @@ pseudocode display are wired automatically from the registry.
 
 The sidebar renders the inputs listed in `fields`, and the transport bar picks up the new
 steps with no extra work.
+
+An operation that only makes sense for some variants of its structure says so instead of
+checking at run time: a tree operation may carry `types` (which tree types it belongs to)
+and `threadModes`, and `treeOpAvailable()` in `src/dataStructures/tree/index.js` is what
+both the sidebar and `useTree` filter by — that is how the threaded walks stay hidden on a
+plain BST.
 
 ### Add a whole new structure
 

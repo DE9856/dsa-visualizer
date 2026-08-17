@@ -1,14 +1,15 @@
-import { cloneTree, bstDeleteByValue, plainDeleteByValue, findMinNode, lastLevelOrderNode, avlRebalanceWithSteps } from "./helpers";
+import { cloneTree, bstDeleteByValue, plainDeleteByValue, findMinNode, lastLevelOrderNode, avlRebalanceWithSteps, isOrderedTree } from "./helpers";
+import { inorderNodes, inorderIndex, computeThreads } from "./threads";
 
 export const del = {
   key: "delete",
   label: "Delete",
   group: "build",
   fields: ["value"],
-  desc: "In a BST or AVL tree, delete finds the value by comparison, then handles three cases: a leaf is simply removed, a node with one child is replaced by that child, and a node with two children has its value swapped with its inorder successor (the minimum of its right subtree) before that successor is removed. An AVL tree then walks back up from the point of removal, rechecking each ancestor's balance factor and rotating wherever it's violated. A plain binary tree has no ordering to search by, so it scans for the value, swaps it with the deepest, right-most node in level order, and drops that node — the same shape used to delete from a binary heap.",
+  desc: "In a BST, AVL or threaded tree, delete finds the value by comparison, then handles three cases: a leaf is simply removed, a node with one child is replaced by that child, and a node with two children has its value swapped with its inorder successor (the minimum of its right subtree) before that successor is removed. An AVL tree then walks back up from the point of removal, rechecking each ancestor's balance factor and rotating wherever it's violated. In a threaded tree the removal closes a gap in the inorder sequence, so the threads that ran through the deleted node are relinked to point at its two neighbours directly. A plain binary tree has no ordering to search by, so it scans for the value, swaps it with the deepest, right-most node in level order, and drops that node — the same shape used to delete from a binary heap.",
   time: "O(log n) for a BST/AVL average case, O(h) worst-case for a BST, O(log n) guaranteed for AVL",
   space: "O(h)",
-  run(tree, { value, treeType }) {
+  run(tree, { value, treeType, threadMode }) {
     const before = cloneTree(tree);
     const steps = [];
 
@@ -16,7 +17,7 @@ export const del = {
       return { steps: [{ ...before, notFound: true, message: "Tree is empty — nothing to delete" }], finalTree: tree };
     }
 
-    if (treeType === "bst" || treeType === "avl") {
+    if (isOrderedTree(treeType)) {
       let cur = before.root;
       const path = [];
       let found = null;
@@ -58,6 +59,30 @@ export const del = {
 
       const rawAfter = { root: bstDeleteByValue(before.root, value) };
       steps.push({ ...rawAfter, message: `Deleted ${value}` });
+
+      // Removing a node closes a gap in the inorder sequence: whatever linked
+      // its two neighbours through it — a thread, a child pointer, or both —
+      // now links them to each other.
+      if (treeType === "threaded") {
+        const { seq, posById } = inorderIndex(before.root);
+        const i = posById[found.id];
+        const afterSeq = inorderNodes(rawAfter.root);
+        const neighbour = (n) => (n ? afterSeq.find((a) => a.value === n.value) : undefined);
+        const pred = neighbour(seq[i - 1]);
+        const succ = neighbour(seq[i + 1]);
+        const ids = [pred?.id, succ?.id].filter(Boolean);
+        const links = computeThreads(rawAfter.root, threadMode).filter((t) => ids.includes(t.from) && ids.includes(t.to));
+        const pair = pred && succ ? `${pred.value} and ${succ.value} are` : `${(pred || succ)?.value ?? "the tree"} is`;
+        steps.push({
+          ...rawAfter,
+          threads: links,
+          active: ids,
+          message: links.length
+            ? `${pair} now inorder neighbours — the thread that ran through ${value} points straight across`
+            : `${pair} now inorder neighbours, joined by a child pointer instead of a thread`,
+        });
+        return { steps, finalTree: rawAfter };
+      }
 
       if (treeType !== "avl") return { steps, finalTree: rawAfter };
 

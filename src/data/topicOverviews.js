@@ -269,29 +269,35 @@ export const TOPIC_OVERVIEWS = {
   tree: {
     title: "Tree (Binary Search Tree)",
     overview:
-      "A tree is a hierarchical data structure made of nodes connected by parent-child relationships, starting from a single root and branching outward with no cycles. A binary search tree (BST) adds an ordering rule: every node's left subtree holds smaller values and its right subtree holds larger values, which makes searching, inserting, and deleting efficient.",
+      "A tree is a hierarchical data structure made of nodes connected by parent-child relationships, starting from a single root and branching outward with no cycles. A binary search tree (BST) adds an ordering rule: every node's left subtree holds smaller values and its right subtree holds larger values, which makes searching, inserting, and deleting efficient. An AVL tree keeps that ordering and adds rotations that hold the height down; a threaded tree keeps it and instead puts the tree's many null pointers to work as shortcuts to each node's in-order neighbours.",
     howItWorks: [
       "Each node holds a value and up to two children — a left child and a right child.",
       "To insert a value, compare it to the current node: go left if smaller, right if larger, and repeat until an empty spot is found.",
       "Searching follows the same left/right comparisons, discarding half the remaining tree at each step in a balanced tree.",
       "In-order traversal (left, node, right) visits every value in sorted order; pre-order and post-order visit the root before or after its subtrees, which is useful for copying or deleting a tree.",
       "Deleting a node with two children typically replaces it with its in-order successor (the smallest value in its right subtree) to preserve the BST ordering property.",
+      "A threaded binary tree spends the null pointers instead of wasting them: in a tree of n nodes, n + 1 of the 2n child pointers are null, and each one can be reused as a 'thread' pointing to an in-order neighbour. A null right pointer becomes a link to the in-order successor; in a fully (double) threaded tree, a null left pointer becomes a link to the in-order predecessor.",
+      "Because a thread and a real child live in the same field, each node carries a flag per pointer (lthread / rthread) saying which it is. The first and last nodes in in-order have no neighbour to point at, so their threads go to a dummy header node instead.",
+      "Threads make in-order traversal iterative and stack-free: visit a node, then follow its right thread (one hop) or, if it has a real right child, take the leftmost node of that subtree. The links back up the tree that recursion would have kept on the stack are stored in the tree itself.",
     ],
     useCases: [
       "Maintaining a dynamically sorted collection that supports fast search, insert, and delete.",
       "Implementing symbol tables, indexes, and priority-based lookup structures.",
       "Representing hierarchical data such as file systems, organization charts, or parsed expressions (expression trees).",
       "Range queries — finding all values between two bounds by pruning subtrees that fall entirely outside the range.",
+      "Threaded trees where traversal has to be cheap and re-entrant: iterating without a stack means no recursion depth to blow, and no allocation, which suits embedded code and lets a caller step through one value at a time.",
     ],
     advantages: [
       "Search, insert, and delete run in O(log n) time on a balanced tree.",
       "In-order traversal yields all elements in sorted order without a separate sorting step.",
       "Naturally represents hierarchical relationships, unlike a flat list.",
+      "Threading costs nothing in space — the pointers were already there and null — and buys an O(1)-space traversal plus O(1) successor lookup from a node with no right child.",
     ],
     disadvantages: [
       "An unbalanced BST can degrade to a linked list, with O(n) operations in the worst case — inserting already-sorted data is a classic trigger.",
       "Requires more memory per node than an array (pointers to children).",
       "Keeping the tree balanced (as in AVL or red-black trees) adds implementation complexity that a plain BST doesn't need.",
+      "Threads have to be maintained: every insert and delete has to relink the neighbours' threads as well as the child pointers, and every pointer dereference has to check the flag first — which is why threading is usually reserved for trees that are traversed far more often than they are modified.",
     ],
   },
 

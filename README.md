@@ -35,7 +35,7 @@ An interactive **Data Structures & Algorithms Visualizer** built with **React + 
 
 The visualizer also supports interactive operations for:
 
-- 🌳 Trees (Binary Tree, BST, AVL)
+- 🌳 Trees (Binary Tree, BST, AVL, Threaded)
 - 🌲 2-3 Trees
 - ⛰️ Heaps (max & min, sift up/down)
 - 🔤 Tries (prefix tree & autocomplete)
@@ -229,10 +229,12 @@ Interactive visualizations for:
   - Search & traverse, Reverse, Sort, Count length
   - Concatenate, Merge sorted lists, Clear
 
-- Trees — Binary Tree, BST, AVL
+- Trees — Binary Tree, BST, AVL, Threaded (single or double)
   - Insert, Delete, Search
   - Inorder, Preorder, Postorder, DFS, BFS (level order)
   - Height, Size, Clear
+  - On a threaded tree: Threaded Inorder and Reverse Inorder (no stack, no recursion),
+    Inorder Successor
 
 - 2-3 Tree
   - Insert (with node splits), Delete, Search

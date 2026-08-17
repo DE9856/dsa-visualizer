@@ -35,7 +35,7 @@ export const CATEGORIES = [
     accent: "var(--green)",
     blurb: "Branching structures and how they stay balanced.",
     items: [
-      { key: "tree", label: "Tree", desc: "BST traversal & search" },
+      { key: "tree", label: "Tree", desc: "BST, AVL & threaded trees" },
       { key: "twothree", label: "2-3 Tree", desc: "Balanced multi-way tree" },
       { key: "heap", label: "Heap", desc: "Max/min heap, sift up & down" },
       { key: "trie", label: "Trie", desc: "Prefix tree & autocomplete" },

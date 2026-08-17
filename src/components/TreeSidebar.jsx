@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Shuffle } from "lucide-react";
-import { TREE_OPERATIONS, TREE_GROUPS, TREE_TYPES } from "../dataStructures/tree";
+import { TREE_OPERATIONS, TREE_GROUPS, TREE_TYPES, THREAD_MODES, treeOpsFor } from "../dataStructures/tree";
 
 export default function TreeSidebar({
   treeType,
   onTreeTypeChange,
+  threadMode,
+  onThreadModeChange,
   operation,
   onOperationChange,
   opMeta,
@@ -16,6 +18,7 @@ export default function TreeSidebar({
   onApplyCustom,
   onShuffle,
 }) {
+  const availableOps = treeOpsFor({ treeType, threadMode });
   const activeGroup = TREE_OPERATIONS.find((op) => op.key === operation)?.group;
   const [openGroups, setOpenGroups] = useState(() => new Set([activeGroup]));
 
@@ -36,7 +39,7 @@ export default function TreeSidebar({
   return (
     <div className="panel sidebar">
       <div className="label">TREE TYPE</div>
-      <div className="type-toggle">
+      <div className="type-toggle type-toggle--grid">
         {TREE_TYPES.map((t) => (
           <button
             key={t.key}
@@ -47,6 +50,28 @@ export default function TreeSidebar({
           </button>
         ))}
       </div>
+
+      {treeType === "threaded" && (
+        <>
+          <div className="label" style={{ marginTop: 14 }}>THREADING</div>
+          <div className="type-toggle">
+            {THREAD_MODES.map((m) => (
+              <button
+                key={m.key}
+                className={`btn ${threadMode === m.key ? "active" : ""}`}
+                onClick={() => onThreadModeChange(m.key)}
+              >
+                {m.short}
+              </button>
+            ))}
+          </div>
+          <div className="sidebar__hint mono">
+            {threadMode === "single"
+              ? "Null right pointers thread to the inorder successor."
+              : "Null right pointers thread to the successor, null left pointers to the predecessor."}
+          </div>
+        </>
+      )}
 
       <div className="sidebar__section">
         <div className="label">NEW / CUSTOM TREE</div>
@@ -69,7 +94,7 @@ export default function TreeSidebar({
       <div className="label" style={{ marginTop: 16 }}>OPERATIONS</div>
       <div className="algo-list">
         {TREE_GROUPS.map((group) => {
-          const ops = TREE_OPERATIONS.filter((op) => op.group === group.key);
+          const ops = availableOps.filter((op) => op.group === group.key);
           if (ops.length === 0) return null;
           const isOpen = openGroups.has(group.key);
           return (

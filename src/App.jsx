@@ -348,6 +348,8 @@ export default function App() {
             <TreeSidebar
               treeType={tr.treeType}
               onTreeTypeChange={tr.setTreeType}
+              threadMode={tr.threadMode}
+              onThreadModeChange={tr.setThreadMode}
               operation={tr.operation}
               onOperationChange={tr.setOperation}
               opMeta={tr.opMeta}
@@ -361,7 +363,7 @@ export default function App() {
             />
           }
         >
-          <TreeCanvas step={tr.step} treeType={tr.treeType} />
+          <TreeCanvas step={tr.step} treeType={tr.treeType} threadMode={tr.threadMode} />
           <ListControls {...transport} />
           <ListInfoPanel opMeta={tr.opMeta} />
           <TopicPanel topic={TOPIC_OVERVIEWS.tree} />

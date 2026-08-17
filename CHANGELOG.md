@@ -24,6 +24,27 @@ hash tables, heaps, tries and union-find.
 
 ### Added
 
+- **Threaded binary trees, as a fourth tree type.** THREADED builds and searches like a
+  BST; what it does differently is spend the null pointers. A tree of *n* nodes carries
+  *n* + 1 null child pointers, and each becomes a thread to an inorder neighbour: a null
+  right pointer to the successor, and under double threading a null left pointer to the
+  predecessor. THREADING switches between double and single (right-only) threading and
+  re-threads the tree already on screen rather than building a new one.
+
+  Threads are drawn as dashed curves under the solid child links — purple to a successor,
+  yellow to a predecessor — and the one a step is following lights up. Three operations
+  appear with the type: **Threaded Inorder**, which walks the whole tree with no stack and
+  no recursion (O(1) space, against O(h) for the ordinary traversal); **Reverse Inorder**,
+  which is the same walk backwards and so needs the left threads, offered only under
+  double threading; and **Inorder Successor**, where a node with no right child answers in
+  one hop instead of climbing back up through parents it doesn't store. Insert and delete
+  say which threads they relinked.
+
+  The threads are derived from the tree's shape rather than stored on the node, so they
+  cannot fall out of sync with it and every existing tree operation works unchanged.
+  A threaded tree travels in a shared link like any other, with `tm` carrying which of
+  its pointers are threaded.
+
 - **The adjacency matrix is editable.** Click a cell off the diagonal, type, and the
   graph follows. The matrix is the graph, so a cell says all three things a cell can
   mean: a different number reweights the edge, a number where there was a `0` creates

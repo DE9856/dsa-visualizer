@@ -385,6 +385,16 @@ input[type="range"] {
   padding: 9px 8px;
 }
 
+/* Four tree types are one label too many for a single row, so they wrap into
+   a 2x2 grid rather than shrinking to an unreadable width. */
+.type-toggle--grid {
+  flex-wrap: wrap;
+}
+
+.type-toggle--grid .btn {
+  flex: 1 1 calc(50% - 4px);
+}
+
 .sidebar__hint {
   margin-top: 8px;
   font-size: 11px;
@@ -1968,6 +1978,46 @@ input[type="range"] {
   fill: var(--green);
   pointer-events: none;
   user-select: none;
+}
+
+/* ---------- threaded tree ---------- */
+
+/* Threads are dashed curves in two colours, which needs saying once — the
+   legend sits under the canvas so it doesn't compete with the tree itself. */
+.thread-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px 16px;
+  margin-top: 12px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+.thread-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.thread-legend__swatch {
+  width: 18px;
+  height: 0;
+  border-top: 2px dashed var(--purple);
+}
+
+.thread-legend__swatch--left {
+  border-top-color: var(--yellow);
+}
+
+.thread-legend__note {
+  flex-basis: 100%;
+  text-align: center;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.75;
 }
 
 .graph-repr {

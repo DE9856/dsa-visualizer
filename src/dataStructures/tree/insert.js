@@ -1,14 +1,15 @@
-import { cloneTree, nextNodeId, bstInsertByValue, levelOrderInsert, findNodeById, avlRebalanceWithSteps } from "./helpers";
+import { cloneTree, nextNodeId, bstInsertByValue, levelOrderInsert, findNodeById, avlRebalanceWithSteps, isOrderedTree } from "./helpers";
+import { threadsFrom } from "./threads";
 
 export const insert = {
   key: "insert",
   label: "Insert",
   group: "build",
   fields: ["value"],
-  desc: "In a BST or AVL tree, insert walks down from the root comparing the new value at each node and stepping left or right until an empty slot is found. An AVL tree then walks back up the same path recomputing each ancestor's balance factor (height(left) - height(right)); if it falls outside [-1, 1], a single or double rotation restores it. A plain binary tree has no ordering to follow, so insert instead scans level by level (like a queue) and places the value in the first open child slot, keeping the tree's shape complete.",
+  desc: "In a BST, AVL or threaded tree, insert walks down from the root comparing the new value at each node and stepping left or right until an empty slot is found. An AVL tree then walks back up the same path recomputing each ancestor's balance factor (height(left) - height(right)); if it falls outside [-1, 1], a single or double rotation restores it. A threaded tree instead fixes up pointers: the parent's thread on the side the new node landed becomes a real child link, and the new leaf takes over the thread to the neighbour that pointer used to reach. A plain binary tree has no ordering to follow, so insert instead scans level by level (like a queue) and places the value in the first open child slot, keeping the tree's shape complete.",
   time: "O(log n) for a BST/AVL average case, O(h) worst-case for a BST, O(log n) guaranteed for AVL",
   space: "O(h)",
-  run(tree, { value, treeType }) {
+  run(tree, { value, treeType, threadMode }) {
     const before = cloneTree(tree);
     const steps = [];
 
@@ -19,7 +20,7 @@ export const insert = {
       return { steps, finalTree: after };
     }
 
-    if (treeType === "bst" || treeType === "avl") {
+    if (isOrderedTree(treeType)) {
       let cur = before.root;
       const path = [];
       let duplicate = false;
@@ -53,6 +54,26 @@ export const insert = {
       const newId = nextNodeId();
       const rawAfter = { root: bstInsertByValue(before.root, value, newId) };
       steps.push({ ...rawAfter, path, active: [newId], message: `Inserted ${value}` });
+
+      // A new leaf inherits the threads of the pointer it replaced: the parent's
+      // thread on that side becomes a real child link, and the new node takes
+      // over pointing at the neighbour it used to reach.
+      if (treeType === "threaded") {
+        const links = threadsFrom(rawAfter.root, newId, threadMode);
+        const valueOf = (id) => findNodeById(rawAfter.root, id).value;
+        const parts = links.map((t) => `${t.side} thread → ${valueOf(t.to)}`);
+        const side = value < cur.value ? "left" : "right";
+        steps.push({
+          ...rawAfter,
+          path,
+          active: [newId],
+          threads: links,
+          message: parts.length
+            ? `${cur.value}'s ${side} pointer is now a real child; ${value}'s spare pointers become its ${parts.join(" and ")}`
+            : `${cur.value}'s ${side} pointer is now a real child; ${value} sits at the end of the traversal, so its threads point to the header`,
+        });
+        return { steps, finalTree: rawAfter };
+      }
 
       if (treeType !== "avl") return { steps, finalTree: rawAfter };
 
