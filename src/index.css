@@ -1883,6 +1883,33 @@ input[type="range"] {
   width: 100%;
   height: 300px;
   flex-shrink: 0;
+  /* Dragging a vertex must not sweep a text selection across the page. The
+     canvas can't do this with preventDefault on the press, because the click
+     that follows one is what connects two vertices. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Wraps the canvas so the empty-state message can sit over it rather than
+   replace it — pressing the canvas is how the first vertex gets made. */
+.graph-canvas__stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.graph-canvas__empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 16px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  pointer-events: none;
 }
 
 .graph-node {
@@ -2459,8 +2486,8 @@ input[type="range"] {
   display: block;
 }
 
-/* Vertices are tapped to connect in the phone layout, not dragged — held down
-   to move, which the grabbing cursor below still covers. */
+/* A vertex is tapped to connect and held to move in the phone layout, so it
+   never reads as the grab handle a cursor drags. */
 .graph-svg--portrait .graph-node {
   cursor: pointer;
 }

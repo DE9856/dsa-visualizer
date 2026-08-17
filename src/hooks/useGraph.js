@@ -95,6 +95,7 @@ export function useGraph(init) {
       setStepIdx(0);
       setGraph(finalGraph);
       setPlaying(newSteps.length > 1);
+      return finalGraph;
     },
     [graph, directed, weighted]
   );
@@ -128,6 +129,19 @@ export function useGraph(init) {
   const moveVertex = useCallback((vertexId, nx, ny) => {
     setPositions((prev) => ({ ...prev, [vertexId]: { nx, ny } }));
   }, []);
+
+  // Called when the canvas is double-clicked, or held on a phone. The
+  // operation names the vertex itself, so the one that wasn't there a moment
+  // ago is the one to pin where the canvas was pressed.
+  const addVertexAt = useCallback(
+    (nx, ny) => {
+      const known = new Set(graph.nodes.map((n) => n.id));
+      const finalGraph = runWith("addVertex", { vertexLabel: "" });
+      const created = finalGraph.nodes.find((n) => !known.has(n.id));
+      if (created) setPositions((prev) => ({ ...prev, [created.id]: { nx, ny } }));
+    },
+    [graph, runWith]
+  );
 
   const resetLayout = useCallback(() => setPositions({}), []);
 
@@ -222,6 +236,7 @@ export function useGraph(init) {
     createEdgeFromDrag,
     positions,
     moveVertex,
+    addVertexAt,
     resetLayout,
     hasCustomLayout,
   };

@@ -326,6 +326,7 @@ export default function App() {
             onMoveVertex={gr.moveVertex}
             onResetLayout={gr.resetLayout}
             hasCustomLayout={gr.hasCustomLayout}
+            onAddVertexAt={gr.addVertexAt}
           />
           <GraphRepresentationPanel representation={gr.representation} step={gr.step} directed={gr.directed} />
           <ListControls {...transport} />

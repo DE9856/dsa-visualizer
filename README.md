@@ -177,8 +177,9 @@ hand. See [DOCS.md](DOCS.md#sharing-a-setup) for the full format.
 The app is built for small screens too, not just scaled down for them. Below 760px the
 visualization takes the whole screen, the sidebar becomes a bottom sheet, and a fixed
 action bar keeps play/pause, the controls sheet and shuffle within thumb reach. Graphs
-lay out in a portrait ring, connect by tapping two vertices and rearrange by holding one
-and dragging it; trees stay readable and scroll sideways. See
+lay out in a portrait ring, connect by tapping two vertices, and rearrange or grow by
+holding one and dragging it or holding empty canvas; trees stay readable and scroll
+sideways. See
 [DOCS.md](DOCS.md#on-a-phone) for the details.
 
 ---
@@ -257,9 +258,10 @@ Interactive visualizations for:
   - Switch the collision strategy to replay the same keys into a new table
 
 - Graphs — directed/undirected, weighted/unweighted
-  - Add / remove vertex and edge, drag-to-connect on the canvas
-  - Drag the vertices anywhere — double-click and drag with a cursor, hold and drag on a
-    phone — to lay the graph out yourself instead of leaving it on the default ring
+  - Add / remove vertex and edge from the sidebar, or build the graph on the canvas
+    itself: click two vertices to connect them, double-click empty space to add one
+  - Drag the vertices anywhere — hold first on a phone — to lay the graph out yourself
+    instead of leaving it on the default ring
   - Neighbours, Degree, Is-adjacent
   - BFS, DFS, Topological sort
   - Dijkstra, Floyd–Warshall, Prim's MST, Kruskal's MST

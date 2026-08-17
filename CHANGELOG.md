@@ -14,24 +14,35 @@ hash tables, heaps, tries and union-find.
 
 ### Added
 
-- **Free-moving graph vertices.** The ring the vertices start on keeps a fresh graph
-  readable but says nothing about the graph, so any vertex can now be picked up and
-  dropped anywhere on the canvas: double-click and hold on the second click with a
-  cursor, press and hold on a phone. Neither gesture is a plain drag, because that one
-  already means *connect these two* — dragging A to B still draws an edge, and tapping A
-  on a phone still arms it to connect. Edges follow their endpoints live, so a crossing
-  can be pulled apart or a path lined up left to right before running a traversal over
-  it. Positions are stored as a fraction of the canvas rather than in pixels, so a layout
-  arranged on a desktop survives the switch to the phone's taller viewBox; they outlast
-  operations and playback, and reset with **RESET LAYOUT**, SHUFFLE or a newly loaded
-  graph. An arrangement also travels in the shared link, as an `xy` field listing
-  `label:x:y` for the vertices actually dragged off the ring — so an untouched graph's
-  link is byte-for-byte what it was before, and a rearranged one hands someone else the
-  layout you built. A moving vertex wears a dashed ring, and a phone buzzes once as it
-  comes loose.
-  The touch drag also refuses the page scroll for as long as it lasts, which is what
-  makes it possible at all — the browser otherwise claims a finger drag off an SVG shape
-  as a scroll and cancels the pointer mid-gesture.
+- **An editable graph canvas.** The ring the vertices start on keeps a fresh graph
+  readable but says nothing about the graph, and building one meant going through the
+  sidebar. The canvas now does all of it: **drag** a vertex to move it, **double-click**
+  empty space to add one where you pressed, and **click two vertices** to connect them.
+  On a phone the same three gestures are a hold-then-drag, a hold on empty canvas, and a
+  tap on each end.
+
+  Connecting moved from a drag between two vertices to a click on each, because a drag
+  is now what moves one. That is also the only gesture touch can offer — the browser
+  claims a finger drag off an SVG shape as a page scroll — so both inputs finally behave
+  the same way. A vertex only comes loose once a cursor has actually travelled a few
+  pixels, leaving a click that doesn't move still a click; a finger has to hold, since
+  its rival reading is that page scroll. Clicking empty canvas calls off a half-made
+  edge.
+
+  Edges follow their endpoints live, so a crossing can be pulled apart or a path lined up
+  left to right before running a traversal over it. Positions are stored as a fraction of
+  the canvas rather than in pixels, so a layout arranged on a desktop survives the switch
+  to the phone's taller viewBox; they outlast operations and playback, and reset with
+  **RESET LAYOUT**, SHUFFLE or a newly loaded graph. An arrangement also travels in the
+  shared link, as an `xy` field listing `label:x:y` for the vertices actually dragged off
+  the ring — so an untouched graph's link is byte-for-byte what it was before, and a
+  rearranged one hands someone else the layout you built. A moving vertex wears a dashed
+  ring, and a phone buzzes once as it comes loose.
+
+  The touch drag refuses the page scroll for as long as it lasts, which is what makes it
+  possible at all — the browser otherwise cancels the pointer mid-gesture. The canvas is
+  now drawn even when the graph is empty, with the placeholder floated over it rather
+  than replacing it, because pressing the canvas is how the first vertex gets made.
 - **Binary heaps** — max and min, under TREES. The complete tree and the flat array it
   actually lives in are drawn together and highlighted in lockstep, with the index
   arithmetic (`parent ⌊(i−1)/2⌋`, `left 2i+1`, `right 2i+2`) spelled out for whatever the

@@ -177,7 +177,7 @@ on how many keys are in it now. A heap is written in array order, which *is* the
 union-find carries its raw parent array, since path compression is part of the state
 worth sharing. Everything round-trips exactly, including tree shape.
 
-A graph you have [rearranged](#arranging-the-graph) also carries an `xy` field —
+A graph you have [rearranged](#building-and-arranging-the-graph) also carries an `xy` field —
 `label:x:y` per vertex, each coordinate a fraction of the canvas rather than a pixel, so
 the arrangement survives being opened on a phone. Only the vertices actually dragged off
 the ring are listed, so an untouched graph's link is exactly what it was before.
@@ -223,11 +223,12 @@ Below 760px wide the app rearranges itself rather than shrinking:
   controls are always within thumb reach.
 - Topics move from the row of top-bar dropdowns into a **single menu sheet** behind
   the ☰ button.
-- **Graphs** lay their vertices out in a portrait ring, and you connect two of them by
-  **tapping one and then the other** (drag-to-connect is a cursor gesture; browsers
-  claim a finger drag off an SVG shape as a page scroll). **Holding** a vertex picks it
-  up instead, so you can [rearrange the graph](#arranging-the-graph) with one finger —
-  that drag refuses the page scroll outright for as long as it lasts.
+- **Graphs** lay their vertices out in a portrait ring. Tapping, holding a vertex to
+  move it and holding empty canvas to add one all work exactly as they do with a
+  cursor — see [building and arranging](#building-and-arranging-the-graph). The one
+  difference is that a move has to begin with a hold, because a finger that simply
+  drags is scrolling the page; once a vertex is loose the drag refuses that scroll
+  outright, for as long as it lasts.
 - **Trees** keep their nodes at a readable size and scroll sideways inside the canvas
   instead of shrinking to fit.
 
@@ -286,25 +287,36 @@ says so — and draw `lo` / `mid` / `hi` pointers under the bars.
 | **Union-Find** | union by size + path compression | union, find, connected?, components, add element, reset |
 | **Graph** | directed/undirected, weighted/unweighted | add & remove vertex/edge, neighbours, degree, is-adjacent, BFS, DFS, topological sort, Dijkstra, Floyd–Warshall, Prim's MST, Kruskal's MST |
 
-On the graph canvas you can **drag from one vertex to another** to create an edge, and
-switch the panel below between adjacency-list and adjacency-matrix representations. The
-vertices can also be [moved anywhere on the canvas](#arranging-the-graph).
+The graph canvas is editable directly: **click two vertices** to connect them, **drag**
+one to move it and **double-click empty space** to add one — see [building and
+arranging](#building-and-arranging-the-graph). The panel below switches between
+adjacency-list and adjacency-matrix representations.
 
-### Arranging the graph
+### Building and arranging the graph
 
-Vertices start on a ring, which keeps a fresh graph readable but says nothing about the
-graph itself. Any vertex can be picked up and dropped wherever you want it:
+Everything the canvas does, on both a cursor and a finger:
 
-| | Pick a vertex up | Move it |
+| | Cursor | Touch |
 | --- | --- | --- |
-| **Cursor** | double-click and keep the button held on the second click | drag, then release to drop |
-| **Touch** | press and hold it for about a moment | drag with the same finger, then lift |
+| **Connect two vertices** | click one, then the other | tap one, then the other |
+| **Move a vertex** | drag it | press and hold it, then drag |
+| **Add a vertex** | double-click empty canvas | press and hold empty canvas |
+| **Cancel a half-made edge** | click empty canvas | tap empty canvas |
 
-The gesture is deliberately not a plain drag, because that one already means *connect
-these two vertices* — a single drag from A to B still draws an edge, and a single tap on
-a phone still arms A to connect to whatever you tap next. A vertex being moved wears a
-dashed ring, and a phone buzzes once when it comes loose, since there is no cursor there
-to change shape.
+Connecting is a click on each end rather than a drag between them, because a drag is
+what moves a vertex. It is also the only gesture touch can offer: the browser claims a
+finger drag off an SVG shape as a page scroll, so drag-to-connect never worked there.
+Both inputs now behave the same way.
+
+A vertex only comes loose once a cursor has actually moved, so a click that doesn't move
+is still a click. A finger has to hold, because the rival reading of a finger on a vertex
+is a page scroll; sliding before the hold completes leaves it a scroll. A vertex being
+moved wears a dashed ring, and a phone buzzes once when it comes loose, since there is no
+cursor there to change shape.
+
+A new vertex lands exactly where you pressed, named with the next free letter — the same
+naming ADD VERTEX in the sidebar uses. On a phone it is a hold rather than a double-tap,
+which the browser may still read as zoom.
 
 Edges follow their endpoints live, so you can pull a crossing apart, line a path up left
 to right, or drag the vertices of a subgraph together before running BFS over it.
