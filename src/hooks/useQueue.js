@@ -3,6 +3,7 @@ import { nextId } from "../dataStructures/linkedList/nodeId";
 import { parseValueList } from "../dataStructures/linkedList/helpers";
 import { QUEUE_OP_MAP } from "../dataStructures/queue";
 import { useStepPlayer } from "./useStepPlayer.js";
+import { useHistory } from "./useHistory.js";
 
 function randomQueue(size) {
   return Array.from({ length: size }, () => ({ id: nextId(), value: Math.floor(Math.random() * 90) + 10 }));
@@ -25,6 +26,16 @@ export function useQueue(init) {
 
   const opMeta = QUEUE_OP_MAP[operation];
 
+  const history = useHistory(
+    () => ({ queue }),
+    (doc, message) => {
+      setQueue(doc.queue);
+      setSteps([{ nodes: doc.queue, message }]);
+      setStepIdx(0);
+      setPlaying(false);
+    }
+  );
+
   useEffect(() => {
     setSteps([{ nodes: queue, message: "Ready" }]);
     setStepIdx(0);
@@ -34,28 +45,31 @@ export function useQueue(init) {
   const runOperation = useCallback(() => {
     const params = { value: parseInt(valueInput, 10) || 0 };
     const { steps: newSteps, finalList } = opMeta.run(queue, params);
+    history.record();
     setSteps(newSteps);
     setStepIdx(0);
     setQueue(finalList);
     setPlaying(newSteps.length > 1);
-  }, [queue, opMeta, valueInput]);
+  }, [queue, opMeta, valueInput, history]);
 
   const applyCustomQueue = useCallback(() => {
     const parsed = parseValueList(customInput).map((value) => ({ id: nextId(), value }));
+    history.record();
     setQueue(parsed);
     setSteps([{ nodes: parsed, message: "Custom queue loaded" }]);
     setStepIdx(0);
     setPlaying(false);
     setCustomInput("");
-  }, [customInput]);
+  }, [customInput, history]);
 
   const shuffle = useCallback(() => {
     const next = randomQueue(3 + Math.floor(Math.random() * 3));
+    history.record();
     setQueue(next);
     setSteps([{ nodes: next, message: "New random queue" }]);
     setStepIdx(0);
     setPlaying(false);
-  }, []);
+  }, [history]);
 
   const step = steps[Math.min(stepIdx, steps.length - 1)] || EMPTY_STEP;
 
@@ -74,5 +88,9 @@ export function useQueue(init) {
     steps,
     step,
     runOperation,
+    undo: history.undo,
+    redo: history.redo,
+    canUndo: history.canUndo,
+    canRedo: history.canRedo,
   };
 }

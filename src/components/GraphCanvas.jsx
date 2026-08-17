@@ -56,6 +56,8 @@ export default function GraphCanvas({
   onResetLayout,
   hasCustomLayout = false,
   onAddVertexAt,
+  onHoverVertex,
+  onDeleteVertex,
 }) {
   const isMobile = useIsMobile();
   const view = isMobile ? MOBILE_VIEW : DESKTOP_VIEW;
@@ -170,9 +172,19 @@ export default function GraphCanvas({
   // cursor and a finger. Dragging is what moves a vertex, so it can't also be
   // what draws an edge, and touch could never drag-to-connect anyway: the
   // browser claims a finger drag off an SVG shape as a page scroll.
-  const handleNodeClick = (nodeId) => {
+  const handleNodeClick = (e, nodeId) => {
     // The click a drag leaves behind is not a click on the vertex.
     if (suppressClickRef.current) return;
+
+    // Third click of a triple. `detail` is the browser's own count of clicks
+    // in one burst, so this uses the same interval the OS calls a double
+    // click rather than inventing a second timing rule.
+    if (e.detail >= 3) {
+      setLinkFrom(null);
+      onDeleteVertex?.(nodeId);
+      return;
+    }
+
     if (pendingLink === null) setLinkFrom(nodeId);
     else if (pendingLink === nodeId) setLinkFrom(null);
     else {
@@ -312,7 +324,7 @@ export default function GraphCanvas({
         : "TAP TWO VERTICES TO CONNECT · HOLD ONE TO MOVE IT · HOLD SPACE TO ADD ONE"
       : pendingLink
         ? "NOW CLICK THE VERTEX TO CONNECT IT TO"
-        : "CLICK TWO VERTICES TO CONNECT · DRAG ONE TO MOVE IT · DOUBLE-CLICK SPACE TO ADD ONE";
+        : "CLICK TWO TO CONNECT · DRAG TO MOVE · TRIPLE-CLICK TO DELETE · DOUBLE-CLICK SPACE TO ADD";
 
   return (
     <div className="panel canvas graph-canvas">
@@ -436,8 +448,12 @@ export default function GraphCanvas({
               <g
                 key={node.id}
                 className={`graph-node${isMoving ? " graph-node--moving" : ""}`}
-                onClick={() => handleNodeClick(node.id)}
+                onClick={(e) => handleNodeClick(e, node.id)}
                 onPointerDown={(e) => handleNodeDown(e, node.id)}
+                // Ctrl+C copies the vertex under the cursor, or the whole
+                // graph when the cursor is on none.
+                onPointerEnter={() => onHoverVertex?.({ id: node.id, nx: node.x / WIDTH, ny: node.y / HEIGHT })}
+                onPointerLeave={() => onHoverVertex?.(null)}
               >
                 {isMoving && <circle cx={node.x} cy={node.y} r={RADIUS + 7} className="graph-node__halo" />}
                 <circle

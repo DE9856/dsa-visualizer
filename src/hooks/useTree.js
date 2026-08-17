@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { TREE_OP_MAP } from "../dataStructures/tree";
 import { randomTree, parseValueList, buildTreeFromValues } from "../dataStructures/tree/helpers";
 import { useStepPlayer } from "./useStepPlayer.js";
+import { useHistory } from "./useHistory.js";
 
 const EMPTY_STEP = { root: null, message: "" };
 
@@ -24,6 +25,17 @@ export function useTree(init) {
 
   const opMeta = TREE_OP_MAP[operation];
 
+  const history = useHistory(
+    () => ({ tree, treeType }),
+    (doc, message) => {
+      setTree(doc.tree);
+      setTreeTypeState(doc.treeType);
+      setSteps([{ ...doc.tree, message }]);
+      setStepIdx(0);
+      setPlaying(false);
+    }
+  );
+
   useEffect(() => {
     setSteps([{ ...tree, message: "Ready" }]);
     setStepIdx(0);
@@ -34,12 +46,13 @@ export function useTree(init) {
     (opKey, params) => {
       const meta = TREE_OP_MAP[opKey];
       const { steps: newSteps, finalTree } = meta.run(tree, { treeType, ...params });
+      history.record();
       setSteps(newSteps);
       setStepIdx(0);
       setTree(finalTree);
       setPlaying(newSteps.length > 1);
     },
-    [tree, treeType]
+    [tree, treeType, history]
   );
 
   const runOperation = useCallback(() => {
@@ -52,31 +65,34 @@ export function useTree(init) {
     const values = parseValueList(customInput);
     if (values.length === 0) return;
     const next = buildTreeFromValues(values, treeType);
+    history.record();
     setTree(next);
     setSteps([{ ...next, message: "Custom tree loaded" }]);
     setStepIdx(0);
     setPlaying(false);
     setCustomInput("");
-  }, [customInput, treeType]);
+  }, [customInput, treeType, history]);
 
   const shuffle = useCallback(() => {
     const next = randomTree(treeType);
+    history.record();
     setTree(next);
     setSteps([{ ...next, message: "New random tree" }]);
     setStepIdx(0);
     setPlaying(false);
-  }, [treeType]);
+  }, [treeType, history]);
 
   // Switching between a plain binary tree and a BST rebuilds a fresh tree,
   // since the two have different shape/ordering rules.
   const setTreeType = useCallback((next) => {
+    history.record();
     setTreeTypeState(next);
     const rebuilt = randomTree(next);
     setTree(rebuilt);
     setSteps([{ ...rebuilt, message: `Switched to ${next === "bst" ? "Binary Search Tree" : "Binary Tree"}` }]);
     setStepIdx(0);
     setPlaying(false);
-  }, []);
+  }, [history]);
 
   const step = steps[Math.min(stepIdx, steps.length - 1)] || EMPTY_STEP;
 
@@ -97,5 +113,9 @@ export function useTree(init) {
     steps,
     step,
     runOperation,
+    undo: history.undo,
+    redo: history.redo,
+    canUndo: history.canUndo,
+    canRedo: history.canRedo,
   };
 }

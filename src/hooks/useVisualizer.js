@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { ALGO_MAP, SORT_KEYS, SEARCH_KEYS, getSteps } from "../algorithms";
 import { randomArray } from "../utils/randomArray";
 import { useStepPlayer } from "./useStepPlayer.js";
+import { useHistory } from "./useHistory.js";
 
 /**
  * `init` is the setup decoded from a shared link ({ view, algo, values,
@@ -38,6 +39,21 @@ export function useVisualizer(init) {
   const player = useStepPlayer(steps.length);
   const { setStepIdx, setPlaying, pause } = player;
 
+  // Steps here are derived from the algorithm and the data, so restoring the
+  // document is enough — the run recomputes itself.
+  const history = useHistory(
+    () => ({ category, algo, size, array, target }),
+    (doc) => {
+      setCategoryState(doc.category);
+      setAlgo(doc.algo);
+      setSize(doc.size);
+      setArray(doc.array);
+      setTarget(doc.target);
+      setPlaying(false);
+      setStepIdx(0);
+    }
+  );
+
   // A new run (algorithm, array or target change) rewinds to the start.
   useEffect(() => {
     setPlaying(false);
@@ -46,40 +62,44 @@ export function useVisualizer(init) {
 
   const switchCategory = useCallback(
     (cat) => {
+      history.record();
       setCategoryState(cat);
       pause();
       const first = cat === "sorting" ? SORT_KEYS[0] : SEARCH_KEYS[0];
       setAlgo(first);
       if (cat === "searching") setTarget(array[Math.floor(Math.random() * array.length)]);
     },
-    [array, pause]
+    [array, pause, history]
   );
 
   const switchAlgo = useCallback(
     (key) => {
+      history.record();
       pause();
       setAlgo(key);
       if (ALGO_MAP[key].category === "searching") {
         setTarget(array[Math.floor(Math.random() * array.length)]);
       }
     },
-    [array, pause]
+    [array, pause, history]
   );
 
   const handleShuffle = useCallback(() => {
+    history.record();
     const next = randomArray(size);
     setArray(next);
     if (meta.category === "searching") setTarget(next[Math.floor(Math.random() * next.length)]);
-  }, [size, meta.category]);
+  }, [size, meta.category, history]);
 
   const handleSizeChange = useCallback(
     (n) => {
+      history.record();
       setSize(n);
       const next = randomArray(n);
       setArray(next);
       if (meta.category === "searching") setTarget(next[Math.floor(Math.random() * next.length)]);
     },
-    [meta.category]
+    [meta.category, history]
   );
 
   const applyCustomArray = useCallback(() => {
@@ -89,12 +109,13 @@ export function useVisualizer(init) {
       .filter((n) => !Number.isNaN(n))
       .slice(0, 40);
     if (parsed.length >= 2) {
+      history.record();
       setArray(parsed);
       setSize(parsed.length);
       if (meta.category === "searching") setTarget(parsed[Math.floor(Math.random() * parsed.length)]);
     }
     setCustomInput("");
-  }, [customInput, meta.category]);
+  }, [customInput, meta.category, history]);
 
   const setRandomTarget = useCallback(
     (inArray) => {
@@ -129,5 +150,9 @@ export function useVisualizer(init) {
     handleSizeChange,
     applyCustomArray,
     setRandomTarget,
+    undo: history.undo,
+    redo: history.redo,
+    canUndo: history.canUndo,
+    canRedo: history.canRedo,
   };
 }

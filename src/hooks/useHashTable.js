@@ -8,6 +8,7 @@ import {
   tableKeys,
 } from "../dataStructures/hashTable/helpers";
 import { useStepPlayer } from "./useStepPlayer.js";
+import { useHistory } from "./useHistory.js";
 
 const EMPTY_STEP = { buckets: [], capacity: 0, message: "" };
 
@@ -31,6 +32,17 @@ export function useHashTable(init) {
 
   const opMeta = HASH_OP_MAP[operation];
 
+  const history = useHistory(
+    () => ({ table, strategy }),
+    (doc, message) => {
+      setTable(doc.table);
+      setStrategyState(doc.strategy);
+      setSteps([{ ...doc.table, message }]);
+      setStepIdx(0);
+      setPlaying(false);
+    }
+  );
+
   useEffect(() => {
     setSteps([{ ...table, message: "Ready" }]);
     setStepIdx(0);
@@ -40,36 +52,40 @@ export function useHashTable(init) {
   const runOperation = useCallback(() => {
     const parsed = parseInt(keyInput, 10);
     const { steps: newSteps, finalTable } = opMeta.run(table, { key: Number.isNaN(parsed) ? 0 : parsed });
+    history.record();
     setSteps(newSteps);
     setStepIdx(0);
     setTable(finalTable);
     setPlaying(newSteps.length > 1);
-  }, [table, opMeta, keyInput]);
+  }, [table, opMeta, keyInput, history]);
 
   const applyCustomTable = useCallback(() => {
     const parsed = parseKeyList(customInput);
     if (parsed.length === 0) return;
     const next = buildTableFromKeys(parsed, strategy);
+    history.record();
     setTable(next);
     setSteps([{ ...next, message: "Custom keys loaded" }]);
     setStepIdx(0);
     setPlaying(false);
     setCustomInput("");
-  }, [customInput, strategy]);
+  }, [customInput, strategy, history]);
 
   const shuffle = useCallback(() => {
     const next = randomTable(strategy);
+    history.record();
     setTable(next);
     setSteps([{ ...next, message: "New random keys" }]);
     setStepIdx(0);
     setPlaying(false);
-  }, [strategy]);
+  }, [strategy, history]);
 
   // Switching strategy replays the same keys into a fresh table rather than
   // starting over — the whole point is watching where those keys land when
   // only the collision rule changes.
   const setStrategy = useCallback(
     (next) => {
+      history.record();
       setStrategyState(next);
       const rebuilt = buildTableFromKeys(tableKeys(table), next);
       setTable(rebuilt);
@@ -77,7 +93,7 @@ export function useHashTable(init) {
       setStepIdx(0);
       setPlaying(false);
     },
-    [table]
+    [table, history]
   );
 
   const step = steps[Math.min(stepIdx, steps.length - 1)] || EMPTY_STEP;
@@ -99,5 +115,9 @@ export function useHashTable(init) {
     steps,
     step,
     runOperation,
+    undo: history.undo,
+    redo: history.redo,
+    canUndo: history.canUndo,
+    canRedo: history.canRedo,
   };
 }

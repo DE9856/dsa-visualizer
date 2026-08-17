@@ -14,12 +14,52 @@ hash tables, heaps, tries and union-find.
 
 ### Added
 
+- **Undo and redo, on every structure.** `Ctrl+Z` takes back the last edit and `Ctrl+Y`
+  (or `Ctrl+Shift+Z`) puts it back, on all twelve views. Each keeps its own history of up
+  to 50 edits, so the graph's undo can't reach into what you did to the heap and
+  switching views leaves both stacks where they were.
+
+  A new `useHistory` hook holds the machinery; a view supplies only a `snapshot()` of
+  what is worth restoring and a `restore()` that puts it back. Snapshots store references
+  rather than clones, which is free and safe because every operation in the codebase
+  already builds a new structure instead of mutating the one it was handed — the same
+  property that makes the frames precomputed and the stepping reversible.
+
+  Playback is deliberately outside the document. Undo takes back a change to the
+  *structure*, not your position in a run, so the timeline, the selected operation and
+  half-typed sidebar text are left alone. Read-only operations are still recorded rather
+  than filtered out: an undo that lands on an identical structure costs nothing, where a
+  second list of which operations mutate would be one more thing to keep in step.
+
+- **Copy and paste on the graph.** What `Ctrl+C` takes depends on where the cursor is —
+  over a vertex it copies that vertex and its neighbours, over empty canvas the whole
+  graph. Pasting our own vertex copy back duplicates it, wired to the same neighbours;
+  anything else is read as graph text and replaces the graph. Comparing the clipboard
+  text against what we put there is what tells those apart, so copying something else in
+  another app in between wins, as it should.
+
+  What lands on the system clipboard is adjacency-list text the sidebar's LIST box would
+  accept, so a graph can be pasted into notes or another tab and back. Adjacency rather
+  than the terser edge list because it is the only one of the two that can say a vertex
+  exists and is connected to nothing.
+
+  Both ride the browser's own `copy`/`paste` events rather than intercepting the
+  keystrokes, which means no clipboard permission prompt, and a copy made with text
+  selected or the cursor in a field stays an ordinary text copy.
+
 - **An editable graph canvas.** The ring the vertices start on keeps a fresh graph
   readable but says nothing about the graph, and building one meant going through the
   sidebar. The canvas now does all of it: **drag** a vertex to move it, **double-click**
   empty space to add one where you pressed, and **click two vertices** to connect them.
   On a phone the same three gestures are a hold-then-drag, a hold on empty canvas, and a
-  tap on each end.
+  tap on each end. **Triple-clicking** a vertex deletes it, edges and all, which is a
+  cursor gesture only — the phone keeps REMOVE VERTEX in the sidebar.
+
+  The triple counts clicks by the browser's own `detail`, the same burst that defines a
+  double click, rather than adding a second timing rule of its own. Each click still
+  answers as it arrives, so triple-clicking a vertex while another is armed makes the
+  edge and then deletes the vertex under it; the edge goes too, so the result is right,
+  it just takes two undos rather than one.
 
   Connecting moved from a drag between two vertices to a click on each, because a drag
   is now what moves one. That is also the only gesture touch can offer — the browser

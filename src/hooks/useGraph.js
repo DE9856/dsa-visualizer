@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { GRAPH_OP_MAP } from "../dataStructures/graph";
+import { duplicateVertex } from "../dataStructures/graph/duplicateVertex";
 import { useStepPlayer } from "./useStepPlayer.js";
+import { useHistory } from "./useHistory.js";
 import {
   parseEdgeList,
   buildGraphFromEdgeList,
@@ -9,6 +11,7 @@ import {
   parseAdjacencyMatrix,
   buildGraphFromAdjacencyMatrix,
   buildGraphFromLabelsAndEdges,
+  graphToAdjacencyText,
   randomGraph,
 } from "../dataStructures/graph/helpers";
 
@@ -69,6 +72,31 @@ export function useGraph(init) {
 
   const opMeta = GRAPH_OP_MAP[operation];
 
+  // Which vertex the cursor is over, and where it sits, so Ctrl+C can tell
+  // "copy this vertex" from "copy the graph". A ref, not state: nothing on
+  // screen depends on it, and hovering shouldn't re-render the view.
+  const hoveredRef = useRef(null);
+  const setHoveredVertex = useCallback((hovered) => {
+    hoveredRef.current = hovered;
+  }, []);
+
+  // What the last Ctrl+C put on the clipboard. `text` is kept so a paste can
+  // tell our own copy from something copied in another app since.
+  const clipboardRef = useRef(null);
+
+  const history = useHistory(
+    () => ({ graph, positions, directed, weighted }),
+    (doc, message) => {
+      setGraph(doc.graph);
+      setPositions(doc.positions);
+      setDirected(doc.directed);
+      setWeighted(doc.weighted);
+      setSteps([{ ...doc.graph, message }]);
+      setStepIdx(0);
+      setPlaying(false);
+    }
+  );
+
   useEffect(() => {
     setSteps([{ ...graph, message: "Ready" }]);
     setStepIdx(0);
@@ -83,22 +111,25 @@ export function useGraph(init) {
     setToVertexInput((prev) => (ids.includes(prev) ? prev : ids[1] || ids[0] || ""));
   }, [graph]);
 
-  const runWith = useCallback(
-    (opKey, params) => {
-      const meta = GRAPH_OP_MAP[opKey];
+  const runMeta = useCallback(
+    (meta, params) => {
       const { steps: newSteps, finalGraph } = meta.run(graph, {
         directed,
         weighted,
         ...params,
       });
+      history.record();
       setSteps(newSteps);
       setStepIdx(0);
       setGraph(finalGraph);
       setPlaying(newSteps.length > 1);
       return finalGraph;
     },
-    [graph, directed, weighted]
+    [graph, directed, weighted, history]
   );
+
+  // Takes an operation by key, from the registry the sidebar is built from.
+  const runWith = useCallback((opKey, params) => runMeta(GRAPH_OP_MAP[opKey], params), [runMeta]);
 
   const runOperation = useCallback(() => {
     const params = {
@@ -111,6 +142,15 @@ export function useGraph(init) {
     runWith(operation, params);
     setVertexLabelInput("");
   }, [operation, vertexLabelInput, vertexInput, fromVertexInput, toVertexInput, weightInput, weighted, runWith]);
+
+  // Triple-clicking a vertex on the canvas. The same operation the sidebar's
+  // REMOVE VERTEX runs, so the edges go with it and the steps look the same.
+  const deleteVertex = useCallback(
+    (vertexId) => {
+      runWith("removeVertex", { vertex: vertexId });
+    },
+    [runWith]
+  );
 
   // Called when the user drags from one node to another on the canvas.
   const createEdgeFromDrag = useCallback(
@@ -126,9 +166,13 @@ export function useGraph(init) {
 
   // Committed once per drag, when the vertex is dropped — the live position
   // while a finger or cursor is moving is the canvas's own business.
-  const moveVertex = useCallback((vertexId, nx, ny) => {
-    setPositions((prev) => ({ ...prev, [vertexId]: { nx, ny } }));
-  }, []);
+  const moveVertex = useCallback(
+    (vertexId, nx, ny) => {
+      history.record();
+      setPositions((prev) => ({ ...prev, [vertexId]: { nx, ny } }));
+    },
+    [history]
+  );
 
   // Called when the canvas is double-clicked, or held on a phone. The
   // operation names the vertex itself, so the one that wasn't there a moment
@@ -143,7 +187,88 @@ export function useGraph(init) {
     [graph, runWith]
   );
 
-  const resetLayout = useCallback(() => setPositions({}), []);
+  const resetLayout = useCallback(() => {
+    history.record();
+    setPositions({});
+  }, [history]);
+
+  /**
+   * Ctrl+C. What gets copied depends on where the cursor is: over a vertex it
+   * is that vertex, over bare canvas it is the whole graph. Either way the
+   * text placed on the system clipboard is adjacency-list text the sidebar
+   * would accept, so a copy is useful outside the app too.
+   */
+  const copySelection = useCallback(() => {
+    const hovered = hoveredRef.current;
+    const node = hovered && graph.nodes.find((n) => n.id === hovered.id);
+    if (node) {
+      // One adjacency line, the vertex and what it connects to. Listing the
+      // rest of the graph as empty lines would be true but say the opposite of
+      // what copying a single vertex means.
+      const labelById = Object.fromEntries(graph.nodes.map((n) => [n.id, n.label]));
+      const neighbours = [];
+      graph.edges.forEach((e) => {
+        const outgoing = e.from === node.id;
+        // An undirected edge counts whichever end the vertex is at.
+        if (!outgoing && (directed || e.to !== node.id)) return;
+        const other = labelById[outgoing ? e.to : e.from];
+        if (!other) return;
+        neighbours.push(weighted && e.weight !== 1 ? `${other}(${e.weight})` : other);
+      });
+      const text = `${node.label}: ${neighbours.join(", ")}`.trimEnd();
+      clipboardRef.current = { kind: "vertex", id: node.id, at: hovered, text };
+      return text;
+    }
+    const text = graphToAdjacencyText(graph, weighted);
+    clipboardRef.current = { kind: "graph", text };
+    return text;
+  }, [graph, weighted, directed]);
+
+  /**
+   * Ctrl+V. Pasting straight back what we copied from a vertex duplicates that
+   * vertex; anything else is treated as graph text and replaces the graph.
+   * Comparing the text is what tells the two apart — copying something else in
+   * another app in between has to win, or paste would silently ignore it.
+   */
+  const pasteClipboard = useCallback(
+    (text) => {
+      const held = clipboardRef.current;
+      if (held?.kind === "vertex" && held.text === text) {
+        const known = new Set(graph.nodes.map((n) => n.id));
+        const finalGraph = runMeta(duplicateVertex, { vertexId: held.id });
+        const created = finalGraph.nodes.find((n) => !known.has(n.id));
+        // Offset from the original so the copy doesn't land underneath it.
+        if (created && held.at) {
+          setPositions((prev) => ({
+            ...prev,
+            [created.id]: {
+              nx: Math.min(1, Math.max(0, held.at.nx + 0.07)),
+              ny: Math.min(1, Math.max(0, held.at.ny + 0.1)),
+            },
+          }));
+        }
+        return true;
+      }
+
+      const trimmed = (text || "").trim();
+      if (!trimmed) return false;
+      // Either of the two text formats the sidebar takes; a colon means the
+      // per-vertex adjacency form, which is what a copy from here produces.
+      const next = trimmed.includes(":")
+        ? buildGraphFromAdjacencyList(parseAdjacencyList(trimmed), directed)
+        : buildGraphFromEdgeList(parseEdgeList(trimmed));
+      if (!next || next.nodes.length === 0) return false;
+
+      history.record();
+      setGraph(next);
+      setPositions({});
+      setSteps([{ ...next, message: `Pasted a graph of ${next.nodes.length} vertices` }]);
+      setStepIdx(0);
+      setPlaying(false);
+      return true;
+    },
+    [graph, directed, runMeta, history]
+  );
 
   // Only vertices actually on screen count, so the reset affordance doesn't
   // appear for a graph whose moved vertices have all since been deleted.
@@ -237,7 +362,15 @@ export function useGraph(init) {
     positions,
     moveVertex,
     addVertexAt,
+    deleteVertex,
     resetLayout,
     hasCustomLayout,
+    setHoveredVertex,
+    copySelection,
+    pasteClipboard,
+    undo: history.undo,
+    redo: history.redo,
+    canUndo: history.canUndo,
+    canRedo: history.canRedo,
   };
 }

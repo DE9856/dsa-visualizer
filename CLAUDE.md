@@ -56,6 +56,12 @@ src/components/<X>Canvas.jsx  renders a single `step`
 src/components/<X>Sidebar.jsx renders inputs from the operation's `fields`
 ```
 
+`useHistory` (`src/hooks/useHistory.js`) gives each view undo/redo. A view passes a
+`snapshot()` of the state worth restoring and a `restore(doc, message)`, then calls
+`history.record()` immediately *before* every mutation. Snapshots hold references, not
+clones — safe only because operations never mutate the structure they're given, so keep
+it that way.
+
 `useStepPlayer` (`src/hooks/useStepPlayer.js`) owns playback for *all* views — `stepIdx`,
 `playing`, `speed`, `togglePlay`/`stepForward`/`stepBack`/`reset`/`seek`/`pause`. It runs
 on `requestAnimationFrame` and reads speed through a ref so the slider retimes the next

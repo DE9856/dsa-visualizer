@@ -78,7 +78,12 @@ inline, or click the keyboard icon at the right end of the transport bar.
 | <kbd>End</kbd> | Jump to the last step. |
 | <kbd>R</kbd> | Reset to the first step. |
 | <kbd>S</kbd> | Shuffle — new random array / list / stack / queue / tree / graph. |
+| <kbd>Ctrl</kbd>+<kbd>Z</kbd> | [Undo](#undo-and-redo) the last edit on the current structure. |
+| <kbd>Ctrl</kbd>+<kbd>Y</kbd> | Redo it. <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> does the same. |
+| <kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>Ctrl</kbd>+<kbd>V</kbd> | [Copy / paste](#copy-and-paste), on the graph view. |
 | <kbd>?</kbd> | Toggle the shortcut help panel. |
+
+On a Mac, <kbd>Cmd</kbd> works wherever <kbd>Ctrl</kbd> is listed.
 
 Also useful:
 
@@ -91,7 +96,57 @@ Also useful:
 
 Shortcuts are deliberately ignored while you're typing in a text field, a textarea, or a
 select, so <kbd>S</kbd> and <kbd>R</kbd> never eat your input. Arrow keys on a focused
-slider adjust that slider rather than stepping the animation.
+slider adjust that slider rather than stepping the animation. That applies to the
+<kbd>Ctrl</kbd> pairs too: inside a field they are the field's own undo and clipboard.
+
+### Undo and redo
+
+Every structure view keeps its own history — the graph's undo doesn't reach back into
+what you did to the heap, and switching views leaves each stack where it was. Up to 50
+edits are remembered per view.
+
+What counts as an edit is *anything that changed the structure*: an operation run from
+the sidebar, a vertex dragged or added on the canvas, RESET LAYOUT, a shuffle, custom
+data applied, and the type switches that rebuild as they go — list type, tree type, heap
+max/min, hash-table collision strategy. On the sorting and searching views it covers the
+algorithm, the array, its size, and the search target.
+
+What isn't an edit: playback. Undo takes back a change to the structure, not your
+position in a run, so where the timeline had got to, which operation is selected and
+half-typed text in the sidebar all stay as they are. Traversals that only read — BFS,
+Dijkstra, a search that finds nothing — leave the structure alone, so undoing one lands
+you on the same structure it started from.
+
+Redo is dropped as soon as you make a new edit, in the usual way: the branch you undid
+away from is no longer reachable.
+
+### Copy and paste
+
+On the graph view, what <kbd>Ctrl</kbd>+<kbd>C</kbd> copies depends on where the cursor
+is:
+
+| Cursor | Copies | Pasting it back |
+| --- | --- | --- |
+| Over a vertex | that vertex and its neighbours, as `B: A, C` | duplicates the vertex, wired to the same neighbours |
+| Over empty canvas | the whole graph, as adjacency-list text | rebuilds that graph |
+
+Both go to the real system clipboard as text the sidebar's LIST box would accept, so a
+copied graph can be pasted into notes, a message, or another tab. Isolated vertices
+survive, which is why the text is the adjacency form (`C:` with nothing after it) rather
+than the terser edge list.
+
+<kbd>Ctrl</kbd>+<kbd>V</kbd> accepts either format the sidebar does — `A-B, B-C@5` as
+well as the adjacency form — so you can paste a graph you wrote by hand. A pasted graph
+replaces the one on screen, and like everything else that is one <kbd>Ctrl</kbd>+<kbd>Z</kbd>
+away.
+
+The duplicate-a-vertex path only triggers when the text on the clipboard is still exactly
+what the app put there. Copy something else in another app in between and
+<kbd>Ctrl</kbd>+<kbd>V</kbd> treats it as graph text, which is what you meant.
+
+Copy and paste ride the browser's own clipboard events rather than intercepting the
+keystrokes, so they need no clipboard permission — and a copy made with text selected on
+the page, or with the cursor in a sidebar field, is left alone as an ordinary text copy.
 
 ---
 
@@ -301,7 +356,10 @@ Everything the canvas does, on both a cursor and a finger:
 | **Connect two vertices** | click one, then the other | tap one, then the other |
 | **Move a vertex** | drag it | press and hold it, then drag |
 | **Add a vertex** | double-click empty canvas | press and hold empty canvas |
+| **Delete a vertex** | triple-click it | REMOVE VERTEX in the sidebar |
 | **Cancel a half-made edge** | click empty canvas | tap empty canvas |
+| **Copy** | `Ctrl+C` — see [clipboard](#copy-and-paste) | — |
+| **Undo / redo** | `Ctrl+Z` / `Ctrl+Y` | — |
 
 Connecting is a click on each end rather than a drag between them, because a drag is
 what moves a vertex. It is also the only gesture touch can offer: the browser claims a
@@ -317,6 +375,18 @@ cursor there to change shape.
 A new vertex lands exactly where you pressed, named with the next free letter — the same
 naming ADD VERTEX in the sidebar uses. On a phone it is a hold rather than a double-tap,
 which the browser may still read as zoom.
+
+Deleting is a **triple-click**, and takes the vertex's edges with it, exactly as the
+sidebar's REMOVE VERTEX does. It counts clicks using the browser's own notion of a burst,
+the one behind a double click, rather than inventing a second timing rule — so a plain
+double-click still just arms and disarms the vertex, and never deletes.
+
+Because each click in the burst is answered as it arrives, triple-clicking a vertex while
+*another* one is armed will make the edge on the first click and then delete the vertex
+on the third. The edge goes with it, so the graph ends up where you wanted, but it takes
+two <kbd>Ctrl</kbd>+<kbd>Z</kbd> to walk back rather than one. Triple-clicking with
+nothing armed — the normal case — has no such intermediate step. There is no triple-tap
+on touch; use REMOVE VERTEX there.
 
 Edges follow their endpoints live, so you can pull a crossing apart, line a path up left
 to right, or drag the vertices of a subgraph together before running BFS over it.

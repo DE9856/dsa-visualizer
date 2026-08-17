@@ -1942,6 +1942,9 @@ input[type="range"] {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  /* The hint spells out four gestures, so it has to be able to fall onto a
+     second line rather than crushing the reset button. */
+  flex-wrap: wrap;
 }
 
 .graph-canvas__reset {

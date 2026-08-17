@@ -147,6 +147,8 @@ src/
 | `Home` / `End` | Jump to the first / last step |
 | `R` | Reset to the first step |
 | `S` | Shuffle — new random data |
+| `Ctrl+Z` / `Ctrl+Y` | Undo / redo the last edit (every structure keeps its own history) |
+| `Ctrl+C` / `Ctrl+V` | Copy / paste — on the graph, a vertex or the whole graph |
 | `?` | Toggle the in-app shortcut help |
 | `Enter` | Run the selected operation (from any sidebar input) |
 | `Esc` | Close an open top-bar menu |
@@ -259,7 +261,8 @@ Interactive visualizations for:
 
 - Graphs — directed/undirected, weighted/unweighted
   - Add / remove vertex and edge from the sidebar, or build the graph on the canvas
-    itself: click two vertices to connect them, double-click empty space to add one
+    itself: click two vertices to connect them, double-click empty space to add one,
+    triple-click a vertex to delete it
   - Drag the vertices anywhere — hold first on a phone — to lay the graph out yourself
     instead of leaving it on the default ring
   - Neighbours, Degree, Is-adjacent

@@ -8,6 +8,7 @@ import {
   trieWords,
 } from "../dataStructures/trie/helpers";
 import { useStepPlayer } from "./useStepPlayer.js";
+import { useHistory } from "./useHistory.js";
 
 const EMPTY_STEP = { root: null, message: "" };
 
@@ -25,6 +26,16 @@ export function useTrie(init) {
 
   const opMeta = TRIE_OP_MAP[operation];
 
+  const history = useHistory(
+    () => ({ trie }),
+    (doc, message) => {
+      setTrie(doc.trie);
+      setSteps([{ ...doc.trie, message }]);
+      setStepIdx(0);
+      setPlaying(false);
+    }
+  );
+
   useEffect(() => {
     setSteps([{ ...trie, message: "Ready" }]);
     setStepIdx(0);
@@ -33,21 +44,23 @@ export function useTrie(init) {
 
   const runOperation = useCallback(() => {
     const { steps: newSteps, finalTrie } = opMeta.run(trie, { word: normalizeWord(wordInput) });
+    history.record();
     setSteps(newSteps);
     setStepIdx(0);
     setTrie(finalTrie);
     setPlaying(newSteps.length > 1);
-  }, [trie, opMeta, wordInput, setStepIdx, setPlaying]);
+  }, [trie, opMeta, wordInput, setStepIdx, setPlaying, history]);
 
   const loadWords = useCallback(
     (words) => {
       const next = buildTrieFromWords(words);
+      history.record();
       setTrie(next);
       setSteps([{ ...next, message: `Loaded ${words.length} word${words.length === 1 ? "" : "s"}: ${words.join(", ")}` }]);
       setStepIdx(0);
       setPlaying(false);
     },
-    [setStepIdx, setPlaying]
+    [setStepIdx, setPlaying, history]
   );
 
   const applyCustomTrie = useCallback(() => {
@@ -77,5 +90,9 @@ export function useTrie(init) {
     steps,
     step,
     runOperation,
+    undo: history.undo,
+    redo: history.redo,
+    canUndo: history.canUndo,
+    canRedo: history.canRedo,
   };
 }

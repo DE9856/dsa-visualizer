@@ -167,6 +167,28 @@ export function buildGraphFromLabelsAndEdges(labels, edgeSpecs) {
   return { nodes, edges };
 }
 
+/**
+ * Writes the graph back out as adjacency-list text — the format
+ * parseAdjacencyList() reads, so what the clipboard carries is exactly what
+ * the sidebar's LIST box accepts.
+ *
+ * Adjacency list rather than the terser edge list because every vertex gets a
+ * line of its own, which is the only one of the two that can say a vertex
+ * exists but is connected to nothing.
+ */
+export function graphToAdjacencyText(graph, weighted) {
+  if (!graph) return "";
+  const labelById = Object.fromEntries(graph.nodes.map((n) => [n.id, n.label]));
+  const neighbors = new Map(graph.nodes.map((n) => [n.id, []]));
+  graph.edges.forEach((e) => {
+    const to = labelById[e.to];
+    const list = neighbors.get(e.from);
+    if (!to || !list) return;
+    list.push(weighted && e.weight !== 1 ? `${to}(${e.weight})` : to);
+  });
+  return graph.nodes.map((n) => `${n.label}: ${neighbors.get(n.id).join(", ")}`.trimEnd()).join("\n");
+}
+
 // Parses adjacency-matrix text: one row per line, values separated by
 // whitespace or commas. Returns null if rows aren't a square numeric grid.
 export function parseAdjacencyMatrix(input) {

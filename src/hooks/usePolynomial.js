@@ -3,6 +3,7 @@ import { parsePolynomial, formatTerm } from "../dataStructures/polynomial/helper
 import { POLY_OP_MAP } from "../dataStructures/polynomial";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useStepPlayer } from "./useStepPlayer.js";
+import { useHistory } from "./useHistory.js";
 
 function toNodes(terms) {
   return terms.map((t) => ({ id: nextId(), coeff: t.coeff, exp: t.exp, value: formatTerm(t.coeff, t.exp) }));
@@ -27,6 +28,17 @@ export function usePolynomial(init) {
   const { setStepIdx, setPlaying, stepIdx } = player;
 
   const opMeta = POLY_OP_MAP[operation];
+
+  const history = useHistory(
+    () => ({ list, polyInput }),
+    (doc, message) => {
+      setList(doc.list);
+      setPolyInput(doc.polyInput);
+      setSteps([{ nodes: doc.list, message }]);
+      setStepIdx(0);
+      setPlaying(false);
+    }
+  );
   const secondPreviewNodes = useMemo(() => toNodes(parsePolynomial(secondPolyInput)), [secondPolyInput]);
   const isIdle = stepIdx >= steps.length - 1 && steps.length <= 1;
   const showSecondPreview = isIdle && opMeta.fields.includes("secondList");
@@ -43,19 +55,21 @@ export function usePolynomial(init) {
       xValue: parseFloat(xValueInput) || 0,
     };
     const { steps: newSteps, finalList } = opMeta.run(list, params);
+    history.record();
     setSteps(newSteps);
     setStepIdx(0);
     setList(finalList);
     setPlaying(newSteps.length > 1);
-  }, [list, opMeta, secondPolyInput, xValueInput]);
+  }, [list, opMeta, secondPolyInput, xValueInput, history]);
 
   const applyPolynomial = useCallback(() => {
     const parsed = toNodes(parsePolynomial(polyInput));
+    history.record();
     setList(parsed);
     setSteps([{ nodes: parsed, message: "Polynomial loaded" }]);
     setStepIdx(0);
     setPlaying(false);
-  }, [polyInput]);
+  }, [polyInput, history]);
 
   const randomPolynomial = useCallback(() => {
     const termCount = 2 + Math.floor(Math.random() * 3);
@@ -70,11 +84,12 @@ export function usePolynomial(init) {
       terms.push({ coeff, exp });
     }
     const nodes = toNodes(terms);
+    history.record();
     setList(nodes);
     setSteps([{ nodes, message: "New random polynomial" }]);
     setStepIdx(0);
     setPlaying(false);
-  }, []);
+  }, [history]);
 
   const step = steps[Math.min(stepIdx, steps.length - 1)] || EMPTY_STEP;
 
@@ -95,6 +110,10 @@ export function usePolynomial(init) {
     steps,
     step,
     runOperation,
+    undo: history.undo,
+    redo: history.redo,
+    canUndo: history.canUndo,
+    canRedo: history.canRedo,
     secondPreviewNodes,
     showSecondPreview,
   };

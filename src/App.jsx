@@ -140,6 +140,12 @@ export default function App() {
     onLast: () => active.seek(active.steps.length - 1),
     onShuffle: shuffleActive,
     onToggleHelp: () => setShowHelp((s) => !s),
+    // Undo follows whichever view is on screen; each keeps its own history.
+    onUndo: active.undo,
+    onRedo: active.redo,
+    // Only the graph has anything to put on the clipboard so far.
+    onCopy: view === "graph" ? gr.copySelection : undefined,
+    onPaste: view === "graph" ? gr.pasteClipboard : undefined,
   });
 
   const handleViewChange = (next) => {
@@ -327,6 +333,8 @@ export default function App() {
             onResetLayout={gr.resetLayout}
             hasCustomLayout={gr.hasCustomLayout}
             onAddVertexAt={gr.addVertexAt}
+            onHoverVertex={gr.setHoveredVertex}
+            onDeleteVertex={gr.deleteVertex}
           />
           <GraphRepresentationPanel representation={gr.representation} step={gr.step} directed={gr.directed} />
           <ListControls {...transport} />

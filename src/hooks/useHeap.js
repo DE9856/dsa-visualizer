@@ -10,6 +10,7 @@ import {
   rawHeap,
 } from "../dataStructures/heap/helpers";
 import { useStepPlayer } from "./useStepPlayer.js";
+import { useHistory } from "./useHistory.js";
 
 const EMPTY_STEP = { nodes: [], kind: "max", message: "" };
 
@@ -31,6 +32,17 @@ export function useHeap(init) {
 
   const opMeta = HEAP_OP_MAP[operation];
 
+  const history = useHistory(
+    () => ({ heap, kind }),
+    (doc, message) => {
+      setHeap(doc.heap);
+      setKindState(doc.kind);
+      setSteps([{ ...doc.heap, message }]);
+      setStepIdx(0);
+      setPlaying(false);
+    }
+  );
+
   useEffect(() => {
     setSteps([{ ...heap, message: "Ready" }]);
     setStepIdx(0);
@@ -39,12 +51,15 @@ export function useHeap(init) {
 
   const play = useCallback(
     (newSteps, finalHeap) => {
+      // Every heap edit lands here, so this is the one place that has to
+      // remember what the heap looked like beforehand.
+      history.record();
       setSteps(newSteps);
       setStepIdx(0);
       setHeap(finalHeap);
       setPlaying(newSteps.length > 1);
     },
-    [setStepIdx, setPlaying]
+    [setStepIdx, setPlaying, history]
   );
 
   const runOperation = useCallback(() => {
@@ -110,5 +125,9 @@ export function useHeap(init) {
     steps,
     step,
     runOperation,
+    undo: history.undo,
+    redo: history.redo,
+    canUndo: history.canUndo,
+    canRedo: history.canRedo,
   };
 }

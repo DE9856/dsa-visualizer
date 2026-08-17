@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { TWO_THREE_OP_MAP } from "../dataStructures/twoThreeTree";
 import { randomTree, parseValueList, buildTreeFromValues } from "../dataStructures/twoThreeTree/helpers";
 import { useStepPlayer } from "./useStepPlayer.js";
+import { useHistory } from "./useHistory.js";
 
 const EMPTY_STEP = { root: null, message: "" };
 
@@ -22,6 +23,16 @@ export function useTwoThreeTree(init) {
 
   const opMeta = TWO_THREE_OP_MAP[operation];
 
+  const history = useHistory(
+    () => ({ tree }),
+    (doc, message) => {
+      setTree(doc.tree);
+      setSteps([{ ...doc.tree, message }]);
+      setStepIdx(0);
+      setPlaying(false);
+    }
+  );
+
   useEffect(() => {
     setSteps([{ ...tree, message: "Ready" }]);
     setStepIdx(0);
@@ -32,12 +43,13 @@ export function useTwoThreeTree(init) {
     (opKey, params) => {
       const meta = TWO_THREE_OP_MAP[opKey];
       const { steps: newSteps, finalTree } = meta.run(tree, params);
+      history.record();
       setSteps(newSteps);
       setStepIdx(0);
       setTree(finalTree);
       setPlaying(newSteps.length > 1);
     },
-    [tree]
+    [tree, history]
   );
 
   const runOperation = useCallback(() => {
@@ -50,20 +62,22 @@ export function useTwoThreeTree(init) {
     const values = parseValueList(customInput);
     if (values.length === 0) return;
     const next = buildTreeFromValues(values);
+    history.record();
     setTree(next);
     setSteps([{ ...next, message: "Custom tree loaded" }]);
     setStepIdx(0);
     setPlaying(false);
     setCustomInput("");
-  }, [customInput]);
+  }, [customInput, history]);
 
   const shuffle = useCallback(() => {
     const next = randomTree();
+    history.record();
     setTree(next);
     setSteps([{ ...next, message: "New random tree" }]);
     setStepIdx(0);
     setPlaying(false);
-  }, []);
+  }, [history]);
 
   const step = steps[Math.min(stepIdx, steps.length - 1)] || EMPTY_STEP;
 
@@ -82,5 +96,9 @@ export function useTwoThreeTree(init) {
     steps,
     step,
     runOperation,
+    undo: history.undo,
+    redo: history.redo,
+    canUndo: history.canUndo,
+    canRedo: history.canRedo,
   };
 }
