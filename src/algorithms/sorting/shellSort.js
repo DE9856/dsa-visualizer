@@ -1,31 +1,71 @@
+import { makeSort } from "../sortContext.js";
+
 // Indices into `pseudocode` below — the line each frame is executing.
-const LINE = { GAP: 0, COMPARE: 3, SWAP: 4, DONE: null };
+const LINE = { GAP: 0, COMPARE: 2, SWAP: 3, DONE: null };
 
-function run(input) {
-  const arr = [...input];
-  const n = arr.length;
-  const steps = [];
-  const sortedSet = new Set();
-  steps.push({ array: [...arr], compare: [], swap: [], sorted: [], line: LINE.GAP });
+/**
+ * The gap sequence is the whole algorithm: shell sort is a gapped insertion
+ * sort, and which gaps you pick is what moves its worst case between O(n²)
+ * and O(n^4/3). Each entry returns gaps in descending order, always ending
+ * at 1 — the final pass has to be an ordinary insertion sort or the array
+ * isn't sorted.
+ */
+export const GAP_SEQUENCES = {
+  // Shell's original: halve until 1. Simple, and the one with the O(n²)
+  // worst case, because the gaps share factors and early passes can leave
+  // whole interleaved subsequences untouched by each other.
+  shell: (n) => {
+    const out = [];
+    for (let g = Math.floor(n / 2); g > 0; g = Math.floor(g / 2)) out.push(g);
+    return out;
+  },
+  // Knuth's 1, 4, 13, 40, ... (h = 3h + 1). Coprime-ish gaps mix the
+  // subsequences much better; O(n^3/2) worst case.
+  knuth: (n) => {
+    const out = [];
+    for (let h = 1; h < n; h = 3 * h + 1) out.push(h);
+    return out.reverse();
+  },
+  // Sedgewick's 1, 5, 19, 41, 109, 209, 505, ... — the best-known worst case
+  // here at O(n^4/3), from interleaving two formulas by the parity of k.
+  sedgewick: (n) => {
+    const out = [];
+    for (let k = 0; k < 32; k++) {
+      const gap =
+        k % 2 === 0
+          ? 9 * (2 ** k - 2 ** (k / 2)) + 1
+          : 8 * 2 ** k - 6 * 2 ** ((k + 1) / 2) + 1;
+      // The first gap is already >= n for n of 1 or 2, so one is kept
+      // regardless: a sequence with no gap of 1 wouldn't sort at all.
+      if (gap >= n && out.length) break;
+      out.push(gap);
+    }
+    return out.reverse();
+  },
+};
 
-  let gap = Math.floor(n / 2);
-  while (gap > 0) {
+const { run, count } = makeSort((ctx) => {
+  const { n } = ctx;
+  const sequence = GAP_SEQUENCES[ctx.options.gaps] || GAP_SEQUENCES.shell;
+  const gaps = sequence(n).filter((g) => g > 0 && g < Math.max(n, 2));
+
+  ctx.emit({ line: LINE.GAP, gap: gaps[0] ?? 1 });
+
+  for (const gap of gaps) {
     for (let i = gap; i < n; i++) {
       let j = i;
-      while (j >= gap && arr[j - gap] > arr[j]) {
-        steps.push({ array: [...arr], compare: [j - gap, j], swap: [], sorted: [...sortedSet], line: LINE.COMPARE });
-        [arr[j - gap], arr[j]] = [arr[j], arr[j - gap]];
-        steps.push({ array: [...arr], compare: [], swap: [j - gap, j], sorted: [...sortedSet], line: LINE.SWAP });
+      while (j >= gap && ctx.gt(j - gap, j)) {
+        ctx.emit({ compare: [j - gap, j], gap, line: LINE.COMPARE });
+        ctx.swap(j - gap, j);
+        ctx.emit({ swap: [j - gap, j], gap, line: LINE.SWAP });
         j -= gap;
       }
     }
-    gap = Math.floor(gap / 2);
   }
 
-  for (let x = 0; x < n; x++) sortedSet.add(x);
-  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet], line: LINE.DONE });
-  return steps;
-}
+  ctx.markAll();
+  ctx.emit({ line: LINE.DONE });
+});
 
 export const shellSort = {
   key: "shell",
@@ -59,12 +99,28 @@ export const shellSort = {
     "More complex to analyze than basic O(n\u00B2) sorts.",
   ],
   pseudocode: [
-    "gap = n/2",
-    "while gap > 0:",
+    "for gap in sequence (descending, ending at 1):",
     "  for i in gap..n:",
     "    while j>=gap and a[j-gap]>a[j]:",
     "      swap(a[j-gap], a[j]); j -= gap",
-    "  gap = gap/2",
+  ],
+  // Whether equal elements keep their original relative order. The
+  // stability view proves or disproves this on screen.
+  stable: false,
+  variants: [
+    {
+      key: "gaps",
+      label: "GAPS",
+      default: "shell",
+      options: [
+        { key: "shell", label: "Shell n/2", desc: "The original halving sequence. O(n²) worst case — the gaps share factors, so early passes barely help each other." },
+        { key: "knuth", label: "Knuth 3h+1", desc: "1, 4, 13, 40, … O(n^3/2) worst case." },
+        { key: "sedgewick", label: "Sedgewick", desc: "1, 5, 19, 41, 109, … O(n^4/3) worst case, the best known of the three." },
+      ],
+    },
   ],
   run,
+  // Same body as run(), with frame recording switched off — what the
+  // empirical-complexity sweep calls.
+  count,
 };

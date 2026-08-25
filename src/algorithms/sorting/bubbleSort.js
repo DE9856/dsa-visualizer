@@ -1,34 +1,36 @@
+import { makeSort } from "../sortContext.js";
+
 // Indices into `pseudocode` below. Every frame carries the line it is
 // executing so the panel can follow along; DONE means the run has finished
 // and no line is executing.
 const LINE = { COMPARE: 2, SWAP: 3, DONE: null };
 
-function run(input) {
-  const arr = [...input];
-  const n = arr.length;
-  const steps = [];
-  const sortedSet = new Set();
+// The comparison happens before the frame that shows it, so the counters the
+// frame carries include the work it is illustrating. Every sort here follows
+// that order.
+const { run, count } = makeSort((ctx) => {
+  const { n } = ctx;
 
   for (let i = 0; i < n - 1; i++) {
     let swappedAny = false;
     for (let j = 0; j < n - 1 - i; j++) {
-      steps.push({ array: [...arr], compare: [j, j + 1], swap: [], sorted: [...sortedSet], line: LINE.COMPARE });
-      if (arr[j] > arr[j + 1]) {
-        [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
-        steps.push({ array: [...arr], compare: [], swap: [j, j + 1], sorted: [...sortedSet], line: LINE.SWAP });
+      const outOfOrder = ctx.gt(j, j + 1);
+      ctx.emit({ compare: [j, j + 1], line: LINE.COMPARE });
+      if (outOfOrder) {
+        ctx.swap(j, j + 1);
+        ctx.emit({ swap: [j, j + 1], line: LINE.SWAP });
         swappedAny = true;
       }
     }
-    sortedSet.add(n - 1 - i);
+    ctx.markSorted(n - 1 - i);
     if (!swappedAny) {
-      for (let k = 0; k <= n - 1 - i; k++) sortedSet.add(k);
+      ctx.markRange(0, n - 1 - i);
       break;
     }
   }
-  for (let k = 0; k < n; k++) sortedSet.add(k);
-  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet], line: LINE.DONE });
-  return steps;
-}
+  ctx.markAll();
+  ctx.emit({ line: LINE.DONE });
+});
 
 export const bubbleSort = {
   key: "bubble",
@@ -67,5 +69,11 @@ export const bubbleSort = {
     "    if a[j] > a[j+1]:",
     "      swap(a[j], a[j+1])",
   ],
+  // Whether equal elements keep their original relative order. The
+  // stability view proves or disproves this on screen.
+  stable: true,
   run,
+  // Same body as run(), with frame recording switched off — what the
+  // empirical-complexity sweep calls.
+  count,
 };

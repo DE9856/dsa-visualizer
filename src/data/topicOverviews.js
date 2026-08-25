@@ -3,6 +3,64 @@
 // what an individual button/operation does).
 
 export const TOPIC_OVERVIEWS = {
+  treecompare: {
+    overview:
+      "A binary search tree has no shape of its own. Its shape is decided entirely by the order its keys arrive in, and the worst order is the most natural one: insert 1, 2, 3, … n into a plain BST and every key is larger than everything already there, so nothing ever branches left and you get a linked list with extra pointers — height n−1, lookups O(n). AVL trees and 2-3 trees exist to make that stop being possible. This view builds all three from the same keys in the same order, one insert per tick, so the difference is visible rather than asserted.",
+    howItWorks: [
+      "One key sequence — a permutation of 1…n chosen by the insertion order — is handed unchanged to all three structures, so any difference in the result is the structure and not the data.",
+      "A BST inserts by plain descent and never restructures, so its height is a direct record of how ordered the input was.",
+      "An AVL tree checks the balance factor of every node on the path back up and rotates whenever it leaves [−1, 1]. Each rotation is O(1) and at most a constant number happen per insert, which is what buys a height guaranteed below 1.44 log₂(n+2).",
+      "A 2-3 tree never rotates. It absorbs a key into an existing node when there is room, and splits a node that would hold three keys, promoting the middle key to the parent. Splits propagate upward, and the tree only ever gets taller by splitting at the root — which is why every leaf stays at the same depth.",
+      "The scoreboard shows height alongside the comparisons spent getting there. They are not the same measure: a 2-3 node holding two keys costs two comparisons to pass through, so it buys its shorter height with wider nodes.",
+      "The height sweep runs the same insert code at sizes far past what three canvases can draw, keeping only the final numbers, and plots height against n with log₂ n, log₃ n and n over the top.",
+    ],
+    useCases: [
+      "Seeing why a self-balancing tree is worth its complexity: sorted input turns a BST into a chain and leaves the other two at height 3.",
+      "Understanding that 'not sorted' is not the same as 'random' — the alternating-ends order looks scrambled and degenerates a BST just as badly.",
+      "Watching the median-first order build a perfectly balanced BST with no rebalancing at all, which is the case where AVL's rotations are pure overhead.",
+      "Comparing the two balancing strategies directly: rotations versus splits, and what each costs per insert.",
+      "Checking a textbook height bound against a measured height instead of taking it on faith.",
+    ],
+    advantages: [
+      "All three structures are built with the same functions the tree views use, so a shape measured here is the shape those views would draw.",
+      "The animated lanes and the height sweep run the same insert code — one with the intermediate trees kept, one without — so the plot cannot drift away from the pictures.",
+      "The insertion order is the only variable, and it is on screen with the cursor on it.",
+    ],
+    disadvantages: [
+      "Height is not the whole cost of a lookup. A 2-3 tree is shorter than an AVL tree but examines more keys per node, and neither figure accounts for cache behaviour or pointer chasing.",
+      "The canvases cap at 24 keys because that is what three trees side by side can show legibly; the asymptotic behaviour only appears in the sweep.",
+      "Only insertions are compared. Deletion is where 2-3 trees get genuinely intricate — borrowing and merging — and none of that is measured here.",
+    ],
+  },
+  race: {
+    overview:
+      "Comparing sorting algorithms honestly is harder than it looks. Two runs are only comparable if they sorted the same data, and a side-by-side animation is only fair if a step in one lane costs what a step in the other lane costs — which, for algorithms whose frames mean completely different things, it does not. This view fixes both: every lane sorts one shared array built from a named shape and a seed, every algorithm counts its own comparisons, reads, writes, auxiliary memory and recursion depth as it works, and the transport can advance the lanes by equal amounts of *work* rather than equal numbers of frames.",
+    howItWorks: [
+      "One input array is built from an input shape (random, nearly sorted, reversed, few unique, all equal, sawtooth, organ pipe) and a seed, then handed unchanged to every lane — so any difference you see is the algorithm, not the data.",
+      "Each algorithm reports its own counters as it runs, rather than having them inferred from what a frame happened to highlight. A comparison is a key comparison; a write is an array write; auxiliary memory is a high-water mark in elements; depth is the deepest the recursion actually went.",
+      "BY WORK sync spends the same number of operations (comparisons + writes) in every lane per tick, so a lane that costs less genuinely finishes earlier on screen. BY FRAME sync advances every lane one frame per tick, which is simpler but compares frames rather than work.",
+      "A lane that finishes early freezes on its final frame instead of vanishing, so the finished array sits next to the ones still churning.",
+      "The empirical complexity sweep runs each algorithm at ten sizes from 10 up to 5000 with frame recording switched off, and plots measured operations against n with n, n log n and n² fitted over the top. The slope of the measured curve on log-log axes is the growth exponent — a number, not a claim.",
+      "Colour-by-origin tints each bar by the index it started at. Two equal values look identical as bars, so this is the only way to see whether a sort kept tied elements in their original order — the definition of stability.",
+    ],
+    useCases: [
+      "Seeing insertion sort beat quick sort on nearly-sorted input, which the asymptotic notation alone will never tell you.",
+      "Watching Lomuto quick sort collapse to O(n²) on already-sorted data, then fixing it by switching the pivot rule to median-of-three.",
+      "Comparing shell sort's gap sequences — same algorithm, same input, visibly different curves.",
+      "Demonstrating stability concretely: merge, insertion, bubble and radix sort keep tied elements in order; selection, shell, heap and quick sort do not.",
+      "Checking a textbook complexity claim against measured counts instead of taking it on faith.",
+    ],
+    advantages: [
+      "The numbers are produced by the algorithms themselves, so they are exact rather than inferred from the animation.",
+      "The same seeded input rebuilds identically in anyone's browser, so a shared link is the same race.",
+      "The complexity sweep and the animation run the same algorithm body — one with frame recording on, one with it off — so the plot cannot drift away from what the bars show.",
+    ],
+    disadvantages: [
+      "Operation counts are not wall-clock time: cache behaviour, branch prediction and constant factors are invisible here, which is exactly why heap sort loses to quick sort in practice despite winning on paper.",
+      "The array on the race track is capped at 40 elements because that is what the bars can show; the interesting asymptotic behaviour only appears in the sweep, at sizes far past what can be animated.",
+      "Counting conventions are choices. A comparison here includes the two array reads it implies, and OPS means comparisons plus writes — defensible, but not the only defensible answer.",
+    ],
+  },
   linkedlist: {
     overview:
       "A linked list is a linear data structure made of nodes scattered anywhere in memory, each holding a value and a pointer (or two) to its neighbor(s). Unlike an array, elements aren't stored contiguously, so there's no single block of memory to resize — growing or shrinking the list is just a matter of relinking pointers.",

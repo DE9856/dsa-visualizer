@@ -1,45 +1,49 @@
+import { makeSort } from "../sortContext.js";
+
 // Comparison-based Counting Sort: instead of tallying frequencies by value
 // (which needs a range-sized aux array), for each element we *count* how many
-// elements are smaller than it via direct comparisons \u2014 that count is exactly
+// elements are smaller than it via direct comparisons — that count is exactly
 // the final index of the element in the sorted output. Ties are broken by
 // original position so equal elements keep stable order.
 // Indices into `pseudocode` below — the line each frame is executing.
 const LINE = { COUNT: 3, PLACE: 6, DONE: null };
 
-function run(input) {
-  const arr = [...input];
-  const n = arr.length;
-  const steps = [];
-  const sortedSet = new Set();
-
+const { run, count } = makeSort((ctx) => {
+  const { a, tags, n } = ctx;
   const counts = new Array(n).fill(0);
+  // The rank array and the output array, both n long, are live at the same
+  // time during the placement phase.
+  ctx.m.aux(2 * n);
 
   // Phase 1: for every element, compare it against every other element to
   // work out how many belong before it in the final sorted order.
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
       if (i === j) continue;
-      steps.push({ array: [...arr], compare: [i, j], swap: [], sorted: [...sortedSet], line: LINE.COUNT });
-      if (arr[j] < arr[i] || (arr[j] === arr[i] && j < i)) {
-        counts[i]++;
-      }
+      // Tie-breaking on the original index costs no key comparison, so only
+      // the value test is counted.
+      const before = ctx.lt(j, i) || (a[j] === a[i] && j < i);
+      ctx.emit({ compare: [i, j], line: LINE.COUNT });
+      if (before) counts[i]++;
     }
   }
 
   // Phase 2: place every element directly at its computed index.
-  const output = new Array(n);
+  const outputV = new Array(n);
+  const outputT = new Array(n);
+  ctx.m.read(n);
   for (let i = 0; i < n; i++) {
-    output[counts[i]] = arr[i];
+    outputV[counts[i]] = a[i];
+    outputT[counts[i]] = tags[i];
   }
   for (let k = 0; k < n; k++) {
-    arr[k] = output[k];
-    sortedSet.add(k);
-    steps.push({ array: [...arr], compare: [], swap: [k], sorted: [...sortedSet], line: LINE.PLACE });
+    ctx.put(k, outputV[k], outputT[k]);
+    ctx.markSorted(k);
+    ctx.emit({ swap: [k], line: LINE.PLACE });
   }
 
-  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet], line: LINE.DONE });
-  return steps;
-}
+  ctx.emit({ line: LINE.DONE });
+});
 
 export const comparisonCountingSort = {
   key: "comparisonCounting",
@@ -79,5 +83,11 @@ export const comparisonCountingSort = {
     "for i in 0..n:",
     "  output[count[i]] = a[i]",
   ],
+  // Whether equal elements keep their original relative order. The
+  // stability view proves or disproves this on screen.
+  stable: true,
   run,
+  // Same body as run(), with frame recording switched off — what the
+  // empirical-complexity sweep calls.
+  count,
 };

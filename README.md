@@ -22,6 +22,9 @@ An interactive **Data Structures & Algorithms Visualizer** built with **React + 
 - Counting Sort (Comparison)
 - Radix Sort
 
+Quick Sort can use a first, last, median-of-three or random pivot, and Shell Sort can use
+the Shell, Knuth or Sedgewick gap sequence — same algorithm, visibly different curves.
+
 #### Searching Algorithms
 - Linear Search
 - Binary Search
@@ -29,13 +32,35 @@ An interactive **Data Structures & Algorithms Visualizer** built with **React + 
 - Interpolation Search
 - Exponential Search
 
+#### Race & Compare
+
+Two to four sorting algorithms on the same input, under one transport, with a live
+scoreboard and an empirical complexity plot:
+
+- **Race mode** — 2–4 canvases side by side over one shared array; a lane that finishes
+  early freezes on its last frame.
+- **Two sync modes** — advance every lane one *frame* per tick, or spend the same number
+  of *operations* in every lane per tick. The second is the fair one: a bubble sort frame
+  is one comparison while a merge sort frame can be a whole write.
+- **Real metrics** — comparisons, array reads, array writes, auxiliary-memory high-water
+  mark and maximum recursion depth, counted by each algorithm as it runs rather than
+  inferred from what a frame happens to highlight.
+- **Input shapes** — random, nearly sorted, already sorted, reversed, few unique, all
+  equal, sawtooth and organ pipe, built from a seed so a shared link is the same race.
+- **Empirical complexity** — sweeps n from 10 to 5000 with frame recording switched off
+  and plots measured operations against n, with n, n log n and n² fitted over the top and
+  the measured growth exponent for each algorithm.
+- **Stability demo** — tints every bar by the index it started at, so tied elements that
+  came out reordered are visible (and marked) rather than hidden behind equal values.
+
 ---
 
 ### 📚 Data Structures
 
 The visualizer also supports interactive operations for:
 
-- 🌳 Trees (Binary Tree, BST, AVL, Threaded)
+- 🌳 Trees (Binary Tree, BST, AVL, Threaded) — plus **Balance & Height**, a BST/AVL/2-3
+  comparison on one key sequence
 - 🌲 2-3 Trees
 - ⛰️ Heaps (max & min, sift up/down)
 - 🔤 Tries (prefix tree & autocomplete)
@@ -106,6 +131,10 @@ src/
 ├── algorithms/
 │   ├── sorting/            one file per sorting algorithm
 │   ├── searching/          one file per searching algorithm
+│   ├── metrics.js          the operation counters every sort reports
+│   ├── sortContext.js      the run()/count() pair each sort is written against
+│   ├── stability.js        did equal elements keep their original order?
+│   ├── complexity.js       the empirical n-sweep and its curve fits
 │   ├── stepUtils.js
 │   └── index.js            algorithm registry
 │
@@ -118,7 +147,7 @@ src/
 │   ├── polynomial/
 │   ├── queue/
 │   ├── stack/
-│   ├── tree/
+│   ├── tree/               (compare.js: BST vs AVL vs 2-3 on one key order)
 │   ├── trie/
 │   ├── twoThreeTree/
 │   └── unionFind/
@@ -165,6 +194,9 @@ The address bar always holds a link to what's on screen, and **SHARE** in the to
 copies it. Open a link and you land straight in the visualizer with the data loaded:
 
 ```
+#v=race&algos=insertion,merge,quick&sh=nearly&n=24&sd=7&sy=op
+#v=treecompare&ord=sorted&n=15&sd=7
+#v=sorting&algo=quick&sh=sorted&sd=7&q=quick.pivot:median3
 #v=tree&type=avl&a=30,20,10,25,40,50
 #v=graph&w=1&g=A,B,C,D&e=A-B(5),B-C(2),C-D(7),A-D
 #v=graph&g=A,B,C&e=A-B,B-C&xy=A:0.2:0.15,C:0.75:0.8
@@ -201,9 +233,30 @@ sideways. See
 - A recursion tree under the bars for merge and quick sort, with everything outside the
   active partition dimmed
 - Pause, Resume, Reset and Replay
-- Live comparison and swap counters
+- Live comparison, read, write, auxiliary-memory and recursion-depth counters, reported
+  by the algorithms themselves
+- Eight input shapes (random, nearly sorted, sorted, reversed, few unique, all equal,
+  sawtooth, organ pipe)
+- Pivot and gap-sequence variants for quick and shell sort
+- Colour-by-origin, which turns stability into something you can see
 - Complexity information
 - Pseudocode display
+
+### Balance & Height (trees)
+
+- BST, AVL and 2-3 tree built from the same keys in the same order, one insert per tick
+- Six insertion orders: sorted, reversed, random, alternating ends, median-first, sawtooth
+- Live height, key comparisons and rotations/splits, with each structure's guaranteed
+  height bound alongside
+- A sweep of height (or comparisons) against n up to 1600 keys, plotted with log₂n, log₃n
+  and n overlays
+
+### Race & Compare
+
+- 2–4 sorting algorithms side by side on one shared input
+- Sync by frame index or by work done
+- A live scoreboard of every counter, with the leader marked
+- An empirical complexity sweep to n = 5000, plotted against n, n log n and n²
 
 ### Searching
 

@@ -1,6 +1,9 @@
 import { isLeaf } from "../dataStructures/twoThreeTree/helpers";
 import { INITIAL_CAPACITY as HASH_INITIAL_CAPACITY } from "../dataStructures/hashTable/helpers";
 import { parseWordList } from "../dataStructures/trie/helpers";
+import { ALGO_MAP, SORT_KEYS } from "../algorithms";
+import { DISTRIBUTION_KEYS } from "./distributions";
+import { ORDER_KEYS } from "../dataStructures/tree/compare";
 
 /**
  * URL state — the current topic and its data round-trip through the location
@@ -10,6 +13,9 @@ import { parseWordList } from "../dataStructures/trie/helpers";
  * shared link stays readable and hand-editable:
  *
  *   #v=sorting&algo=quick&a=5,3,8,1
+ *   #v=sorting&algo=quick&sh=sorted&n=18&sd=7&q=quick.pivot:median3
+ *   #v=race&algos=insertion,merge,quick&sh=nearly&n=24&sd=7&sy=op
+ *   #v=treecompare&ord=sorted&n=15&sd=7&st=1
  *   #v=searching&algo=binary&a=5,3,8,1&t=8
  *   #v=linkedlist&type=doubly&a=5,12,3
  *   #v=tree&type=avl&a=50,30,70
@@ -31,6 +37,8 @@ import { parseWordList } from "../dataStructures/trie/helpers";
 const VIEWS = [
   "sorting",
   "searching",
+  "race",
+  "treecompare",
   "linkedlist",
   "polynomial",
   "stack",
@@ -56,6 +64,7 @@ const HEAP_KINDS = ["max", "min"];
 // Values are capped to the same limits the sidebar parsers use, so a
 // hand-edited link can't build something the app wouldn't let you type.
 const MAX_VALUES = 40;
+const MAX_LANES = 4;
 const MAX_TEXT = 600;
 
 // encodeURIComponent escapes plenty that is perfectly legal in a fragment.
@@ -239,13 +248,83 @@ export function parseSharedVertices(text) {
     .slice(0, MAX_VALUES);
 }
 
+/**
+ * Variant choices, qualified by algorithm so one field covers both the single
+ * view (one algorithm) and the race (up to four): "quick.pivot:median3".
+ */
+function serializeVariants(variants) {
+  return Object.entries(variants || {})
+    .flatMap(([algoKey, chosen]) =>
+      Object.entries(chosen || {}).map(([variantKey, value]) => `${algoKey}.${variantKey}:${value}`)
+    )
+    .join(",");
+}
+
+/**
+ * Parses the variant field. Only choices the registry actually declares
+ * survive, so a hand-edited link can't name a pivot rule quick sort doesn't
+ * have — it just falls back to the default.
+ */
+export function parseSharedVariants(text) {
+  const out = {};
+  String(text || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, MAX_VALUES)
+    .forEach((token) => {
+      const match = token.match(/^([A-Za-z]+)\.([A-Za-z]+):([A-Za-z0-9]+)$/);
+      if (!match) return;
+      const [, algoKey, variantKey, value] = match;
+      const variant = ALGO_MAP[algoKey]?.variants?.find((v) => v.key === variantKey);
+      if (!variant || !variant.options.some((o) => o.key === value)) return;
+      out[algoKey] = { ...(out[algoKey] || {}), [variantKey]: value };
+    });
+  return out;
+}
+
 /** The hash fields describing what the given view currently holds. */
 function fieldsFor(view, s) {
   switch (view) {
+    // The array travels literally, since that is the exact data someone meant
+    // to share. The shape and seed ride along anyway so the sidebar comes back
+    // saying what the array *is*, and so NEW ARRAY re-rolls the same shape.
     case "sorting":
-      return { v: view, algo: s.v.algo, a: s.v.array.join(",") };
+      return {
+        v: view,
+        algo: s.v.algo,
+        a: s.v.array.join(","),
+        sh: s.v.distribution === "custom" ? undefined : s.v.distribution,
+        sd: s.v.distribution === "custom" ? undefined : s.v.seed,
+        q: serializeVariants(s.v.variants),
+        st: s.v.showTags ? "1" : undefined,
+      };
     case "searching":
-      return { v: view, algo: s.v.algo, a: s.v.array.join(","), t: s.v.target ?? undefined };
+      return {
+        v: view,
+        algo: s.v.algo,
+        a: s.v.array.join(","),
+        t: s.v.target ?? undefined,
+        sh: s.v.distribution === "custom" ? undefined : s.v.distribution,
+        sd: s.v.distribution === "custom" ? undefined : s.v.seed,
+      };
+    // The keys are a permutation of 1..n decided by the order and (for the
+    // random one) the seed, so naming those three rebuilds them exactly.
+    case "treecompare":
+      return { v: view, ord: s.tcmp.order, n: s.tcmp.size, sd: s.tcmp.seed };
+    // A race carries no array: the shape and the seed rebuild it exactly, and
+    // listing 40 values would drown out the part that matters (which sorts).
+    case "race":
+      return {
+        v: view,
+        algos: s.race.algos.join(","),
+        sh: s.race.distribution,
+        n: s.race.size,
+        sd: s.race.seed,
+        sy: s.race.syncMode,
+        st: s.race.showTags ? "1" : undefined,
+        q: serializeVariants(s.race.variants),
+      };
     case "linkedlist":
       return { v: view, type: s.ll.listType, a: nodeValues(s.ll.list) };
     case "polynomial":
@@ -333,6 +412,32 @@ export function readSharedState() {
     if (values.length >= 2) state.values = values;
     const target = Number(fields.t);
     if (fields.t !== undefined && !Number.isNaN(target)) state.target = target;
+    if (DISTRIBUTION_KEYS.includes(fields.sh)) state.distribution = fields.sh;
+    const seed = Number(fields.sd);
+    if (Number.isInteger(seed) && seed >= 0) state.seed = seed;
+    if (fields.q) state.variants = parseSharedVariants(fields.q);
+    state.showTags = fields.st === "1";
+  } else if (view === "race") {
+    // Lanes must be sorting algorithms that can actually race; useRace tops
+    // the list back up if a link names too few.
+    const algos = parseSharedVertices(fields.algos || "")
+      .filter((key) => SORT_KEYS.includes(key))
+      .slice(0, MAX_LANES);
+    if (algos.length) state.algos = algos;
+    if (DISTRIBUTION_KEYS.includes(fields.sh)) state.distribution = fields.sh;
+    const size = Number(fields.n);
+    if (Number.isInteger(size) && size >= 2 && size <= MAX_VALUES) state.size = size;
+    const seed = Number(fields.sd);
+    if (Number.isInteger(seed) && seed >= 0) state.seed = seed;
+    if (fields.sy === "op" || fields.sy === "frame") state.syncMode = fields.sy;
+    if (fields.q) state.variants = parseSharedVariants(fields.q);
+    state.showTags = fields.st === "1";
+  } else if (view === "treecompare") {
+    if (ORDER_KEYS.includes(fields.ord)) state.order = fields.ord;
+    const size = Number(fields.n);
+    if (Number.isInteger(size) && size >= 2 && size <= MAX_VALUES) state.size = size;
+    const seed = Number(fields.sd);
+    if (Number.isInteger(seed) && seed >= 0) state.seed = seed;
   } else if (view === "polynomial") {
     if (fields.p) state.poly = fields.p.slice(0, MAX_TEXT);
   } else if (view === "unionfind") {

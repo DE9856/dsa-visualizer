@@ -1,12 +1,18 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { ALGO_MAP, SORT_KEYS, SEARCH_KEYS, getSteps } from "../algorithms";
-import { randomArray } from "../utils/randomArray";
+import { ALGO_MAP, SORT_KEYS, SEARCH_KEYS, getSteps, resolveVariants } from "../algorithms";
+import { buildInput, DISTRIBUTION_KEYS, DISTRIBUTION_MAP } from "../utils/distributions.js";
+import { randomSeed } from "../utils/rng.js";
 import { useStepPlayer } from "./useStepPlayer.js";
 import { useHistory } from "./useHistory.js";
 
+// A hand-typed array isn't any of the named shapes, so it gets its own label
+// rather than leaving the picker claiming something untrue.
+export const CUSTOM_DISTRIBUTION = "custom";
+
 /**
  * `init` is the setup decoded from a shared link ({ view, algo, values,
- * target }); anything missing or unrecognised falls back to the defaults.
+ * target, distribution, seed, variants }); anything missing or unrecognised
+ * falls back to the defaults.
  */
 export function useVisualizer(init) {
   const initialCategory = init?.view === "searching" ? "searching" : "sorting";
@@ -17,24 +23,43 @@ export function useVisualizer(init) {
       : initialCategory === "searching"
         ? SEARCH_KEYS[0]
         : SORT_KEYS[0];
+  const initialSeed = init?.seed ?? 7;
+  const initialSize = init?.values?.length ?? 18;
+  // Values in the link win: they are the exact array someone meant to share,
+  // which a distribution name plus a seed only approximates.
+  const initialDistribution = init?.values
+    ? CUSTOM_DISTRIBUTION
+    : DISTRIBUTION_KEYS.includes(init?.distribution)
+      ? init.distribution
+      : "random";
 
   const [category, setCategoryState] = useState(initialCategory);
   const [algo, setAlgo] = useState(initialAlgo);
-  const [size, setSize] = useState(init?.values?.length ?? 18);
-  const [array, setArray] = useState(() => init?.values ?? randomArray(18));
+  const [size, setSize] = useState(initialSize);
+  const [seed, setSeed] = useState(initialSeed);
+  const [distribution, setDistributionState] = useState(initialDistribution);
+  const [variants, setVariantsState] = useState(() => init?.variants || {});
+  const [showTags, setShowTags] = useState(init?.showTags ?? false);
+  const [array, setArray] = useState(
+    () => init?.values ?? buildInput(initialDistribution, initialSize, initialSeed)
+  );
   const [target, setTarget] = useState(init?.target ?? null);
   const [customInput, setCustomInput] = useState("");
 
   const meta = ALGO_MAP[algo];
+  const options = useMemo(
+    () => ({ ...resolveVariants(algo, variants[algo]), seed }),
+    [algo, variants, seed]
+  );
 
   const steps = useMemo(() => {
     if (meta.category === "searching") {
       const t = target === null ? array[Math.floor(Math.random() * array.length)] : target;
-      return getSteps(algo, array, t);
+      return getSteps(algo, array, t, options);
     }
-    return getSteps(algo, array);
+    return getSteps(algo, array, undefined, options);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [algo, array, target]);
+  }, [algo, array, target, options]);
 
   const player = useStepPlayer(steps.length);
   const { setStepIdx, setPlaying, pause } = player;
@@ -42,13 +67,17 @@ export function useVisualizer(init) {
   // Steps here are derived from the algorithm and the data, so restoring the
   // document is enough — the run recomputes itself.
   const history = useHistory(
-    () => ({ category, algo, size, array, target }),
+    () => ({ category, algo, size, array, target, seed, distribution, variants, showTags }),
     (doc) => {
       setCategoryState(doc.category);
       setAlgo(doc.algo);
       setSize(doc.size);
       setArray(doc.array);
       setTarget(doc.target);
+      setSeed(doc.seed);
+      setDistributionState(doc.distribution);
+      setVariantsState(doc.variants);
+      setShowTags(doc.showTags);
       setPlaying(false);
       setStepIdx(0);
     }
@@ -59,6 +88,20 @@ export function useVisualizer(init) {
     setPlaying(false);
     setStepIdx(0);
   }, [steps, setPlaying, setStepIdx]);
+
+  // Every path that builds fresh data goes through here, so the distribution,
+  // the size and the target can never disagree with the array on screen.
+  const regenerate = useCallback(
+    (nextSize, nextDistribution, nextSeed) => {
+      const next = buildInput(nextDistribution, nextSize, nextSeed);
+      setArray(next);
+      if (ALGO_MAP[algo].category === "searching") {
+        setTarget(next[Math.floor(Math.random() * next.length)]);
+      }
+      return next;
+    },
+    [algo]
+  );
 
   const switchCategory = useCallback(
     (cat) => {
@@ -86,21 +129,50 @@ export function useVisualizer(init) {
 
   const handleShuffle = useCallback(() => {
     history.record();
-    const next = randomArray(size);
-    setArray(next);
-    if (meta.category === "searching") setTarget(next[Math.floor(Math.random() * next.length)]);
-  }, [size, meta.category, history]);
+    const nextSeed = randomSeed();
+    setSeed(nextSeed);
+    // Re-rolling a hand-typed array can only mean "give me random data
+    // again" — a custom array has no shape to re-roll.
+    const shape = distribution === CUSTOM_DISTRIBUTION ? "random" : distribution;
+    if (shape !== distribution) setDistributionState(shape);
+    regenerate(size, shape, nextSeed);
+  }, [size, distribution, regenerate, history]);
 
   const handleSizeChange = useCallback(
     (n) => {
       history.record();
       setSize(n);
-      const next = randomArray(n);
-      setArray(next);
-      if (meta.category === "searching") setTarget(next[Math.floor(Math.random() * next.length)]);
+      const shape = distribution === CUSTOM_DISTRIBUTION ? "random" : distribution;
+      if (shape !== distribution) setDistributionState(shape);
+      regenerate(n, shape, seed);
     },
-    [meta.category, history]
+    [distribution, seed, regenerate, history]
   );
+
+  const setDistribution = useCallback(
+    (key) => {
+      if (!DISTRIBUTION_KEYS.includes(key)) return;
+      history.record();
+      pause();
+      setDistributionState(key);
+      regenerate(size, key, seed);
+    },
+    [size, seed, regenerate, pause, history]
+  );
+
+  const setVariant = useCallback(
+    (variantKey, value) => {
+      history.record();
+      pause();
+      setVariantsState((prev) => ({ ...prev, [algo]: { ...(prev[algo] || {}), [variantKey]: value } }));
+    },
+    [algo, pause, history]
+  );
+
+  const toggleTags = useCallback(() => {
+    history.record();
+    setShowTags((s) => !s);
+  }, [history]);
 
   const applyCustomArray = useCallback(() => {
     const parsed = customInput
@@ -112,6 +184,7 @@ export function useVisualizer(init) {
       history.record();
       setArray(parsed);
       setSize(parsed.length);
+      setDistributionState(CUSTOM_DISTRIBUTION);
       if (meta.category === "searching") setTarget(parsed[Math.floor(Math.random() * parsed.length)]);
     }
     setCustomInput("");
@@ -138,6 +211,12 @@ export function useVisualizer(init) {
     size,
     array,
     target,
+    seed,
+    distribution,
+    distributionMeta: DISTRIBUTION_MAP[distribution],
+    variants,
+    options,
+    showTags,
     customInput,
     setCustomInput,
     steps,
@@ -148,6 +227,9 @@ export function useVisualizer(init) {
     switchAlgo,
     handleShuffle,
     handleSizeChange,
+    setDistribution,
+    setVariant,
+    toggleTags,
     applyCustomArray,
     setRandomTarget,
     undo: history.undo,

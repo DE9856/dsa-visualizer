@@ -3298,3 +3298,789 @@ input[type="range"] {
     height: 20px;
   }
 }
+/* ---------- comparison: shared form bits ---------- */
+
+/* A native select inherits the OS popup, which is white on every platform
+   here. Styling the closed control is ours; the open list is the browser's,
+   so the option colours are set too. */
+select.text-input {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  padding-right: 26px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-dim) 50%),
+    linear-gradient(135deg, var(--text-dim) 50%, transparent 50%);
+  background-position: calc(100% - 14px) 15px, calc(100% - 9px) 15px;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+select.text-input option {
+  background: #171a22;
+  color: var(--text);
+}
+
+.label--tight {
+  margin-bottom: 5px;
+}
+
+/* Explains what a control means without making the sidebar a wall of prose:
+   small, dim, and only ever one short paragraph. */
+.sidebar__note {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-dim);
+  margin: 8px 0 0;
+}
+
+.sidebar__section--first {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.algo-row:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.algo-row:disabled:hover {
+  color: var(--text-dim);
+  background: transparent;
+}
+
+/* A segmented two-or-three-way switch. Used wherever the choice is between
+   named modes rather than a value on a range. */
+.seg {
+  display: flex;
+  gap: 4px;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 3px;
+}
+
+.seg__btn {
+  flex: 1;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  padding: 6px 4px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.seg__btn:hover {
+  color: var(--text);
+}
+
+.seg__btn.active {
+  background: var(--primary-dim);
+  color: var(--primary);
+}
+
+/* A tie that came out reordered. Marked on the bar rather than only in the
+   scoreboard, so the claim points at the elements it is about. */
+.bar--unstable {
+  outline: 1.5px dashed var(--red);
+  outline-offset: 1px;
+}
+
+.canvas__verdict {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  margin-top: 12px;
+  color: var(--text-dim);
+}
+
+.canvas__verdict.ok {
+  color: var(--green);
+}
+
+.canvas__verdict.bad {
+  color: var(--red);
+}
+
+/* ---------- race track ---------- */
+
+.race {
+  padding: 16px 18px 18px;
+}
+
+.race__note {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.race__note-sep {
+  opacity: 0.4;
+}
+
+/* Two lanes sit side by side; three or four wrap into a 2x2. Below 900px
+   they stack, because a bar chart squeezed into a quarter of a phone is not
+   a comparison of anything. */
+.race__grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.race__grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .race__grid,
+  .race__grid--2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.lane {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px 8px;
+  background: var(--panel-alt);
+  min-width: 0;
+  transition: border-color var(--step-anim) ease;
+}
+
+.lane--leader {
+  border-color: rgba(255, 138, 61, 0.45);
+}
+
+.lane--done {
+  background: rgba(95, 214, 160, 0.05);
+}
+
+.lane__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  min-height: 20px;
+}
+
+.lane__name {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lane__variant {
+  font-size: 10px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lane__spacer {
+  flex: 1;
+}
+
+.lane__badge {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: var(--green);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.lane__badge--leader {
+  color: var(--primary);
+}
+
+.lane__bars {
+  height: 150px;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Past about 28 elements the gaps are wider than the bars. */
+.lane__bars--compact {
+  gap: 1px;
+}
+
+.lane__foot {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.lane__foot .lcd {
+  font-size: 11px;
+}
+
+.lane__total {
+  margin-left: auto;
+  opacity: 0.7;
+}
+
+/* ---------- scoreboard ---------- */
+
+.scoreboard {
+  padding: 16px 18px 14px;
+}
+
+.scoreboard__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.scoreboard__head .label {
+  margin-bottom: 0;
+}
+
+.scoreboard__hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* One grid so the header and every row line up without a real table, which
+   would fight the phone layout below. The column count varies by comparison,
+   so StatBoard sets grid-template-columns inline. */
+.scoreboard__table {
+  display: grid;
+  gap: 2px 8px;
+  min-width: 0;
+}
+
+.scoreboard__row {
+  display: contents;
+}
+
+.scoreboard__cell {
+  position: relative;
+  padding: 7px 6px;
+  overflow: hidden;
+  border-radius: 6px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.scoreboard__row--head .scoreboard__cell {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  padding-bottom: 4px;
+  padding-top: 0;
+}
+
+.scoreboard__cell--name {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  line-height: 1.9;
+}
+
+.scoreboard__row--leader .scoreboard__cell--name {
+  color: var(--primary);
+}
+
+/* The magnitude bar sits behind the number rather than beside it: the value
+   is the thing being read, the fill is the thing being compared. */
+.scoreboard__fill {
+  position: absolute;
+  inset: 2px auto 2px 0;
+  border-radius: 4px;
+  opacity: 0.16;
+  transition: width var(--step-anim) ease;
+}
+
+.scoreboard__value {
+  position: relative;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.scoreboard__value em {
+  font-style: normal;
+  opacity: 0.45;
+}
+
+.scoreboard__cell--stable {
+  justify-content: flex-end;
+}
+
+.scoreboard__stable {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.scoreboard__stable--pending {
+  opacity: 0.5;
+}
+
+.scoreboard__stable--ok {
+  color: var(--green);
+}
+
+.scoreboard__stable--bad {
+  color: var(--red);
+}
+
+/* On a phone the grid becomes one block per algorithm: a seven-column table
+   at 360px would either scroll sideways (forbidden) or be unreadable. */
+@media (max-width: 760px) {
+  .scoreboard__table {
+    display: block;
+  }
+
+  .scoreboard__row--head {
+    display: none;
+  }
+
+  .scoreboard__row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    padding: 8px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .scoreboard__cell--name {
+    flex-basis: 100%;
+  }
+
+  .scoreboard__cell {
+    padding: 4px 6px;
+    background: var(--panel-alt);
+  }
+}
+
+/* Stacked, a cell has lost its column header, so it carries its own. */
+@media (max-width: 760px) {
+  .scoreboard__cell[data-label]::before {
+    content: attr(data-label);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 9px;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+    margin-right: 5px;
+    position: relative;
+  }
+}
+
+/* ---------- empirical complexity ---------- */
+
+.complexity {
+  padding: 0;
+}
+
+.complexity__toggle {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 16px 18px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+}
+
+.complexity__title {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.complexity__sub {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.complexity__chev {
+  margin-left: auto;
+  color: var(--text-dim);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.complexity__chev.open {
+  transform: rotate(180deg);
+}
+
+.complexity__body {
+  padding: 0 18px 18px;
+}
+
+.complexity__controls {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.complexity__control {
+  min-width: 170px;
+}
+
+.complexity__control--run {
+  min-width: 0;
+  margin-left: auto;
+}
+
+.complexity__progress {
+  margin-top: 12px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--panel-alt);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+}
+
+.complexity__progress::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--fraction);
+  background: var(--primary-dim);
+  transition: width 0.15s linear;
+}
+
+.complexity__progress .lcd {
+  position: relative;
+  font-size: 11px;
+}
+
+.complexity__stale,
+.complexity__empty {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  margin: 14px 0 0;
+}
+
+.complexity__stale {
+  color: var(--yellow);
+}
+
+/* The plot keeps its aspect ratio and scales down; it never forces the page
+   sideways. Shared by every comparison view through LineChart. */
+.chart {
+  margin-top: 14px;
+}
+
+.chart svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.chart__grid {
+  stroke: rgba(255, 255, 255, 0.07);
+  stroke-width: 1;
+}
+
+.chart__tick {
+  fill: var(--text-dim);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+}
+
+.chart__axis {
+  fill: var(--text-dim);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.chart__series {
+  fill: none;
+  stroke-width: 2;
+}
+
+.chart__overlay {
+  fill: none;
+  stroke-width: 1.2;
+  stroke-dasharray: 5 5;
+  opacity: 0.45;
+}
+
+.complexity__legend {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.complexity__legend-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  flex-wrap: wrap;
+}
+
+.complexity__legend-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.complexity__legend-row.active {
+  border-color: var(--border-strong);
+  background: var(--panel-alt);
+}
+
+.complexity__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.complexity__legend-name {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  color: var(--text);
+  min-width: 130px;
+}
+
+.complexity__legend-row .lcd {
+  font-size: 11px;
+}
+
+.complexity__legend-claim {
+  margin-left: auto;
+  opacity: 0.6;
+}
+
+.complexity__footnote {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  margin: 10px 0 0;
+}
+
+.complexity__footnote strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+@media (max-width: 760px) {
+  .complexity__control {
+    min-width: 100%;
+  }
+
+  .complexity__control--run {
+    margin-left: 0;
+  }
+
+  .complexity__legend-claim {
+    margin-left: 0;
+  }
+
+  /* A 820-wide plot at 360px is unreadable; it gets its own scroll box rather
+     than shrinking to nothing or pushing the page sideways. */
+  .chart {
+    overflow-x: auto;
+  }
+
+  .chart svg {
+    min-width: 520px;
+  }
+}
+
+/* The canvas is a fixed height with a flexible middle: notes above the bars
+   and the stability verdict below them used to be clipped by the panel's
+   overflow, because the bars claimed the full height regardless of what else
+   was in the box. */
+.canvas {
+  display: flex;
+  flex-direction: column;
+}
+
+.bars {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+
+.canvas__note,
+.canvas__verdict {
+  flex-shrink: 0;
+}
+
+/* Three lanes fit on one row on a desktop; the 2x2 fallback would leave a
+   conspicuous empty quarter. */
+.race__grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .race__grid--3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .race__grid--3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- tree comparison ---------- */
+
+.treecmp {
+  padding: 16px 18px 18px;
+}
+
+.treecmp__note {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.treecmp__note strong {
+  color: var(--primary);
+}
+
+/* The sequence itself, with the cursor on it — the insertion order is the
+   independent variable here, so it belongs on screen rather than only in the
+   sidebar. */
+.treecmp__keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 11px;
+  margin-bottom: 14px;
+}
+
+.treecmp__key {
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: var(--panel-alt);
+  color: var(--text-dim);
+  border: 1px solid transparent;
+  transition: all var(--step-anim) ease;
+}
+
+.treecmp__key.done {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.treecmp__key.next {
+  color: var(--primary);
+  border-color: rgba(255, 138, 61, 0.45);
+  background: var(--primary-dim);
+}
+
+.treecmp__grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .treecmp__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.treecmp__hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin: 12px 0 0;
+}
+
+.treelane {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px 4px;
+  background: var(--panel-alt);
+  min-width: 0;
+  transition: border-color var(--step-anim) ease;
+}
+
+.treelane--best {
+  border-color: rgba(255, 138, 61, 0.45);
+}
+
+.treelane__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 20px;
+}
+
+/* A lane wraps the real tree canvas rather than redrawing the tree, so the
+   picture is guaranteed to be the one the tree view would give you. The
+   canvas is a whole panel in its own right, which inside a lane has to stop
+   looking like one. */
+.treelane__canvas .panel {
+  background: none;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  border-radius: 0;
+  padding: 0;
+  height: auto;
+}
+
+.treelane__canvas .ll-message {
+  display: none;
+}
+
+.treelane__canvas .ll-empty {
+  min-height: 120px;
+  font-size: 10px;
+}

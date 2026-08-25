@@ -1,35 +1,27 @@
+import { makeSort } from "../sortContext.js";
+
 // Indices into `pseudocode` below — the line each frame is executing.
 const LINE = { COMPARE: 3, SWAP: 4, DONE: null };
 
-function run(input) {
-  const arr = [...input];
-  const n = arr.length;
-  const steps = [];
-  const sortedSet = new Set();
+const { run, count } = makeSort((ctx) => {
+  const { n } = ctx;
 
   for (let i = 0; i < n - 1; i++) {
     let minIdx = i;
     for (let j = i + 1; j < n; j++) {
-      steps.push({
-        array: [...arr],
-        compare: [minIdx, j],
-        swap: [],
-        pivot: minIdx,
-        sorted: [...sortedSet],
-        line: LINE.COMPARE,
-      });
-      if (arr[j] < arr[minIdx]) minIdx = j;
+      const smaller = ctx.lt(j, minIdx);
+      ctx.emit({ compare: [minIdx, j], pivot: minIdx, line: LINE.COMPARE });
+      if (smaller) minIdx = j;
     }
     if (minIdx !== i) {
-      [arr[i], arr[minIdx]] = [arr[minIdx], arr[i]];
-      steps.push({ array: [...arr], compare: [], swap: [i, minIdx], sorted: [...sortedSet], line: LINE.SWAP });
+      ctx.swap(i, minIdx);
+      ctx.emit({ swap: [i, minIdx], line: LINE.SWAP });
     }
-    sortedSet.add(i);
+    ctx.markSorted(i);
   }
-  sortedSet.add(n - 1);
-  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet], line: LINE.DONE });
-  return steps;
-}
+  ctx.markSorted(n - 1);
+  ctx.emit({ line: LINE.DONE });
+});
 
 export const selectionSort = {
   key: "selection",
@@ -68,5 +60,11 @@ export const selectionSort = {
     "    if a[j] < a[min]: min = j",
     "  swap(a[i], a[min])",
   ],
+  // Whether equal elements keep their original relative order. The
+  // stability view proves or disproves this on screen.
+  stable: false,
   run,
+  // Same body as run(), with frame recording switched off — what the
+  // empirical-complexity sweep calls.
+  count,
 };

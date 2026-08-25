@@ -1,11 +1,43 @@
-// Indices into `pseudocode` below — the line each frame is executing.
-const LINE = { COMPARE: 3, SWAP: 4, PLACE_PIVOT: 5, DONE: null };
+import { makeSort } from "../sortContext.js";
 
-function run(input) {
-  const arr = [...input];
-  const n = arr.length;
-  const steps = [];
-  const sortedSet = new Set();
+// Indices into `pseudocode` below — the line each frame is executing.
+const LINE = { PICK_PIVOT: 1, COMPARE: 4, SWAP: 5, PLACE_PIVOT: 6, DONE: null };
+
+/**
+ * Where the pivot comes from, given the inclusive range [l, r]. Lomuto
+ * partitioning below always partitions around a[r], so each strategy just
+ * says which index should be moved there first — one partition body, four
+ * wildly different curves.
+ */
+export const PIVOT_STRATEGIES = {
+  last: () => (ctx, l, r) => r,
+  first: () => (ctx, l, r) => l,
+  // The classic defence against sorted input: the median of three samples is
+  // very unlikely to be an extreme, so the partition rarely degenerates.
+  median3: () => (ctx, l, r) => {
+    const mid = Math.floor((l + r) / 2);
+    const a = ctx.a;
+    ctx.m.read(3);
+    const trio = [
+      [a[l], l],
+      [a[mid], mid],
+      [a[r], r],
+    ];
+    // Three comparisons to order three samples.
+    ctx.m.compareValues();
+    ctx.m.compareValues();
+    ctx.m.compareValues();
+    trio.sort((x, y) => x[0] - y[0]);
+    return trio[1][1];
+  },
+  // Randomising the pivot makes the O(n²) case depend on the seed rather
+  // than on the input, which is why it survives adversarial data.
+  random: () => (ctx, l, r) => l + Math.floor(ctx.rand() * (r - l + 1)),
+};
+
+const { run, count } = makeSort((ctx) => {
+  const { n } = ctx;
+  const choosePivot = (PIVOT_STRATEGIES[ctx.options.pivot] || PIVOT_STRATEGIES.last)();
 
   // Every qs() call is recorded as it is entered, so the UI can draw the
   // recursion tree. One array, shared by reference across every frame;
@@ -19,51 +51,51 @@ function run(input) {
 
   // Frames name the subrange (inclusive) and depth of the call they came
   // from, which is what lets the bars outside it dim.
-  const frame = (fields, l, r, depth, callId) => ({
-    ...fields,
-    array: [...arr],
-    sorted: [...sortedSet],
-    range: [l, r],
-    depth,
-    callId,
-    calls,
-    callCount: calls.length,
-  });
+  const at = (fields, l, r, depth, callId) =>
+    ctx.emit({ ...fields, range: [l, r], depth, callId, calls, callCount: calls.length });
 
   function qs(l, r, depth, parent) {
     // An empty side of a partition isn't a call worth drawing.
     if (l > r) return;
+    ctx.m.atDepth(depth);
     const id = enterCall(l, r, depth, parent);
     if (l === r) {
-      sortedSet.add(l);
+      ctx.markSorted(l);
       return;
     }
-    const at = (fields) => steps.push(frame(fields, l, r, depth, id));
 
-    const pivotVal = arr[r];
+    const chosen = choosePivot(ctx, l, r);
+    if (chosen !== r) {
+      ctx.swap(chosen, r);
+      at({ swap: [chosen, r], pivot: r, line: LINE.PICK_PIVOT }, l, r, depth, id);
+    }
+
+    ctx.m.read();
+    const pivotVal = ctx.a[r];
     let i = l - 1;
     for (let j = l; j < r; j++) {
-      at({ compare: [j, r], swap: [], pivot: r, line: LINE.COMPARE });
-      if (arr[j] < pivotVal) {
+      ctx.m.read();
+      const below = ctx.ltValues(ctx.a[j], pivotVal);
+      at({ compare: [j, r], pivot: r, line: LINE.COMPARE }, l, r, depth, id);
+      if (below) {
         i++;
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-        at({ compare: [], swap: [i, j], pivot: r, line: LINE.SWAP });
+        ctx.swap(i, j);
+        at({ swap: [i, j], pivot: r, line: LINE.SWAP }, l, r, depth, id);
       }
     }
-    [arr[i + 1], arr[r]] = [arr[r], arr[i + 1]];
-    at({ compare: [], swap: [i + 1, r], line: LINE.PLACE_PIVOT });
-    sortedSet.add(i + 1);
+    ctx.swap(i + 1, r);
+    at({ swap: [i + 1, r], line: LINE.PLACE_PIVOT }, l, r, depth, id);
+    ctx.markSorted(i + 1);
     qs(l, i, depth + 1, id);
     qs(i + 2, r, depth + 1, id);
   }
 
   qs(0, n - 1, 0, null);
-  for (let x = 0; x < n; x++) sortedSet.add(x);
+  ctx.markAll();
   // The run is over: the whole array is the active range again, so nothing
   // is left dimmed.
-  steps.push(frame({ compare: [], swap: [], line: LINE.DONE }, 0, n - 1, 0, 0));
-  return steps;
-}
+  at({ line: LINE.DONE }, 0, n - 1, 0, 0);
+});
 
 export const quickSort = {
   key: "quick",
@@ -97,6 +129,7 @@ export const quickSort = {
   ],
   pseudocode: [
     "quickSort(l, r):",
+    "  swap(choosePivot(l, r), r)",
     "  pivot = a[r]; i = l-1",
     "  for j in l..r:",
     "    if a[j] < pivot:",
@@ -104,5 +137,24 @@ export const quickSort = {
     "  swap(a[i+1], a[r])",
     "  quickSort(l, i); quickSort(i+2, r)",
   ],
+  // Whether equal elements keep their original relative order. The
+  // stability view proves or disproves this on screen.
+  stable: false,
+  variants: [
+    {
+      key: "pivot",
+      label: "PIVOT",
+      default: "last",
+      options: [
+        { key: "last", label: "Last", desc: "Lomuto's textbook pivot. Degenerates to O(n²) on sorted or reversed input." },
+        { key: "first", label: "First", desc: "The mirror image of Last, and just as fragile on ordered input." },
+        { key: "median3", label: "Median of 3", desc: "Median of first, middle and last. Turns the sorted-input worst case back into O(n log n)." },
+        { key: "random", label: "Random", desc: "Drawn from the run's seed, so the worst case depends on the seed rather than the data." },
+      ],
+    },
+  ],
   run,
+  // Same body as run(), with frame recording switched off — what the
+  // empirical-complexity sweep calls.
+  count,
 };

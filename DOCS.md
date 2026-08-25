@@ -153,8 +153,8 @@ the page, or with the cursor in a sidebar field, is left alone as an ordinary te
 
 ### Flow
 
-1. **Category picker** — five families (Arrays, Linked Lists, Stacks & Queues, Trees,
-   Graphs). Pick a topic to enter.
+1. **Category picker** — six families (Arrays, Linked Lists, Stacks & Queues, Trees,
+   Hashing, Graphs). Pick a topic to enter.
 2. **Visualizer** — sidebar on the left, canvas + transport + explanation on the right.
    The top bar switches topics at any time; clicking the `DSA://VISUALIZER` title
    returns to the category picker.
@@ -164,7 +164,7 @@ the page, or with the cursor in a sidebar field, is left alone as an ordinary te
 Every view shares the same transport bar:
 
 ```
-[↺] [⏮] [▶] [⏭]   SPEED ▬▬▬▬●▬▬  3.3/s   STEP 24/242   CMP 13  SWP 11   [⌨]
+[↺] [⏮] [▶] [⏭]   SPEED ▬▬▬▬●▬▬  3.3/s   STEP 24/242   CMP 13 RD 26 WR 11   [⌨]
 ────────────────────────●──────────────────────────────────────────────────
                     (draggable timeline)
 ```
@@ -176,7 +176,7 @@ Every view shares the same transport bar:
 | ▶ / ⏸ | Play or pause. Turns into a replay icon once the run finishes. |
 | SPEED | 1–100. The number beside it is the real rate in steps per second (~1.4/s at the slowest, 25/s at the fastest). |
 | STEP | Current step and total step count for the run. |
-| CMP / SWP | Sorting and searching only: cumulative comparisons and swaps (writes, for searching). |
+| CMP / RD / WR / AUX / DEP | Sorting only: cumulative key comparisons, array reads, array writes, auxiliary-memory high-water mark (elements) and deepest recursion, counted by the algorithm itself. AUX and DEP are omitted for an algorithm they are structurally zero for. Searching shows CMP / WRT, still derived from the frames. |
 | Timeline | Drag or click to jump anywhere in the run. Arrow keys work when it's focused. |
 | ⌨ | Toggles the shortcut cheat sheet. |
 
@@ -197,6 +197,143 @@ length, so it appears almost at once; quick sort discovers its subranges as pivo
 and the tree grows with them. Feed quick sort an already-sorted array and the staircase
 of `0–22`, `0–21`, `0–20`… is the O(n²) worst case, drawn.
 
+### The race view
+
+**ARRAYS / Race & Compare** puts two to four sorting algorithms side by side on one shared
+input, under one transport.
+
+**One input, built from a shape and a seed.** The sidebar picks from eight shapes —
+random, nearly sorted, already sorted, reversed, few unique, all equal, sawtooth, organ
+pipe — and the array is built once and handed unchanged to every lane, so any difference
+you see is the algorithm rather than the data. The builders are pure functions of
+`(n, seed)`, which is why a race link rebuilds the same race in someone else's browser and
+why NEW DATA only has to change the seed.
+
+The shapes are where the interesting comparisons live. On nearly-sorted input at n = 24,
+insertion sort finishes in 25 operations, merge sort in 165 and quick sort in 872 — the
+opposite of the ordering their average-case complexities imply.
+
+**Two ways to sync the lanes.**
+
+| Mode | A tick means |
+| --- | --- |
+| BY FRAME | Every lane advances one frame. Simple, but it compares frames rather than work: a bubble sort frame is one comparison, a merge sort frame can be a whole write. |
+| BY WORK | Every lane spends the same number of operations (comparisons + writes). The lane that costs less genuinely finishes earlier on screen. |
+
+BY WORK is the default and the fair one. A lane that reaches its end freezes on its last
+frame rather than blanking or looping — the finished array sitting beside one still being
+churned is the comparison.
+
+**The scoreboard** under the track shows all five counters live, each cell filling against
+the largest final value in its column, so you can watch one lane overtake another. The
+lane that finishes in the fewest operations is marked FEWEST OPS; an exact tie leaves no
+winner rather than picking one arbitrarily.
+
+**Colour by origin** tints every bar by the index it started at. Pair it with FEW UNIQUE
+or ALL EQUAL: the values are then identical, so the colours are the only way to see
+whether tied elements came out in their original order. Displaced elements get a dashed
+red outline once the run finishes, and the scoreboard says how many of the tied elements
+moved. Stability is checked run by run — within a stretch of equal values a stable sort
+must leave the tags ascending — so it is a measurement of *this* run, not a repeat of the
+algorithm's metadata. An input with no ties says so instead of claiming a pass it never
+earned.
+
+### Empirical complexity
+
+The panel below the scoreboard measures growth rather than asserting it.
+
+Press RUN SWEEP and each selected algorithm is run at 10, 20, 40, 80, 160, 320, 640, 1280,
+2560 and 5000 elements (capped by the MAX n setting) with frame recording switched off,
+counting operations without drawing anything. The results are plotted as measured
+operations against n, with n, n log n and n² fitted over the top by least squares on their
+constant factor alone — the shape is fixed by the model, so a model that fits lands on the
+data at every n and one that doesn't can't be rescued by scaling. Click a legend row to
+anchor those reference curves to a different algorithm.
+
+Log-log is the default because it is the only view in which the claim is checkable by eye:
+a power law becomes a straight line whose slope is the exponent. That slope is reported
+per algorithm as **measured slope**, next to what the algorithm's metadata **claims**.
+
+Some things it shows that a complexity table cannot:
+
+| Setup | Measured slope |
+| --- | --- |
+| Bubble / insertion / selection / counting sort, random input | 1.97 – 2.00 |
+| Merge / quick / heap sort, random input | 1.24 – 1.28 |
+| Radix sort, random input | 1.15 |
+| Insertion sort, nearly-sorted input | 1.08 |
+| Quick sort, nearly-sorted input | 1.97 |
+| Quick sort, sorted input, last-element pivot | 2.00 |
+| Quick sort, sorted input, median-of-three pivot | 1.21 |
+
+The sweep runs on the main thread in chunks, yielding between points so the progress bar
+keeps painting, and it can be stopped. It is deliberately not automatic: at n = 5000 with
+a quadratic sort selected it is tens of seconds of real work.
+
+Operation counts are not wall-clock time. Cache behaviour, branch prediction and constant
+factors are invisible here, which is exactly why heap sort loses to quick sort in practice
+despite winning on paper.
+
+### The Balance & Height view
+
+**TREES / Balance & Height** builds a binary search tree, an AVL tree and a 2-3 tree from
+the same keys in the same order, one insert per transport tick.
+
+**The insertion order is the variable, because it is the whole story.** A BST has no shape
+of its own — its shape is decided entirely by the order its keys arrive in, and the worst
+order is the most natural one. Six orders are available:
+
+| Order | What it does to a plain BST |
+| --- | --- |
+| Sorted (1…n) | A right spine. Height n−1: a linked list with extra pointers. |
+| Reversed (n…1) | The mirror image — a left spine, equally bad. |
+| Random | Expected height about 4.3 log₂ n. Much better than the worst case, still visibly worse than either balanced structure. |
+| Alternating ends | 1, n, 2, n−1, … Looks scrambled, degenerates anyway — "not sorted" is not the same as "random". |
+| Median-first | The recursive midpoint of each range. Builds a *perfectly* balanced BST with no rebalancing at all. |
+| Sawtooth | Short ascending runs, each adding another right spine to whichever subtree it lands in. |
+
+The sequence is drawn above the canvases with a cursor on the next key, so what is about
+to happen is never a mystery.
+
+**Height is the headline; comparisons are the honest cost.** The board under the lanes
+shows both, plus the rotations (AVL) or node splits (2-3) each structure performed. They
+are not the same measure — a 2-3 node holding two keys costs two comparisons to pass
+through, so it buys its shorter height with wider nodes. On 15 sorted keys the BST reaches
+height 14 for 105 comparisons; the AVL tree and the 2-3 tree both reach height 3, for 45
+and 51 comparisons respectively.
+
+The **GUARANTEE** column is the bound each structure promises at the current key count —
+1.44 log₂(n+2) − 0.33 for AVL, log₂(n+1) for a 2-3 tree — and `none` for the BST, which
+promises nothing. That column being satisfied is a check on the implementation, not
+decoration.
+
+Lanes wrap the real tree canvases rather than redrawing the trees, so a lane is exactly
+the picture the ordinary tree view would give you.
+
+### Height against n
+
+The canvases cap at 24 keys, which is enough to watch a sorted BST turn into a chain but
+nowhere near enough to see the *shape* of how the three diverge. The sweep below them runs
+the same insert code without keeping the intermediate trees, so n can reach 1600.
+
+It plots height (or total comparisons) against n on a log x-axis, with log₂ n, log₃ n and
+n dashed over the top, each anchored to the structure it describes. The y-axis defaults to
+logarithmic: on a linear one, a degenerate BST's height of 399 flattens both balanced
+curves onto the baseline and hides the comparison the panel exists for.
+
+On sorted input at n = 400 the BST measures height 399 — it tracks n exactly, a straight
+line of slope 1 on log-log — while the AVL tree sits at 8 and the 2-3 tree at 7, against
+log₂ 400 = 8.6. That is the whole argument for self-balancing trees, measured rather than
+asserted.
+
+One implementation note: `treeHeight` in `tree/helpers.js` is memoized against the node
+object. Every AVL balance factor asks for two heights and `avlFixupTree` asks for a
+balance factor at every node, so an unmemoized O(n) height made a single insert O(n²) and
+building a tree O(n³) — fine for the thirty-node trees the canvas draws, hopeless for this
+sweep. Caching is sound because nodes in this codebase are immutable: every operation
+builds new nodes rather than mutating the ones it was given, so a node's height can never
+change after it exists.
+
 ### Sharing a setup
 
 The address bar always holds a link to whatever is on screen — the topic, the
@@ -207,6 +344,9 @@ loaded, skipping the category screen.
 | Topic | Link |
 | --- | --- |
 | Sorting | `#v=sorting&algo=quick&a=9,4,7,1,3,8` |
+| Sorting, shaped input | `#v=sorting&algo=quick&sh=sorted&sd=7&q=quick.pivot:median3` |
+| Race | `#v=race&algos=insertion,merge,quick&sh=nearly&n=24&sd=7&sy=op&st=1` |
+| Balance & Height | `#v=treecompare&ord=sorted&n=15&sd=7` |
 | Searching | `#v=searching&algo=binary&a=10,20,30,40,50&t=40` |
 | Linked list | `#v=linkedlist&type=doubly&a=5,12,3,44` |
 | Stack / queue | `#v=stack&a=7,8,9` |
@@ -235,6 +375,19 @@ division. A dynamically hashed table carries its arrival order alone: both schem
 one split at a time, so replaying the keys reproduces every depth and pointer with them. A heap is written in array order, which *is* the heap. A
 union-find carries its raw parent array, since path compression is part of the state
 worth sharing. Everything round-trips exactly, including tree shape.
+
+The sorting and searching links carry two extra optional fields: `sh`, the input shape,
+and `sd`, the seed it was built from. The array itself still travels in `a` — that is the
+exact data someone meant to share — but the shape and seed ride along so the sidebar comes
+back saying what the array *is*, and so NEW ARRAY re-rolls the same shape. `q` carries
+variant choices, qualified by algorithm (`quick.pivot:median3`), and `st=1` turns on
+colour-by-origin.
+
+A race carries no array at all: `algos` names the lanes, and `sh` + `n` + `sd` rebuild the
+input exactly, which is shorter and says more than forty numbers would. `sy` is the sync
+mode (`frame` or `op`). The tree comparison is the same idea: `ord` is the insertion order
+and `n` the key count, which between them are the whole setup — the keys are always a
+permutation of 1…n, and only the random order looks at `sd`.
 
 A graph you have [rearranged](#building-and-arranging-the-graph) also carries an `xy` field —
 `label:x:y` per vertex, each coordinate a fraction of the canvas rather than a pixel, so
@@ -303,6 +456,12 @@ off automatically. Step-by-step playback still works normally.
 
 ## What's included
 
+The Arrays family holds three views: **Sorting**, **Searching**, and **Race & Compare** —
+[two to four sorts side by side](#the-race-view) on one input, with a live scoreboard and
+an [empirical complexity](#empirical-complexity) sweep. The Trees family adds
+**[Balance & Height](#the-balance--height-view)**, which builds a BST, an AVL tree and a
+2-3 tree from the same keys in the same order.
+
 ### Sorting (9)
 
 | Algorithm | Best | Average | Worst | Space |
@@ -316,6 +475,18 @@ off automatically. Step-by-step playback still works normally.
 | Heap Sort | O(n log n) | O(n log n) | O(n log n) | O(1) |
 | Counting Sort (Comparison) | O(n²) | O(n²) | O(n²) | O(n) |
 | Radix Sort | O(nk) | O(nk) | O(nk) | O(n + k) |
+
+Two of them are configurable, and the setting travels in the share link:
+
+| Algorithm | Setting | Options |
+| --- | --- | --- |
+| Quick Sort | `pivot` | `last` (Lomuto's textbook pivot), `first`, `median3`, `random` |
+| Shell Sort | `gaps` | `shell` (n/2), `knuth` (3h+1), `sedgewick` (1, 5, 19, 41, …) |
+
+These are not cosmetic. Quick sort with a last-element pivot on already-sorted input
+measures a growth exponent of 2.00; switching the same run to median-of-three drops it to
+1.21. Shell sort's three sequences differ by a factor of nearly two in operations at
+n = 1280.
 
 ### Searching (5)
 
@@ -720,8 +891,12 @@ src/
 ├── algorithms/
 │   ├── sorting/            one file per sorting algorithm
 │   ├── searching/          one file per searching algorithm
-│   ├── stepUtils.js        annotates steps with cumulative CMP/SWP counts
-│   └── index.js            registry: ALGORITHMS, ALGO_MAP, getSteps()
+│   ├── metrics.js          createMetrics(): the counters every sort reports
+│   ├── sortContext.js      makeSort(): one body, exported as run() and count()
+│   ├── stability.js        checkStability(): did ties keep their original order?
+│   ├── complexity.js       runSweep() + the curve fits behind the empirical plot
+│   ├── stepUtils.js        derives CMP/WRT for the searches, passes sort stats through
+│   └── index.js            registry: ALGORITHMS, ALGO_MAP, getSteps(), countRun()
 │
 ├── dataStructures/
 │   ├── dynamicHash/  graph/  hashTable/  heap/  linkedList/  polynomial/
@@ -729,18 +904,24 @@ src/
 │   │           each folder = one file per operation + helpers.js + index.js registry
 │   │           unionFind/ also exports the silent makeUnionFind() that
 │   │           graph/kruskalMST.js uses for its cycle check
+│   │           tree/compare.js holds the insertion orders and the height sweep
+│   │           behind the Balance & Height view
 │
 ├── components/             canvases, sidebars, panels, the shared transport bar
 │
 ├── hooks/
 │   ├── useStepPlayer.js         shared playback engine (see below)
 │   ├── useKeyboardShortcuts.js  global transport shortcuts
+│   ├── useRace.js               2-4 sorts on one input, under one transport
+│   ├── useTreeCompare.js        BST/AVL/2-3 from one key order, one insert per tick
 │   └── useVisualizer.js, useLinkedList.js, usePolynomial.js, useStack.js,
 │       useQueue.js, useGraph.js, useTree.js, useTwoThreeTree.js,
 │       useHashTable.js, useHeap.js, useTrie.js, useUnionFind.js
 │
 ├── data/                   category metadata and long-form topic write-ups
 ├── utils/
+│   ├── distributions.js    the eight named input shapes, each pure in (n, seed)
+│   ├── rng.js              the seeded PRNG everything random draws from
 │   └── urlState.js         encodes/decodes the shareable link
 ├── App.jsx                 stage + view routing, wires the active player
 ├── main.jsx
@@ -762,9 +943,27 @@ A sorting/searching step looks roughly like:
   sorted: [2],          // indices locked in
   line: 2,              // pseudocode line this frame is executing
   pivot: 1, mid: 1, lo: 0, hi: 2, found: -1,
-  cCount: 4, sCount: 2  // added by annotateSteps()
+  tags: [0, 2, 1],      // where each element started (sorting only)
+  stats: { comparisons: 4, reads: 8, writes: 2, aux: 0, depth: 0 },
+  cCount: 4, sCount: 2  // short aliases for the transport bar
 }
 ```
+
+`stats` is cumulative and **counted by the algorithm itself**, not inferred from what the
+frame highlights. Sorting algorithms are written against `sortContext.js`, whose `gt`,
+`lt`, `swap` and `put` helpers do the counting as a side effect of doing the work; the
+searches have no counters of their own, so `annotateSteps` still derives `cCount`/`sCount`
+for them the old heuristic way and synthesises a matching `stats`.
+
+`tags[i]` is the index the element now in slot `i` started at. It is what makes stability
+observable: two equal values are indistinguishable as bars, so the tags are the only
+record that a sort moved one past the other. Every value move goes through `swap`/`put`,
+which carry the tag along, so no algorithm has to think about it.
+
+The same body serves both `run(array, options)` and `count(array, options)` — `makeSort`
+runs it a second time with frame recording switched off. That is the fast path the
+empirical complexity sweep uses to reach n = 5000, and writing it once is what stops the
+plotted counts from drifting away from the animated ones.
 
 `line` indexes the algorithm's own `pseudocode` array, which is what lets `InfoPanel`
 highlight the line as the run plays. `null` means the run has finished and no line is
@@ -807,7 +1006,7 @@ are all free — there's no state to unwind.
 
 ### `useStepPlayer`
 
-One hook owns playback for all eight views: `stepIdx`, `playing`, `speed`, and the
+One hook owns playback for every view: `stepIdx`, `playing`, `speed`, and the
 `togglePlay` / `stepForward` / `stepBack` / `reset` / `seek` / `pause` actions.
 
 It runs on `requestAnimationFrame` and reads the current speed through a ref, so changing
@@ -843,12 +1042,29 @@ transport bar and the keyboard shortcuts, so both always drive whatever is on sc
 
 ### Add a sorting or searching algorithm
 
-1. Create `src/algorithms/sorting/mySort.js` (or `searching/mySearch.js`) and export an
-   object shaped like the existing ones:
+1. Create `src/algorithms/sorting/mySort.js` and write the body against a **sort
+   context**, then export the `run` / `count` pair `makeSort` builds from it:
 
    ```js
+   import { makeSort } from "../sortContext.js";
+
    // Indices into `pseudocode` below — the line each frame is executing.
-   const LINE = { COMPARE: 1, DONE: null };
+   const LINE = { COMPARE: 1, SWAP: 2, DONE: null };
+
+   const { run, count } = makeSort((ctx) => {
+     for (let i = 0; i < ctx.n; i++) {
+       // Do the comparison first, then draw it: the frame's counters then
+       // include the work the frame is illustrating.
+       const outOfOrder = ctx.gt(i, i + 1);
+       ctx.emit({ compare: [i, i + 1], line: LINE.COMPARE });
+       if (outOfOrder) {
+         ctx.swap(i, i + 1);
+         ctx.emit({ swap: [i, i + 1], line: LINE.SWAP });
+       }
+     }
+     ctx.markAll();
+     ctx.emit({ line: LINE.DONE });
+   });
 
    export const mySort = {
      key: "mySort",
@@ -857,27 +1073,58 @@ transport bar and the keyboard shortcuts, so both always drive whatever is on sc
      desc: "One-paragraph explanation shown in the info panel.",
      time: { best: "O(n)", avg: "O(n log n)", worst: "O(n²)" },
      space: "O(1)",
+     stable: true,
      pseudocode: ["for i in 0..n:", "  ..."],
-     run(array) {
-       const steps = [];
-       // push a frame whenever something visible changes
-       steps.push({ array: [...array], compare: [i, j], line: LINE.COMPARE });
-       return steps;
-     },
+     run,
+     count,
    };
    ```
 
-   Searching algorithms take `run(array, target)` instead.
+   The context owns the array and does the counting: `gt` / `lt` compare two slots,
+   `ltValues` / `lteValues` compare values already read out, `swap` and `put` move data,
+   `markSorted` / `markRange` / `markAll` maintain the sorted set, and `ctx.m` takes the
+   counts the loops can't infer (`read`, `write`, `aux`, `atDepth`). `emit` fills in the
+   array, tags, sorted set and stats, so a frame only has to say what it is highlighting.
+
+   Writing it this way is what gives you `count()` for free: `makeSort` runs the same body
+   a second time with `emit` as a no-op and no array copies, which is what the empirical
+   complexity sweep calls at n = 5000. Never write the counting path by hand — two copies
+   of an algorithm drift, and then the plot and the animation disagree.
+
+   Moving data through `swap` / `put` also keeps the stability tags in step, which is what
+   makes the colour-by-origin view able to tell whether your sort preserved ties. Declare
+   `stable` honestly; the view will check you.
+
+   Searching algorithms are unchanged: they export a plain `run(array, target)` and their
+   counters are still derived from the frames by `annotateSteps`.
 
    Give every frame a `line`, or the pseudocode panel won't follow your algorithm. Where
    the pseudocode is too coarse for the frames you push — a whole helper collapsed onto
    one line, say — spell that helper out as extra lines rather than pointing several
    different frames at the same one.
 
-2. Register it in `src/algorithms/sorting/index.js` (or `searching/index.js`).
+2. To make the algorithm configurable, declare `variants` and read the choice off
+   `ctx.options`:
 
-That's all — comparison/swap counters, the sidebar entry, the info panel and the
-pseudocode display are wired automatically from the registry.
+   ```js
+   variants: [
+     {
+       key: "pivot",
+       label: "PIVOT",
+       default: "last",
+       options: [{ key: "last", label: "Last", desc: "Shown under the picker." }],
+     },
+   ],
+   ```
+
+   `resolveVariants()` drops anything the registry doesn't declare, so a hand-edited link
+   can only ever name a setting the algorithm really has.
+
+3. Register it in `src/algorithms/sorting/index.js` (or `searching/index.js`).
+
+That's all — the counters, the sidebar entry, the variant picker, the race lane, the
+complexity sweep, the info panel and the pseudocode display are wired automatically from
+the registry.
 
 ### Add a data-structure operation
 

@@ -7,6 +7,7 @@ export const CATEGORIES = [
     items: [
       { key: "sorting", label: "Sorting", desc: "Bubble, merge, quick & more" },
       { key: "searching", label: "Searching", desc: "Linear, binary, jump, interpolation & exponential" },
+      { key: "race", label: "Race & Compare", desc: "Sorts side by side, real counters, empirical Big-O" },
     ],
   },
   {
@@ -39,6 +40,7 @@ export const CATEGORIES = [
       { key: "twothree", label: "2-3 Tree", desc: "Balanced multi-way tree" },
       { key: "heap", label: "Heap", desc: "Max/min heap, sift up & down" },
       { key: "trie", label: "Trie", desc: "Prefix tree & autocomplete" },
+      { key: "treecompare", label: "Balance & Height", desc: "BST vs AVL vs 2-3 on the same keys" },
     ],
   },
   {

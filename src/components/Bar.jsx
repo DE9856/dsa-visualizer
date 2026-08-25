@@ -1,6 +1,8 @@
+import { tagHue } from "../algorithms/stability.js";
+
 const SORTED_SEARCH_ALGOS = ["binary", "interpolation", "exponential", "jump"];
 
-export default function Bar({ val, index, step, algo, maxVal, showLabel, showPointer }) {
+export default function Bar({ val, index, step, algo, maxVal, showLabel, showPointer, showTags, breakHere }) {
   const isSorted = step.sorted && step.sorted.includes(index);
   const isComparing = step.compare && step.compare.includes(index);
   const isSwapping = step.swap && step.swap.includes(index);
@@ -51,6 +53,16 @@ export default function Bar({ val, index, step, algo, maxVal, showLabel, showPoi
     glow = "rgba(95,214,160,0.55)";
   }
 
+  // Stability view: the fill says where the element *started*, so two equal
+  // values — identical as bars — are still told apart, and a sort that moved
+  // one past the other is visible. The border keeps saying what the algorithm
+  // is doing to the bar right now.
+  const tag = step.tags?.[index];
+  if (showTags && Number.isFinite(tag)) {
+    bg = `hsl(${tagHue(tag, step.tags.length)} 72% 58% / 0.6)`;
+    if (!isComparing && !isSwapping) glow = "transparent";
+  }
+
   const pointerLabel = index === step.mid ? "mid" : index === step.lo ? "lo" : index === step.hi ? "hi" : null;
 
   // Divide-and-conquer frames name the subrange the current call owns.
@@ -60,14 +72,16 @@ export default function Bar({ val, index, step, algo, maxVal, showLabel, showPoi
 
   return (
     <div
-      className={`bar ${isSwapping ? "swap" : ""} ${outsideRange ? "bar--outside" : ""}`}
+      className={`bar ${isSwapping ? "swap" : ""} ${outsideRange ? "bar--outside" : ""} ${
+        breakHere ? "bar--unstable" : ""
+      }`}
       style={{
         height: `${(val / maxVal) * 100}%`,
         background: bg,
         border: `1.5px solid ${border}`,
         boxShadow: glow !== "transparent" ? `0 0 10px ${glow}` : "none",
       }}
-      title={String(val)}
+      title={showTags && Number.isFinite(tag) ? `${val} (started at index ${tag})` : String(val)}
     >
       {showLabel && <span className="bar__value">{val}</span>}
       {showPointer && pointerLabel && (

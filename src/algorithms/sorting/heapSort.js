@@ -1,44 +1,48 @@
+import { makeSort } from "../sortContext.js";
+
 // Indices into `pseudocode` below — the line each frame is executing. Every
 // comparison happens inside heapify, so the pseudocode spells that out; the
 // heapify lines light up whichever phase called it.
 const LINE = { EXTRACT: 2, HEAPIFY_COMPARE: 5, HEAPIFY_SWAP: 7, DONE: null };
 
-function run(input) {
-  const arr = [...input];
-  const n = arr.length;
-  const steps = [];
-  const sortedSet = new Set();
+const { run, count } = makeSort((ctx) => {
+  const { n } = ctx;
 
-  function heapify(size, i) {
+  function heapify(size, i, depth) {
+    ctx.m.atDepth(depth);
     let largest = i;
     const l = 2 * i + 1;
     const r = 2 * i + 2;
     if (l < size) {
-      steps.push({ array: [...arr], compare: [largest, l], swap: [], sorted: [...sortedSet], line: LINE.HEAPIFY_COMPARE });
-      if (arr[l] > arr[largest]) largest = l;
+      const bigger = ctx.gt(l, largest);
+      ctx.emit({ compare: [largest, l], line: LINE.HEAPIFY_COMPARE });
+      if (bigger) largest = l;
     }
     if (r < size) {
-      steps.push({ array: [...arr], compare: [largest, r], swap: [], sorted: [...sortedSet], line: LINE.HEAPIFY_COMPARE });
-      if (arr[r] > arr[largest]) largest = r;
+      const bigger = ctx.gt(r, largest);
+      ctx.emit({ compare: [largest, r], line: LINE.HEAPIFY_COMPARE });
+      if (bigger) largest = r;
     }
     if (largest !== i) {
-      [arr[i], arr[largest]] = [arr[largest], arr[i]];
-      steps.push({ array: [...arr], compare: [], swap: [i, largest], sorted: [...sortedSet], line: LINE.HEAPIFY_SWAP });
-      heapify(size, largest);
+      ctx.swap(i, largest);
+      ctx.emit({ swap: [i, largest], line: LINE.HEAPIFY_SWAP });
+      heapify(size, largest, depth + 1);
     }
   }
 
-  for (let i = Math.floor(n / 2) - 1; i >= 0; i--) heapify(n, i);
+  // Sift-down recursion is the only stack heap sort uses; the depth counter
+  // reports it as log n, next to merge sort's identical-looking log n and
+  // quick sort's very much not.
+  for (let i = Math.floor(n / 2) - 1; i >= 0; i--) heapify(n, i, 0);
   for (let size = n - 1; size > 0; size--) {
-    [arr[0], arr[size]] = [arr[size], arr[0]];
-    steps.push({ array: [...arr], compare: [], swap: [0, size], sorted: [...sortedSet], line: LINE.EXTRACT });
-    sortedSet.add(size);
-    heapify(size, 0);
+    ctx.swap(0, size);
+    ctx.emit({ swap: [0, size], line: LINE.EXTRACT });
+    ctx.markSorted(size);
+    heapify(size, 0, 0);
   }
-  sortedSet.add(0);
-  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet], line: LINE.DONE });
-  return steps;
-}
+  ctx.markSorted(0);
+  ctx.emit({ line: LINE.DONE });
+});
 
 export const heapSort = {
   key: "heap",
@@ -80,5 +84,11 @@ export const heapSort = {
     "  if largest != i:",
     "    swap(a[i], a[largest]); heapify(a, largest, size)",
   ],
+  // Whether equal elements keep their original relative order. The
+  // stability view proves or disproves this on screen.
+  stable: false,
   run,
+  // Same body as run(), with frame recording switched off — what the
+  // empirical-complexity sweep calls.
+  count,
 };

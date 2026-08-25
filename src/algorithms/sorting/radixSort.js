@@ -1,38 +1,46 @@
+import { makeSort } from "../sortContext.js";
+
 // Indices into `pseudocode` below — the line each frame is executing.
 const LINE = { PASS: 0, BUCKET: 1, COLLECT: 2, DONE: null };
 
-function run(input) {
-  const arr = [...input];
-  const n = arr.length;
-  const steps = [];
-  steps.push({ array: [...arr], compare: [], swap: [], sorted: [], line: LINE.PASS });
-
-  if (n === 0) return steps;
+const { run, count } = makeSort((ctx) => {
+  const { a, tags, n } = ctx;
+  ctx.emit({ line: LINE.PASS });
+  if (n === 0) return;
 
   // Radix sort works on non-negative digits, so shift everything up if the
   // array contains negative values — the shift is constant, so relative
   // order (and therefore correctness) is preserved.
-  const minVal = Math.min(...arr);
+  ctx.m.read(n);
+  const minVal = Math.min(...a);
   const shift = minVal < 0 ? -minVal : 0;
-  const maxShifted = Math.max(...arr) + shift;
+  const maxShifted = Math.max(...a) + shift;
+  // Every element sits in some bucket at once, plus the ten bucket headers.
+  ctx.m.aux(n + 10);
 
   let exp = 1;
   while (Math.floor(maxShifted / exp) > 0) {
     const buckets = Array.from({ length: 10 }, () => []);
 
-    // Distribute each element into a bucket based on its current digit.
+    // Distribute each element into a bucket based on its current digit. No
+    // key comparison happens anywhere in this loop — that is the whole point
+    // of a radix sort, and the scoreboard shows it as a flat zero.
     for (let i = 0; i < n; i++) {
-      steps.push({ array: [...arr], compare: [i], swap: [], sorted: [], line: LINE.BUCKET });
-      const digit = Math.floor((arr[i] + shift) / exp) % 10;
-      buckets[digit].push(arr[i]);
+      ctx.m.read();
+      ctx.emit({ compare: [i], line: LINE.BUCKET });
+      const digit = Math.floor((a[i] + shift) / exp) % 10;
+      buckets[digit].push([a[i], tags[i]]);
     }
 
-    // Collect the buckets back into the array, in digit order (0-9).
+    // Collect the buckets back into the array, in digit order (0-9). Appending
+    // within a bucket and walking the buckets in order is what keeps each pass
+    // stable, which is what lets a later pass preserve the order an earlier
+    // digit established.
     let k = 0;
     for (let d = 0; d < 10; d++) {
-      for (const val of buckets[d]) {
-        arr[k] = val;
-        steps.push({ array: [...arr], compare: [], swap: [k], sorted: [], line: LINE.COLLECT });
+      for (const [value, tag] of buckets[d]) {
+        ctx.put(k, value, tag);
+        ctx.emit({ swap: [k], line: LINE.COLLECT });
         k++;
       }
     }
@@ -40,11 +48,9 @@ function run(input) {
     exp *= 10;
   }
 
-  const sortedSet = new Set();
-  for (let x = 0; x < n; x++) sortedSet.add(x);
-  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet], line: LINE.DONE });
-  return steps;
-}
+  ctx.markAll();
+  ctx.emit({ line: LINE.DONE });
+});
 
 export const radixSort = {
   key: "radix",
@@ -82,5 +88,11 @@ export const radixSort = {
     "  bucket elements by that digit (0-9)",
     "  collect buckets back into array",
   ],
+  // Whether equal elements keep their original relative order. The
+  // stability view proves or disproves this on screen.
+  stable: true,
   run,
+  // Same body as run(), with frame recording switched off — what the
+  // empirical-complexity sweep calls.
+  count,
 };

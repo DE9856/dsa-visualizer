@@ -90,17 +90,7 @@ export default function Controls({
           STEP <strong>{current + 1}</strong>/{total}
         </div>
 
-        {step && meta && (
-          <div className="metrics">
-            <div className="lcd">
-              CMP <strong style={{ color: "var(--blue)" }}>{step.cCount ?? 0}</strong>
-            </div>
-            <div className="lcd">
-              {meta.category === "sorting" ? "SWP" : "WRT"}{" "}
-              <strong style={{ color: "var(--red)" }}>{step.sCount ?? 0}</strong>
-            </div>
-          </div>
-        )}
+        {step && meta && <Metrics step={step} meta={meta} />}
 
         {onToggleHelp && (
           <button
@@ -136,6 +126,56 @@ export default function Controls({
               <span>{s.desc}</span>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The read-out beside the transport.
+ *
+ * Sorting algorithms count their own comparisons, reads, writes, auxiliary
+ * memory and recursion depth as they run, so all five are real. The two that
+ * are structurally zero for a given algorithm (an in-place sort holds no aux;
+ * a loop-only sort recurses no deeper than not at all) are left out rather
+ * than shown as a permanent 0. Searches carry no counters of their own, so
+ * they keep the two-column read-out they always had.
+ */
+function Metrics({ step, meta }) {
+  const stats = step.stats;
+  if (!stats || meta.category !== "sorting") {
+    return (
+      <div className="metrics">
+        <div className="lcd" title="Comparisons">
+          CMP <strong style={{ color: "var(--blue)" }}>{step.cCount ?? 0}</strong>
+        </div>
+        <div className="lcd" title="Writes">
+          WRT <strong style={{ color: "var(--red)" }}>{step.sCount ?? 0}</strong>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="metrics">
+      <div className="lcd" title="Key comparisons">
+        CMP <strong style={{ color: "var(--blue)" }}>{stats.comparisons}</strong>
+      </div>
+      <div className="lcd" title="Array reads">
+        RD <strong>{stats.reads}</strong>
+      </div>
+      <div className="lcd" title="Array writes">
+        WR <strong style={{ color: "var(--red)" }}>{stats.writes}</strong>
+      </div>
+      {stats.aux > 0 && (
+        <div className="lcd" title="Auxiliary memory high-water mark, in elements">
+          AUX <strong style={{ color: "var(--yellow)" }}>{stats.aux}</strong>
+        </div>
+      )}
+      {stats.depth > 0 && (
+        <div className="lcd" title="Deepest recursion reached">
+          DEP <strong style={{ color: "var(--purple)" }}>{stats.depth}</strong>
         </div>
       )}
     </div>

@@ -9,10 +9,36 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Usability and playback-smoothness pass across every visualizer, plus five new structures:
-hash tables, dynamic hashing, heaps, tries and union-find.
+Usability and playback-smoothness pass across every visualizer, five new structures — hash
+tables, dynamic hashing, heaps, tries and union-find — and two new comparison views: Race &
+Compare, which puts sorting algorithms against each other on real, self-reported operation
+counts, and Balance & Height, which builds a BST, an AVL tree and a 2-3 tree from one key
+sequence.
 
 ### Changed
+
+- **`treeHeight` is memoized against the node object.** Every AVL balance factor asks for
+  two heights and `avlFixupTree` asks for a balance factor at every node, so an unmemoized
+  O(n) height made a single insert O(n²) and building a tree O(n³) — fine for the thirty-node
+  trees the canvas draws, hopeless for the new height-vs-n sweep. Caching is sound because
+  nodes in this codebase are immutable: every operation builds new nodes rather than
+  mutating the ones it was given, so a node's height can never change after it exists. A
+  WeakMap means a cached height dies with the tree it describes.
+
+- **Sorting counters are counted, not guessed.** `annotateSteps` used to infer comparisons
+  and swaps from what a frame happened to highlight, which meant an algorithm that wrote
+  without drawing a swap (merge sort, radix sort) under-reported, and one that drew a frame
+  per comparison counted frames rather than comparisons. Every sorting algorithm is now
+  written against a shared sort context and reports five real counters as it works — key
+  comparisons, array reads, array writes, auxiliary-memory high-water mark in elements, and
+  deepest recursion — which is what makes racing two of them fair. The transport bar shows
+  all five, omitting the two that are structurally zero for a given algorithm. Searching
+  algorithms keep the old derived CMP/WRT read-out, which is exact for a linear scan and
+  close enough for the range searches, whose cost *is* the frames they draw.
+
+  The same rewrite is what gives every sort a frame-free `count()` path, since one body now
+  serves both — two hand-maintained copies would drift, and then the plot and the animation
+  would disagree.
 
 - **Bucket lists flow into columns instead of scrolling.** A 37-bucket table, or a
   directory at global depth 5, used to be a long scroll through a narrow strip while the
@@ -38,6 +64,79 @@ hash tables, dynamic hashing, heaps, tries and union-find.
   building. Shared links are unaffected: they arrive with the graph they carry.
 
 ### Added
+
+- **Balance & Height: BST vs AVL vs 2-3 tree, on the same keys in the same order.** A new
+  view under TREES. A binary search tree has no shape of its own — its shape is decided
+  entirely by the order its keys arrive in, and the worst order is the most natural one.
+  Insert 1, 2, 3 … 15 and the BST reaches height 14 while the AVL tree and the 2-3 tree
+  both sit at 3.
+
+  Six insertion orders make that the variable: sorted, reversed, random, alternating ends,
+  median-first (which builds a perfectly balanced BST with no rebalancing at all) and
+  sawtooth. The sequence is drawn above the lanes with a cursor on the next key, and one
+  transport tick is one insert.
+
+  The board underneath shows height beside the comparisons spent reaching it, which stops
+  "shortest" from being read as "cheapest": the 2-3 tree matches AVL's height on 15 sorted
+  keys but spends 51 comparisons against AVL's 45, because a node holding two keys costs
+  two comparisons to pass through. A GUARANTEE column carries each structure's promised
+  bound at the current key count — and `none` for the BST, which promises nothing.
+
+- **Height against n, measured.** The canvases cap at 24 keys; the sweep below them runs
+  the same insert code without keeping the intermediate trees, so n reaches 1600. It plots
+  height (or total comparisons) against n with log₂ n, log₃ n and n dashed over the top.
+  On sorted input at n = 400 the BST measures height 399 — tracking n exactly — against
+  the AVL tree's 8 and the 2-3 tree's 7, with log₂ 400 = 8.6.
+
+- **Race & Compare: two to four sorting algorithms side by side, and an empirical
+  complexity plot.** A new view under ARRAYS. One input array is built from a named shape
+  and a seed and handed unchanged to every lane, so any difference on screen is the
+  algorithm rather than the data; a lane that finishes early freezes on its last frame
+  instead of blanking, because the finished array sitting beside one still being churned
+  *is* the comparison.
+
+  The transport can sync the lanes two ways. BY FRAME advances every lane one frame per
+  tick, which is simple but compares frames rather than work — a bubble sort frame is one
+  comparison while a merge sort frame can be a whole write. BY WORK, the default, spends
+  the same number of operations in every lane per tick, so the lane that costs less
+  genuinely finishes earlier on screen.
+
+  Under the track, a live scoreboard fills each counter against the largest final value in
+  its column, so one lane overtaking another is something you watch rather than work out.
+
+- **Eight input shapes, for sorting and for the race.** Random, nearly sorted, already
+  sorted, reversed, few unique, all equal, sawtooth and organ pipe. This is where the
+  interesting comparisons live: on nearly-sorted input at n = 24, insertion sort finishes
+  in 25 operations against merge sort's 165 and quick sort's 872 — the reverse of what
+  their average-case complexities imply. Every shape is a pure function of `(n, seed)`, so
+  a shared link rebuilds the same array in someone else's browser, and NEW DATA only has
+  to change the seed.
+
+- **Empirical complexity: growth measured, not asserted.** Every sorting algorithm now
+  also exports `count()` — the same body as `run()` with frame recording switched off — so
+  a sweep can run it at 10, 20, 40 … 5000 elements without materialising millions of
+  frames. The panel plots measured operations against n with n, n log n and n² fitted over
+  the top, and reports each algorithm's measured growth exponent beside the complexity its
+  metadata claims. Log-log by default, because that is the only view where a power law is
+  a straight line you can read the slope off.
+
+  It shows things a complexity table cannot: insertion sort measuring 1.08 on nearly-sorted
+  input while quick sort measures 1.97 on the same data, and quick sort's 2.00 on sorted
+  input dropping to 1.21 the moment the pivot rule changes.
+
+- **Pivot and gap-sequence variants.** Quick sort can partition around the last element
+  (Lomuto's textbook pivot), the first, the median of three, or a random element drawn
+  from the run's seed. Shell sort can use the Shell (n/2), Knuth (3h+1) or Sedgewick
+  (1, 5, 19, 41, …) gap sequence. Same algorithm, same input, visibly different curves —
+  and the choice travels in the share link.
+
+- **A stability demo you can see.** COLOUR BY ORIGIN tints every bar by the index it
+  started at. Paired with the FEW UNIQUE or ALL EQUAL shapes the values are identical, so
+  the colours are the only record of whether tied elements kept their original order —
+  which is the definition of stability and something a chart of numbers simply cannot
+  show. Displaced elements are outlined in dashed red once the run finishes, and the
+  verdict is measured from *this* run rather than repeated from the algorithm's metadata:
+  an input with no ties says so instead of claiming a pass it never earned.
 
 - **Self-loops on the graph.** An edge may now have both endpoints on one vertex. Click a
   vertex to arm it and click it again to loop it back to itself, set FROM and TO to the

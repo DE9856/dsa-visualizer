@@ -6,6 +6,14 @@ import Sidebar from "./components/Sidebar.jsx";
 import Canvas from "./components/Canvas.jsx";
 import Controls from "./components/Controls.jsx";
 import InfoPanel from "./components/InfoPanel.jsx";
+import RaceSidebar from "./components/RaceSidebar.jsx";
+import RaceCanvas from "./components/RaceCanvas.jsx";
+import Scoreboard from "./components/Scoreboard.jsx";
+import ComplexityPanel from "./components/ComplexityPanel.jsx";
+import TreeCompareSidebar from "./components/TreeCompareSidebar.jsx";
+import TreeCompareCanvas from "./components/TreeCompareCanvas.jsx";
+import TreeCompareBoard from "./components/TreeCompareBoard.jsx";
+import TreeHeightPanel from "./components/TreeHeightPanel.jsx";
 import RecursionPanel from "./components/RecursionPanel.jsx";
 import ListSidebar from "./components/ListSidebar.jsx";
 import ListCanvas from "./components/ListCanvas.jsx";
@@ -35,6 +43,8 @@ import UnionFindSidebar from "./components/UnionFindSidebar.jsx";
 import UnionFindCanvas from "./components/UnionFindCanvas.jsx";
 import TopicPanel from "./components/TopicPanel.jsx";
 import { useVisualizer } from "./hooks/useVisualizer.js";
+import { useRace } from "./hooks/useRace.js";
+import { useTreeCompare } from "./hooks/useTreeCompare.js";
 import { useLinkedList } from "./hooks/useLinkedList.js";
 import { usePolynomial } from "./hooks/usePolynomial.js";
 import { useStack } from "./hooks/useStack.js";
@@ -61,6 +71,8 @@ export default function App() {
   const [view, setView] = useState(shared?.view ?? "sorting");
   const [showHelp, setShowHelp] = useState(false);
   const v = useVisualizer(initFor("sorting") || initFor("searching"));
+  const race = useRace(initFor("race"));
+  const tcmp = useTreeCompare(initFor("treecompare"));
   const ll = useLinkedList(initFor("linkedlist"));
   const poly = usePolynomial(initFor("polynomial"));
   const st = useStack(initFor("stack"));
@@ -77,6 +89,8 @@ export default function App() {
   // The player driving whatever view is on screen — one source for the
   // transport bar, the timeline and the keyboard shortcuts.
   const players = {
+    race,
+    treecompare: tcmp,
     linkedlist: ll,
     polynomial: poly,
     stack: st,
@@ -126,7 +140,7 @@ export default function App() {
 
   // The address bar tracks the data on screen, so the link is always ready to
   // copy. Only committed data is encoded — never half-typed sidebar text.
-  const shareHash = shareHashFor(view, { v, ll, poly, st, q, gr, tr, tt, ht, dh, hp, tri, uf });
+  const shareHash = shareHashFor(view, { v, race, tcmp, ll, poly, st, q, gr, tr, tt, ht, dh, hp, tri, uf });
   const shareUrl = buildShareUrl(shareHash);
 
   useEffect(() => {
@@ -372,6 +386,35 @@ export default function App() {
           <ListInfoPanel opMeta={tr.opMeta} />
           <TopicPanel topicKey="tree" />
         </Workspace>
+      ) : view === "treecompare" ? (
+        <Workspace
+          {...shell}
+          panelLabel="BALANCE & HEIGHT"
+          sidebar={
+            <TreeCompareSidebar
+              order={tcmp.order}
+              orderMeta={tcmp.orderMeta}
+              onOrderChange={tcmp.setOrder}
+              size={tcmp.size}
+              onSizeChange={tcmp.handleSizeChange}
+              seed={tcmp.seed}
+              onShuffle={tcmp.shuffle}
+              keys={tcmp.keys}
+            />
+          }
+        >
+          <TreeCompareCanvas
+            lanes={tcmp.lanes}
+            order={tcmp.orderMeta}
+            keys={tcmp.keys}
+            tick={tcmp.tick}
+            shortest={tcmp.shortest}
+          />
+          <ListControls {...transport} />
+          <TreeCompareBoard lanes={tcmp.lanes} shortest={tcmp.shortest} size={tcmp.size} />
+          <TreeHeightPanel order={tcmp.order} seed={tcmp.seed} />
+          <TopicPanel topicKey="treecompare" />
+        </Workspace>
       ) : view === "twothree" ? (
         <Workspace
           {...shell}
@@ -529,6 +572,49 @@ export default function App() {
           <ListInfoPanel opMeta={uf.opMeta} />
           <TopicPanel topicKey="unionfind" />
         </Workspace>
+      ) : view === "race" ? (
+        <Workspace
+          {...shell}
+          panelLabel="RACE"
+          sidebar={
+            <RaceSidebar
+              raceable={race.raceable}
+              algos={race.algos}
+              onToggleAlgo={race.toggleAlgo}
+              size={race.size}
+              onSizeChange={race.handleSizeChange}
+              distribution={race.distribution}
+              onDistributionChange={race.setDistribution}
+              distributionMeta={race.distributionMeta}
+              onShuffle={race.shuffle}
+              seed={race.seed}
+              syncMode={race.syncMode}
+              onSyncModeChange={race.setSyncMode}
+              showTags={race.showTags}
+              onToggleTags={race.toggleTags}
+              variants={race.variants}
+              onVariantChange={race.setVariant}
+            />
+          }
+        >
+          <RaceCanvas
+            lanes={race.lanes}
+            array={race.array}
+            showTags={race.showTags}
+            leader={race.leader}
+            syncMode={race.syncMode}
+            distributionMeta={race.distributionMeta}
+          />
+          <ListControls {...transport} />
+          <Scoreboard lanes={race.lanes} leader={race.leader} />
+          <ComplexityPanel
+            algos={race.algos}
+            variants={race.variants}
+            distribution={race.distribution}
+            seed={race.seed}
+          />
+          <TopicPanel topicKey="race" />
+        </Workspace>
       ) : (
         <Workspace
           {...shell}
@@ -547,10 +633,24 @@ export default function App() {
               meta={v.meta}
               target={v.target}
               onRandomTarget={v.setRandomTarget}
+              distribution={v.distribution}
+              distributionMeta={v.distributionMeta}
+              onDistributionChange={v.setDistribution}
+              variants={v.variants}
+              onVariantChange={v.setVariant}
+              showTags={v.showTags}
+              onToggleTags={v.toggleTags}
             />
           }
         >
-          <Canvas step={v.step} algo={v.algo} displayArr={v.displayArr} maxVal={v.maxVal} />
+          <Canvas
+            step={v.step}
+            algo={v.algo}
+            displayArr={v.displayArr}
+            maxVal={v.maxVal}
+            showTags={v.showTags}
+            meta={v.meta}
+          />
           <RecursionPanel step={v.step} size={v.displayArr.length} />
           <Controls {...transport} step={v.step} meta={v.meta} />
           <InfoPanel meta={v.meta} step={v.step} />

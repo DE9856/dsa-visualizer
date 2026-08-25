@@ -95,8 +95,15 @@ export function findDescentPath(root, value) {
 // whenever a node temporarily holds 3 keys. `log` collects a human
 // readable line per split so callers can build a step message.
 // ---------------------------------------------------------------------
-export function insertWithLog(root, value) {
+// `counts`, when given, is mutated with the number of node splits and how
+// many of those were root splits (the only way a 2-3 tree ever gets taller).
+// The comparison view needs those numbers; nothing else does, so it is an
+// optional out-parameter rather than a change to what this returns.
+export function insertWithLog(root, value, counts) {
   const log = [];
+  const countSplit = () => {
+    if (counts) counts.splits += 1;
+  };
 
   function rec(node) {
     if (isLeaf(node)) {
@@ -105,6 +112,7 @@ export function insertWithLog(root, value) {
       if (newKeys.length <= 2) return { node: { ...node, keys: newKeys }, split: null };
       const [a, mid, b] = newKeys;
       log.push(`leaf [${newKeys.join(", ")}] overflowed — split into [${a}] and [${b}], promote ${mid}`);
+      countSplit();
       return { node: null, split: { promoted: mid, left: makeLeaf([a]), right: makeLeaf([b]) } };
     }
 
@@ -125,6 +133,7 @@ export function insertWithLog(root, value) {
 
     const [k0, k1, k2] = keys;
     log.push(`internal node [${keys.join(", ")}] overflowed — split, promote ${k1}`);
+    countSplit();
     return {
       node: null,
       split: {
@@ -140,6 +149,7 @@ export function insertWithLog(root, value) {
   if (result.duplicate) return { root, log: [], duplicate: true };
   if (result.split) {
     log.push(`root split — new root [${result.split.promoted}], tree grows one level taller`);
+    if (counts) counts.rootSplits += 1;
     return {
       root: { id: nextNodeId(), keys: [result.split.promoted], children: [result.split.left, result.split.right] },
       log,

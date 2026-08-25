@@ -1,27 +1,29 @@
+import { makeSort } from "../sortContext.js";
+
 // Indices into `pseudocode` below — the line each frame is executing.
 const LINE = { OUTER: 0, COMPARE: 2, SWAP: 3 };
 
-function run(input) {
-  const arr = [...input];
-  const n = arr.length;
-  const steps = [];
-  const sortedSet = new Set([0]);
-  steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet], line: LINE.OUTER });
+const { run, count } = makeSort((ctx) => {
+  const { n } = ctx;
+  ctx.markSorted(0);
+  ctx.emit({ line: LINE.OUTER });
 
   for (let i = 1; i < n; i++) {
     let j = i;
-    while (j > 0 && arr[j - 1] > arr[j]) {
-      steps.push({ array: [...arr], compare: [j - 1, j], swap: [], sorted: [...sortedSet], line: LINE.COMPARE });
-      [arr[j - 1], arr[j]] = [arr[j], arr[j - 1]];
-      steps.push({ array: [...arr], compare: [], swap: [j - 1, j], sorted: [...sortedSet], line: LINE.SWAP });
+    // The guard comparison that ends the while loop is a real comparison and
+    // is counted, which is exactly why insertion sort reports ~n on sorted
+    // input instead of 0.
+    while (j > 0 && ctx.gt(j - 1, j)) {
+      ctx.emit({ compare: [j - 1, j], line: LINE.COMPARE });
+      ctx.swap(j - 1, j);
+      ctx.emit({ swap: [j - 1, j], line: LINE.SWAP });
       j--;
     }
     // Element i has landed; the next outer iteration picks up the one after.
-    for (let k = 0; k <= i; k++) sortedSet.add(k);
-    steps.push({ array: [...arr], compare: [], swap: [], sorted: [...sortedSet], line: LINE.OUTER });
+    ctx.markRange(0, i);
+    ctx.emit({ line: LINE.OUTER });
   }
-  return steps;
-}
+});
 
 export const insertionSort = {
   key: "insertion",
@@ -60,5 +62,11 @@ export const insertionSort = {
     "  while j>0 and a[j-1]>a[j]:",
     "    swap(a[j-1], a[j]); j--",
   ],
+  // Whether equal elements keep their original relative order. The
+  // stability view proves or disproves this on screen.
+  stable: true,
   run,
+  // Same body as run(), with frame recording switched off — what the
+  // empirical-complexity sweep calls.
+  count,
 };

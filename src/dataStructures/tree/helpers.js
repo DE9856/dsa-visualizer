@@ -34,9 +34,24 @@ export function treeSize(node) {
 
 // Height of an empty tree is defined as -1, a single node as 0 — the usual
 // convention so callers can print a sensible number either way.
+//
+// Memoized against the node object. Every AVL balance factor asks for two
+// heights and avlFixupTree asks for a balance factor at every node, so an
+// unmemoized O(n) height made a single insert O(n²) and building a tree
+// O(n³) — fine for the 30-node trees the canvas draws, hopeless for the
+// height-vs-n sweep in the comparison view. Caching is sound because nodes in
+// this codebase are immutable: every operation builds new nodes rather than
+// mutating the ones it was given, so a node's height can never change after
+// it exists. A WeakMap means a cached height dies with the tree it describes.
+const heightCache = new WeakMap();
+
 export function treeHeight(node) {
   if (!node) return -1;
-  return 1 + Math.max(treeHeight(node.left), treeHeight(node.right));
+  const cached = heightCache.get(node);
+  if (cached !== undefined) return cached;
+  const height = 1 + Math.max(treeHeight(node.left), treeHeight(node.right));
+  heightCache.set(node, height);
+  return height;
 }
 
 // Pure BST insert: returns a NEW tree with `value` inserted, sharing
@@ -201,25 +216,37 @@ export function replaceSubtreeById(node, id, newSubtree) {
 // invariant. Applied to an already-valid AVL tree it's a no-op everywhere
 // except along the path that just changed, so it's a simple, always-correct
 // way to restore balance after a raw BST insert/delete.
-export function avlFixupTree(node) {
+// `counts`, when given, is mutated with the number of single rotations
+// performed — a double rotation is two. The comparison view needs the number
+// and nothing else here does, so it is an optional out-parameter rather than
+// a change to what this returns.
+export function avlFixupTree(node, counts) {
   if (!node) return null;
-  const left = avlFixupTree(node.left);
-  const right = avlFixupTree(node.right);
+  const left = avlFixupTree(node.left, counts);
+  const right = avlFixupTree(node.right, counts);
   let current = { ...node, left, right };
   const bf = avlBalanceFactor(current);
   if (bf > 1) {
-    if (avlBalanceFactor(current.left) < 0) current = { ...current, left: rotateLeftNode(current.left) };
+    if (avlBalanceFactor(current.left) < 0) {
+      current = { ...current, left: rotateLeftNode(current.left) };
+      if (counts) counts.rotations += 1;
+    }
+    if (counts) counts.rotations += 1;
     return rotateRightNode(current);
   }
   if (bf < -1) {
-    if (avlBalanceFactor(current.right) > 0) current = { ...current, right: rotateRightNode(current.right) };
+    if (avlBalanceFactor(current.right) > 0) {
+      current = { ...current, right: rotateRightNode(current.right) };
+      if (counts) counts.rotations += 1;
+    }
+    if (counts) counts.rotations += 1;
     return rotateLeftNode(current);
   }
   return current;
 }
 
-export function avlInsertByValue(root, value, newId) {
-  return avlFixupTree(bstInsertByValue(root, value, newId));
+export function avlInsertByValue(root, value, newId, counts) {
+  return avlFixupTree(bstInsertByValue(root, value, newId), counts);
 }
 
 export function avlDeleteByValue(root, value) {
