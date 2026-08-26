@@ -5,6 +5,7 @@ import { ALGO_MAP, SORT_KEYS } from "../algorithms";
 import { DISTRIBUTION_KEYS } from "./distributions";
 import { ORDER_KEYS } from "../dataStructures/tree/compare";
 import { DP_KEYS, DP_PROBLEM_MAP } from "../algorithms/dp";
+import { BT_KEYS, BT_PROBLEM_MAP } from "../algorithms/backtracking";
 
 /**
  * URL state — the current topic and its data round-trip through the location
@@ -31,6 +32,8 @@ import { DP_KEYS, DP_PROBLEM_MAP } from "../algorithms/dp";
  *   #v=graph&g=A,B,C&e=A-B,B-C&xy=A:0.2:0.15,C:0.75:0.8
  *   #v=dp&type=lcs&a=AGCAT&b=GAC
  *   #v=dp&type=knapsack&it=2:3, 3:4, 4:5&cap=8
+ *   #v=bt&type=queens&n=6&md=first
+ *   #v=bt&type=subset&nums=3, 34, 4, 12&tg=9&md=all
  *
  * The hash is written with replaceState, so it tracks the current data without
  * filling up browser history. It is read once, on load — editing the hash by
@@ -55,6 +58,7 @@ const VIEWS = [
   "trie",
   "unionfind",
   "dp",
+  "bt",
 ];
 
 const LIST_TYPES = ["singly", "doubly", "circular"];
@@ -69,6 +73,15 @@ const HEAP_KINDS = ["max", "min"];
 // travel as themselves. One short hash key per field, and only the fields the
 // named problem actually declares are read or written — a link to LCS has no
 // business naming a bag capacity.
+const BT_FIELD_KEYS = {
+  n: "n",
+  mode: "md",
+  puzzle: "gr",
+  numbers: "nums",
+  target: "tg",
+  values: "vals",
+};
+
 const DP_FIELD_KEYS = {
   stringA: "a",
   stringB: "b",
@@ -415,6 +428,16 @@ function fieldsFor(view, s) {
           s.dp.meta.fields.map((field) => [DP_FIELD_KEYS[field], s.dp.activeInputs[field]])
         ),
       };
+    // Same as the DP view: the problem, then only the fields it declares, as
+    // the text its own boxes hold.
+    case "bt":
+      return {
+        v: view,
+        type: s.bt.problem,
+        ...Object.fromEntries(
+          s.bt.meta.fields.map((field) => [BT_FIELD_KEYS[field], s.bt.activeInputs[field]])
+        ),
+      };
     default:
       return { v: view };
   }
@@ -489,6 +512,15 @@ export function readSharedState() {
     const inputs = {};
     problem.fields.forEach((field) => {
       const raw = fields[DP_FIELD_KEYS[field]];
+      if (typeof raw === "string") inputs[field] = raw.slice(0, MAX_TEXT);
+    });
+    if (Object.keys(inputs).length) state.inputs = inputs;
+  } else if (view === "bt") {
+    if (BT_KEYS.includes(fields.type)) state.problem = fields.type;
+    const problem = BT_PROBLEM_MAP[state.problem || BT_KEYS[0]];
+    const inputs = {};
+    problem.fields.forEach((field) => {
+      const raw = fields[BT_FIELD_KEYS[field]];
       if (typeof raw === "string") inputs[field] = raw.slice(0, MAX_TEXT);
     });
     if (Object.keys(inputs).length) state.inputs = inputs;

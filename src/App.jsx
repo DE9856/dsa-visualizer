@@ -42,9 +42,12 @@ import HeapSidebar from "./components/HeapSidebar.jsx";
 import HeapCanvas from "./components/HeapCanvas.jsx";
 import TrieSidebar from "./components/TrieSidebar.jsx";
 import TrieCanvas from "./components/TrieCanvas.jsx";
+import BacktrackSidebar from "./components/BacktrackSidebar.jsx";
+import BacktrackCanvas from "./components/BacktrackCanvas.jsx";
+import SearchTreePanel from "./components/SearchTreePanel.jsx";
 import DpSidebar from "./components/DpSidebar.jsx";
 import DpCanvas from "./components/DpCanvas.jsx";
-import DpInfoPanel from "./components/DpInfoPanel.jsx";
+import CodeInfoPanel from "./components/CodeInfoPanel.jsx";
 import UnionFindSidebar from "./components/UnionFindSidebar.jsx";
 import UnionFindCanvas from "./components/UnionFindCanvas.jsx";
 import TopicPanel from "./components/TopicPanel.jsx";
@@ -64,6 +67,7 @@ import { useHeap } from "./hooks/useHeap.js";
 import { useTrie } from "./hooks/useTrie.js";
 import { useUnionFind } from "./hooks/useUnionFind.js";
 import { useDp } from "./hooks/useDp.js";
+import { useBacktracking } from "./hooks/useBacktracking.js";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts.js";
 import { delayForSpeed } from "./hooks/useStepPlayer.js";
 import { readSharedState, shareHashFor, replaceHash, buildShareUrl } from "./utils/urlState.js";
@@ -93,6 +97,7 @@ export default function App() {
   const tri = useTrie(initFor("trie"));
   const uf = useUnionFind(initFor("unionfind"));
   const dp = useDp(initFor("dp"));
+  const bt = useBacktracking(initFor("bt"));
 
   // The player driving whatever view is on screen — one source for the
   // transport bar, the timeline and the keyboard shortcuts.
@@ -112,6 +117,7 @@ export default function App() {
     trie: tri,
     unionfind: uf,
     dp,
+    bt,
   };
   const active = players[view] || v;
 
@@ -149,7 +155,7 @@ export default function App() {
 
   // The address bar tracks the data on screen, so the link is always ready to
   // copy. Only committed data is encoded — never half-typed sidebar text.
-  const shareHash = shareHashFor(view, { v, race, tcmp, ll, poly, st, q, gr, tr, tt, ht, dh, hp, tri, uf, dp });
+  const shareHash = shareHashFor(view, { v, race, tcmp, ll, poly, st, q, gr, tr, tt, ht, dh, hp, tri, uf, dp, bt });
   const shareUrl = buildShareUrl(shareHash);
 
   useEffect(() => {
@@ -174,15 +180,17 @@ export default function App() {
     onPaste: view === "graph" ? gr.pasteClipboard : undefined,
   });
 
-  // The DP problems are listed individually on the landing page and in the
-  // topic menu, as "dp:lcs" and friends, because "Dynamic Programming" as a
-  // single entry says nothing about what is in there. They are one view with
-  // six problems underneath, so the prefix is split off here and the rest is
-  // handed to the hook.
+  // The DP and backtracking problems are listed individually on the landing
+  // page and in the topic menu, as "dp:lcs" and "bt:queens", because the
+  // family name on its own says nothing about what is in there. Each is one
+  // view with several problems underneath, so the prefix is split off here and
+  // the rest is handed to the hook.
+  const problemSetters = { dp: dp.setProblem, bt: bt.setProblem };
+
   const handleViewChange = (next) => {
     const [name, problem] = next.split(":");
     setView(name);
-    if (problem && name === "dp") dp.setProblem(problem);
+    if (problem && problemSetters[name]) problemSetters[name](problem);
     if (name === "sorting" || name === "searching") v.switchCategory(name);
     setStage("app");
   };
@@ -198,7 +206,7 @@ export default function App() {
   return (
     <div className="app" style={{ "--step-anim": `${stepAnim}ms` }}>
       <TopBar
-        category={view === "dp" ? `dp:${dp.problem}` : view}
+        category={view === "dp" ? `dp:${dp.problem}` : view === "bt" ? `bt:${bt.problem}` : view}
         onCategoryChange={handleViewChange}
         onGoHome={() => setStage("select")}
         shareUrl={shareUrl}
@@ -610,8 +618,31 @@ export default function App() {
         >
           <DpCanvas step={dp.step} />
           <ListControls {...transport} />
-          <DpInfoPanel meta={dp.meta} step={dp.step} />
+          <CodeInfoPanel meta={dp.meta} step={dp.step} codeLabel="RECURRENCE" />
           <TopicPanel topicKey="dp" />
+        </Workspace>
+      ) : view === "bt" ? (
+        <Workspace
+          {...shell}
+          panelLabel="BACKTRACKING"
+          sidebar={
+            <BacktrackSidebar
+              problem={bt.problem}
+              onProblemChange={bt.setProblem}
+              meta={bt.meta}
+              inputs={bt.inputs}
+              onInputChange={bt.setInput}
+              onRun={bt.runOperation}
+              onRandom={bt.shuffle}
+              error={bt.error}
+            />
+          }
+        >
+          <BacktrackCanvas step={bt.step} />
+          <SearchTreePanel step={bt.step} />
+          <ListControls {...transport} />
+          <CodeInfoPanel meta={bt.meta} step={bt.step} codeLabel="THE SEARCH" />
+          <TopicPanel topicKey="backtracking" />
         </Workspace>
       ) : view === "race" ? (
         <Workspace

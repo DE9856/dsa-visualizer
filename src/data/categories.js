@@ -68,6 +68,18 @@ export const CATEGORIES = [
     ],
   },
   {
+    key: "backtracking",
+    label: "BACKTRACKING",
+    accent: "var(--red)",
+    blurb: "Choose, check, and undo — a search tree with most of it cut away.",
+    items: [
+      { key: "bt:queens", label: "N-Queens", desc: "No two on a line" },
+      { key: "bt:sudoku", label: "Sudoku", desc: "Row, column, box" },
+      { key: "bt:subset", label: "Subset Sum", desc: "Two bounds kill most branches" },
+      { key: "bt:perms", label: "Permutations", desc: "The same search, nothing pruned" },
+    ],
+  },
+  {
     key: "graphs",
     label: "GRAPHS",
     accent: "var(--purple)",

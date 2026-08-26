@@ -365,6 +365,8 @@ loaded, skipping the category screen.
 | DP, two strings | `#v=dp&type=lcs&a=AGCAT&b=GAC` |
 | DP, knapsack | `#v=dp&type=knapsack&it=2:3, 3:4, 4:5&cap=8` |
 | DP, coin change | `#v=dp&type=coins&co=1, 3, 4&amt=6` |
+| Backtracking, queens | `#v=bt&type=queens&n=6&md=first` |
+| Backtracking, subset sum | `#v=bt&type=subset&nums=3, 34, 4, 12&tg=9&md=all` |
 
 The values are the same text the sidebar's custom-data boxes take, so links stay
 readable and can be written by hand. Trees are listed in the order that rebuilds them
@@ -396,6 +398,10 @@ A graph you have [rearranged](#building-and-arranging-the-graph) also carries an
 `label:x:y` per vertex, each coordinate a fraction of the canvas rather than a pixel, so
 the arrangement survives being opened on a phone. Only the vertices actually dragged off
 the ring are listed, so an untouched graph's link is exactly what it was before.
+
+A backtracking link works the same way: `type` names the problem, `n` and `md` carry the
+board size and whether to stop at the first solution, `gr` an 81-character sudoku grid,
+`nums`+`tg` a subset-sum setup and `vals` a list to permute.
 
 A dynamic programming link names the problem in `type` and then carries only the fields
 that problem actually reads — `a`/`b` for the two-string problems, `it`+`cap` for the
@@ -472,7 +478,8 @@ an [empirical complexity](#empirical-complexity) sweep. The Trees family adds
 **[Balance & Height](#the-balance--height-view)**, which builds a BST, an AVL tree and a
 2-3 tree from the same keys in the same order. **[Dynamic
 programming](#the-dynamic-programming-view)** is a family of its own, with six problems
-sharing one table canvas.
+sharing one table canvas, and **[backtracking](#the-backtracking-view)** is another, with
+four problems sharing one board and one search tree.
 
 ### Sorting (9)
 
@@ -597,6 +604,93 @@ Some things worth setting up deliberately:
 Input sizes are capped — 12 characters, 8 items, capacity 20, amount 24, 14 numbers, 7
 matrices — because one frame per cell means the table's *area* is the length of the
 animation. An 8 × 20 knapsack is already 160 steps.
+
+### The backtracking view
+
+Four problems, one board, one search tree. Backtracking is depth-first search over partial
+answers with one addition: the moment a partial answer is provably hopeless, the whole
+subtree under it is abandoned without being built. Choose, check, recurse, and — the step
+everyone forgets when writing it by hand — **undo**.
+
+| Problem | A slot is | The check | Node budget on the default setup |
+| --- | --- | --- | --- |
+| N-Queens | a row | is this square attacked? | 172 nodes for the first 6×6 solution |
+| Sudoku | the next blank, row-major | is the digit in this row/column/box? | 46–212 depending on the preset |
+| Subset Sum | one number, in or out | has the total overshot, or can the rest still reach it? | 10 nodes on the default |
+| Permutations | a position | *there isn't one* | 65 nodes for all 24 answers |
+
+**Permutations is the control case.** It has no constraint at all, so nothing is ever
+pruned, every leaf is an answer, and the tree is exactly the size of the output. Run it
+first, then n-queens, and the difference between the two trees is precisely what a
+constraint buys.
+
+#### The state space tree
+
+Every path from the root to a node is one partial solution, and the tree of all of them is
+the space the search moves through. Backtracking is then one sentence: walk this tree
+depth-first, and whenever the bounding function proves a node cannot lead to an answer, do
+not generate its children at all.
+
+The panel draws that tree with its edges, which is the whole reason it exists. Without
+edges you can see that eighteen nodes at depth 3 were rejected; with them you can see they
+were all children of one choice, and that rejecting that choice removed an entire subtree.
+
+It is not `RecursionPanel`. That one draws merge and quick sort's recursion, where a call
+owns a contiguous `[lo, hi]` slice and is drawn as a segment on the bars' own horizontal
+scale — containment is an interval relationship there, so it needs no lines. A backtracking
+node owns no interval; its children are enumerated choices. Same frame vocabulary (`calls`,
+`callId`, `depth`, one shared array rather than a copy per frame), different geometry.
+
+Nodes carry the classical names, because they carry the ideas:
+
+| Colour | Name | Meaning |
+| --- | --- | --- |
+| Orange, outlined | **E-node** | the live node being expanded right now |
+| Orange, dim | **live** | generated, on the current path, not yet finished |
+| Red | killed by the **bounding function** | rejected before its children were ever generated |
+| Yellow | **dead end** | every child was tried and all of them failed |
+| Green | **answer node** | led to a solution |
+
+The thick orange line is the path from the root to the E-node, and **PATH FROM ROOT** under
+the tree spells the same thing out in labels. That chain *is* the partial solution the board
+above is showing — a node in this diagram is a state, not a step.
+
+Two things make the tree cheap enough to redraw on every frame:
+
+- **The layout is computed once per run**, from the whole finished tree, and memoized on
+  the shared `calls` array. Nodes never move as the search proceeds; they appear in place.
+  Laying out only what exists so far would shuffle the whole picture sideways on every step.
+- **Nodes are batched into one `<path>` per state** rather than one element each. Every
+  solution to 7-queens is 3,585 nodes, and 3,585 React elements per frame is not worth
+  doing when six path strings say the same thing.
+
+Trees here run from 4 leaves (subset sum, pruned to almost nothing) to 764 (8-queens), so
+the slot width adapts: labels while they fit, plain marks once they don't. Wide and deep
+trees scroll inside their own box, and the E-node is kept in view as you step.
+
+#### What to look for#### What to look for
+
+- **Read the tree's shape.** A node with a wide red fan under it is a choice whose every
+  continuation was illegal. A long thin orange path is the search committed deep into one
+  branch. Permutations, which has no bounding function, is a completely uniform green tree —
+  put it next to n-queens and the difference is exactly what a constraint removes.
+- **The undo is the whole technique.** Yellow frames on the board show a queen coming back
+  off or a digit being rubbed out. The state has to be restored exactly, which is what lets
+  the search reuse one board instead of copying it at every node.
+- **"No digit fits here" does not mean the mistake is here.** When sudoku exhausts a cell,
+  the wrong guess is in a cell filled earlier — the search returns and the *caller's* undo
+  is what fixes it.
+- **Pruning is not a complexity improvement.** Every one of these is still exponential in
+  the worst case. Set FIND to ALL on n-queens and step the board size up: 6 is 895 nodes, 7
+  is 3,585, and 8 is 15,721 — past the node budget, which stops and says so.
+- **Search order matters more than it looks.** The sudoku solver takes blanks in reading
+  order. Picking the most constrained blank first is the standard improvement, and its
+  absence is why the famous newspaper puzzle at the top of the Wikipedia article takes this
+  solver **37,653 nodes and 4,157 backtracks** — far too many to animate, which is why the
+  three presets were chosen by running the solver rather than by how hard they look.
+
+Searches stop at 4,000 nodes. Backtracking is exponential and a bad setup finds that out
+the hard way; stopping and reporting it is better than a tab that never comes back.
 
 ### Editing the adjacency matrix
 
@@ -1074,6 +1168,9 @@ src/
 │   ├── dp/                 one file per DP problem + helpers.js + index.js
 │   │                       registry; each exports run(params) -> { steps }
 │   │                       and parses its own sidebar text
+│   ├── backtracking/       same shape, one file per problem; helpers.js holds
+│   │                       makeRecorder(), which collects the frames and the
+│   │                       search tree together
 │   ├── metrics.js          createMetrics(): the counters every sort reports
 │   ├── sortContext.js      makeSort(): one body, exported as run() and count()
 │   ├── stability.js        checkStability(): did ties keep their original order?
@@ -1098,7 +1195,13 @@ src/
 │   ├── SweepPanel.jsx      the collapsible "measure it" shell every comparison
 │   │                       panel is built on: run on demand, in chunks,
 │   │                       cancellable, marked stale when the setup changes
-│   └── LineChart.jsx       the one plot they all draw through
+│   ├── LineChart.jsx       the one plot they all draw through
+│   ├── RecursionPanel.jsx  divide-and-conquer recursion, drawn on the array's
+│   │                       own scale (merge and quick sort)
+│   ├── SearchTreePanel.jsx backtracking's search tree — same frame vocabulary,
+│   │                       laid out by depth because a choice owns no range
+│   └── CodeInfoPanel.jsx   description + costs + code, with the executing line
+│                           lit up (shared by the DP and backtracking views)
 │
 ├── hooks/
 │   ├── useStepPlayer.js         shared playback engine (see below)

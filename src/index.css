@@ -2954,6 +2954,7 @@ input[type="range"] {
   .tr-canvas,
   .uf-canvas,
   .dp-canvas,
+  .bt-canvas,
   .graph-canvas {
     height: auto;
   }
@@ -2970,6 +2971,29 @@ input[type="range"] {
   .ll-canvas {
     padding: 28px 12px 14px;
     min-height: 190px;
+  }
+
+  /* A 9-wide sudoku at 34px is 320px, which just fits a phone; the row boards
+     are wider per cell and get their own scroll box. */
+  .bt-canvas {
+    padding: 14px 10px 16px;
+    min-height: 260px;
+  }
+
+  .bt-board {
+    grid-template-columns: repeat(var(--cols), 30px);
+  }
+
+  .bt-cell {
+    height: 30px;
+  }
+
+  .bt-cell__value {
+    font-size: 13px;
+  }
+
+  .tree-panel__scroll {
+    max-height: 180px;
   }
 
   /* The table already scrolls inside its own box; shrinking the cells is what
@@ -3719,6 +3743,364 @@ select.text-input option {
     margin-right: 5px;
     position: relative;
   }
+}
+
+/* ---------- backtracking ---------- */
+
+.bt-canvas {
+  height: auto;
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 18px 20px 20px;
+}
+
+.bt-board-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.bt-board {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 34px);
+  gap: 2px;
+  margin: 0 auto;
+}
+
+/* A list of candidates rather than a board: wider cells, because the values
+   are numbers with two digits rather than one piece. */
+.bt-board--row {
+  grid-template-columns: repeat(var(--cols), 46px);
+  gap: 6px;
+}
+
+.bt-cell {
+  position: relative;
+  height: 34px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel-alt);
+  color: var(--text-dim);
+  transition: background-color var(--step-anim) ease, border-color var(--step-anim) ease,
+    color var(--step-anim) ease, transform var(--step-anim) ease;
+}
+
+.bt-board--row .bt-cell {
+  height: 44px;
+}
+
+.bt-cell__value {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.bt-cell__label {
+  font-size: 8px;
+  color: var(--text-dim);
+  opacity: 0.7;
+  margin-top: 3px;
+}
+
+/* The puzzle's own digits: settled before the search started, and never
+   touched by it. */
+.bt-cell.is-given {
+  color: var(--text);
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.bt-cell.is-placed {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+/* What the constraint has already ruled out. Shaded rather than outlined,
+   because it is the absence of a choice rather than a choice. */
+.bt-cell.is-attacked {
+  background: rgba(255, 107, 107, 0.08);
+  border-color: rgba(255, 107, 107, 0.18);
+}
+
+.bt-cell.is-conflict {
+  border-color: var(--red);
+  background: rgba(255, 107, 107, 0.2);
+  color: var(--red);
+}
+
+.bt-cell.is-current {
+  border-color: var(--primary);
+  background: var(--primary-dim);
+  color: var(--primary);
+  transform: scale(1.06);
+}
+
+/* A choice being taken back. Yellow rather than red: nothing was wrong with
+   it, it just didn't lead anywhere. */
+.bt-cell.is-undo {
+  border-color: var(--yellow);
+  background: rgba(245, 196, 81, 0.16);
+  color: var(--yellow);
+}
+
+.bt-cell.is-solution {
+  border-color: var(--green);
+  background: rgba(95, 214, 160, 0.18);
+  color: var(--green);
+}
+
+.bt-cell.is-in {
+  border-color: var(--green);
+  background: rgba(95, 214, 160, 0.14);
+  color: var(--green);
+}
+
+.bt-cell.is-out {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+
+/* Sudoku's 3x3 rules, drawn on the cells that start a block rather than as
+   lines over the grid. They have to be brighter than every other border in
+   the app to be seen at all: at this size the 2px gaps between cells swamp a
+   subtle one, and without the boxes a sudoku is just a 9x9 grid. */
+.bt-cell--bx {
+  border-left: 2px solid var(--text-dim);
+}
+
+.bt-cell--by {
+  border-top: 2px solid var(--text-dim);
+}
+
+.bt-puzzles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.bt-puzzle {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.bt-puzzle:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.bt-puzzle.active {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--primary-dim);
+}
+
+.bt-grid-input {
+  font-size: 10px;
+  line-height: 1.5;
+  letter-spacing: 0.08em;
+}
+
+/* ---------- the state space tree ---------- */
+
+.tree-panel__body {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  /* A thirty-row sudoku tree is taller than the gutter's box, and the gutter
+     is absolutely positioned — without this its numbers spill out over the
+     transport bar below. */
+  overflow: hidden;
+}
+
+/* Sits over the scroll box rather than inside it, so the depth numbers stay
+   put while a tree several thousand pixels wide scrolls under them. */
+.tree-panel__gutter {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 18px;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(to right, var(--panel) 60%, transparent);
+}
+
+.tree-panel__depth {
+  font-size: 9px;
+  color: var(--text-dim);
+  text-align: left;
+  flex-shrink: 0;
+}
+
+.tree-panel__scroll {
+  flex: 1;
+  min-width: 0;
+  padding-left: 22px;
+  max-height: 264px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tree-panel__scroll svg {
+  display: block;
+}
+
+.tree-edge {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.14);
+  stroke-width: 1;
+}
+
+/* The path from the root to the E-node — the partial solution the board is
+   showing, drawn as the one thick line through the tree. */
+.tree-edge--stack {
+  stroke: var(--primary);
+  stroke-width: 1.8;
+  opacity: 0.75;
+}
+
+.tree-rect {
+  stroke-width: 1;
+}
+
+/* Generated but not yet reached by the walk. */
+.tree-rect--open {
+  fill: rgba(255, 255, 255, 0.1);
+  stroke: none;
+}
+
+.tree-rect--live {
+  fill: var(--primary-dim);
+  stroke: rgba(255, 138, 61, 0.5);
+}
+
+/* Rejected before its children were ever generated. On most searches this is
+   the bulk of the picture, which is the argument for backtracking. */
+.tree-rect--pruned {
+  fill: rgba(255, 107, 107, 0.4);
+  stroke: none;
+}
+
+.tree-rect--dead {
+  fill: rgba(245, 196, 81, 0.45);
+  stroke: none;
+}
+
+.tree-rect--solution {
+  fill: rgba(95, 214, 160, 0.55);
+  stroke: none;
+}
+
+.tree-rect--enode {
+  fill: var(--primary);
+  stroke: var(--text);
+  stroke-width: 1;
+}
+
+.tree-label {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9px;
+  fill: var(--text-dim);
+  pointer-events: none;
+}
+
+.tree-label--enode {
+  fill: var(--bg);
+  font-weight: 700;
+}
+
+.tree-label--live {
+  fill: var(--primary);
+}
+
+.tree-label--solution {
+  fill: var(--bg);
+}
+
+.tree-panel__path {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.tree-path {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.tree-path__node {
+  color: var(--text);
+}
+
+.tree-path__node.is-enode {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.tree-path__arrow {
+  opacity: 0.5;
+}
+
+.tree-panel__key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.tree-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.tree-key__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.tree-key__dot.is-enode {
+  background: var(--primary);
+}
+
+.tree-key__dot.is-live {
+  background: rgba(255, 138, 61, 0.4);
+  border: 1px solid rgba(255, 138, 61, 0.6);
+}
+
+.tree-key__dot.is-pruned {
+  background: rgba(255, 107, 107, 0.5);
+}
+
+.tree-key__dot.is-dead {
+  background: rgba(245, 196, 81, 0.5);
+}
+
+.tree-key__dot.is-solution {
+  background: rgba(95, 214, 160, 0.6);
 }
 
 /* ---------- dynamic programming ---------- */

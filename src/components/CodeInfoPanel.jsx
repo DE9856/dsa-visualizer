@@ -1,13 +1,16 @@
 /**
- * The DP problem's description, its costs, and the recurrence with the line
- * the current step is executing lit up.
+ * A problem's description, its costs, and its code with the line the current
+ * step is executing lit up. Shared by the dynamic programming and backtracking
+ * views, which is why the code block's heading is a prop: one shows a
+ * recurrence, the other a recursive procedure.
  *
- * The structure views get `ListInfoPanel`, which has no pseudocode block —
- * "insert into a BST" is a sentence. A DP problem *is* its recurrence, and the
- * one thing worth watching alongside the table is which branch of it each cell
- * took, so this one shows the code the way the sorting view does.
+ * The structure views get `ListInfoPanel`, which has no code block at all —
+ * "insert into a BST" is a sentence. A DP problem *is* its recurrence and a
+ * backtracking problem *is* its choose/check/undo loop, and in both the thing
+ * worth watching beside the picture is which branch of the code each step
+ * took, so these show the code the way the sorting view does.
  */
-export default function DpInfoPanel({ meta, step }) {
+export default function CodeInfoPanel({ meta, step, codeLabel = "PSEUDOCODE" }) {
   const activeLine = step?.line ?? null;
 
   return (
@@ -28,7 +31,7 @@ export default function DpInfoPanel({ meta, step }) {
       </div>
 
       <div className="info__code">
-        <div className="label">RECURRENCE</div>
+        <div className="label">{codeLabel}</div>
         {meta.pseudocode.map((line, i) => (
           <div
             key={i}

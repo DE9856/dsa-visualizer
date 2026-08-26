@@ -3,6 +3,36 @@
 // what an individual button/operation does).
 
 export const TOPIC_OVERVIEWS = {
+  backtracking: {
+    overview:
+      "Backtracking is depth-first search over the space of partial answers, with one addition that changes everything: the moment a partial answer is provably hopeless, the entire subtree underneath it is abandoned without being built. Choose a value for the next slot, check whether it can still lead somewhere, recurse if it can, and if the recursion comes back empty-handed, undo the choice and try the next one. That undo is the whole name of the technique, and it is the one step people skip when they write it out by hand — the state has to be put back exactly as it was found, or the next branch starts from a lie. What separates the four problems here is only what a slot is and how much the check can rule out, and the fourth of them has no check at all, which is what makes it the useful control case.",
+    howItWorks: [
+      "Represent a partial answer as something you can add one decision to: a queen per row, a digit per blank, a yes-or-no per number, a value per slot.",
+      "At each step, enumerate the choices for the next slot. This is where the branching factor comes from, and it is why the tree is exponential before any pruning.",
+      "Test each choice against the constraint before recursing. A square attacked by a queen already placed, a digit already in the row, a running total that has overshot the target — each of these kills a branch that would otherwise have been explored in full.",
+      "Recurse. If the recursion reports success and you only wanted one answer, return straight up; if you want all of them, keep going.",
+      "Undo the choice — take the queen off, rub the digit out, put the number back. This is the backtrack, and it is why the algorithm can reuse one board rather than copying the state at every node.",
+      "When every choice at a slot fails, return failure. The mistake is not in this slot but in one further up, and the caller's undo is what fixes it.",
+    ],
+    useCases: [
+      "Constraint satisfaction of every kind — timetabling, seating, scheduling, register allocation — where the rules make most of the search space illegal.",
+      "Puzzle solvers: sudoku, crosswords, knight's tours, and the whole genre of exact-cover problems.",
+      "Regular expression engines with backreferences, which backtrack over the ways a pattern could have matched.",
+      "Enumeration problems where you need every answer rather than one: all permutations, all subsets, all colourings of a graph.",
+    ],
+    advantages: [
+      "It finds an answer without ever building the whole search space, which for these problems is the difference between practical and impossible.",
+      "Memory is tiny — one partial answer plus a recursion stack, because the undo means state is reused rather than copied.",
+      "The pruning test is separate from the search, so a better test makes the same code dramatically faster without changing its shape.",
+      "It is complete: if an answer exists, an exhaustive backtracking search will find it.",
+    ],
+    disadvantages: [
+      "Still exponential in the worst case. Pruning changes the constant and often the practical outcome, but it does not change the complexity class.",
+      "Performance depends enormously on the order choices are tried in. The sudoku solver here takes blanks in reading order; picking the most constrained blank first — the standard improvement — cuts the work on hard puzzles by orders of magnitude.",
+      "The undo has to restore the state exactly. Any decision recorded and not reversed leaks into sibling branches, and the resulting bug looks like a wrong answer rather than a crash.",
+      "Deep recursion on a large problem can exhaust the call stack, which is why iterative formulations with an explicit stack exist.",
+    ],
+  },
   dp: {
     overview:
       "Dynamic programming is what you get when a recursive solution keeps solving the same subproblem. Write the recursion honestly — the best way to make change for 11 is one coin plus the best way to make change for 11 minus that coin — and it is correct and exponentially slow, because the same amounts come up again and again down different branches. DP is the observation that there are only so many distinct subproblems, so you can lay them out in a table, fill it in an order where every cell's dependencies are already there, and pay for each one exactly once. Every problem here is that same move: decide what one cell means, work out which already-filled cells it depends on, pick a fill order that respects them, and then — the half most explanations skip — walk the table backwards to find out not how good the answer is but what it actually was.",

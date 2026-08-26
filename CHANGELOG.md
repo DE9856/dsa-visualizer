@@ -15,9 +15,15 @@ Compare, which puts sorting algorithms against each other on real, self-reported
 counts, and Balance & Height, which builds a BST, an AVL tree and a 2-3 tree from one key
 sequence. Dynamic programming arrives as a family of its own: six problems that fill a
 table cell by cell and then walk it backwards to recover the answer the number alone
-never gives you.
+never gives you. Backtracking arrives as another: four searches drawn beside the tree they
+explore, with the branches pruning cut away marked as such.
 
 ### Changed
+
+- **`DpInfoPanel` is now `CodeInfoPanel`, shared by two views.** It was already just
+  "description, costs, and code with the executing line lit up", which is what the
+  backtracking view needs too. The code block's heading is a prop, since one view shows a
+  recurrence and the other a recursive procedure.
 
 - **`treeHeight` is memoized against the node object.** Every AVL balance factor asks for
   two heights and `avlFixupTree` asks for a balance factor at every node, so an unmemoized
@@ -66,6 +72,62 @@ never gives you.
   building. Shared links are unaffected: they arrive with the graph they carry.
 
 ### Added
+
+- **Backtracking: four searches, one board, and a tree that shows what pruning removes.**
+  A new family — n-queens, sudoku, subset sum and permutations — sharing one canvas and
+  one search-tree panel.
+
+  Backtracking is depth-first search over partial answers with one addition: the moment a
+  partial answer is provably hopeless, the whole subtree under it is abandoned without
+  being built. Choose, check, recurse, and — the step that gets skipped when people write
+  it out by hand — undo. The board shows all of it: what the constraint has already ruled
+  out (squares a placed queen attacks, the digit that clashes), the choice being made, and
+  in yellow the choice being taken back.
+
+  **The state space tree is the point, and it is not `RecursionPanel`.** Every path from the
+  root to a node is one partial solution, and the tree of all of them is the space the
+  search moves through — so `SearchTreePanel` draws it with its edges. Without them you can
+  see that eighteen nodes at depth 3 were rejected; with them you can see they were all
+  children of one choice, and that rejecting it removed an entire subtree. Nodes carry the
+  classical names: **E-node** for the one being expanded, live for the rest of the path,
+  killed-by-the-bounding-function for branches rejected before their children were ever
+  generated, dead end for those tried and undone, answer node for those that worked. The
+  path from the root to the E-node is drawn as one thick line and spelled out underneath,
+  because that chain *is* the partial solution the board is showing.
+
+  `RecursionPanel` could not do this job. It draws merge and quick sort's recursion, where a
+  call owns a contiguous `[lo, hi]` slice and is drawn as a segment on the bars' own
+  horizontal scale — containment is an interval relationship there, so it needs no lines at
+  all. A backtracking node owns no interval. Same frame vocabulary (`calls`, `callId`,
+  `depth`, one shared array rather than a copy per frame), different geometry.
+
+  Two things keep the tree cheap enough to redraw every frame: the layout is computed once
+  per run from the finished tree and memoized on the shared `calls` array, so nodes appear
+  in place instead of the picture shuffling sideways on every step; and nodes are batched
+  into one `<path>` per state rather than one element each, since 7-queens over every
+  solution is 3,585 nodes. Trees run from 4 leaves to 764, so the slot width adapts — labels
+  while they fit — and the E-node is kept in view as you step.
+
+  Making that colouring correct needed one extension to the shared-array trick. A
+  merge-sort call never changes after it is created, so `RecursionPanel` can slice by
+  `callCount` and be done. A backtracking node does change — it starts as exploring and
+  later becomes a dead end or a solution — so mutating a status field would make early
+  frames show nodes dying before they died. Instead each node records *when* it changed, as
+  frame ordinals (`openedAt`, `closedAt`), and the panel compares them against the frame's
+  own `seq`. Mutation stays safe because it is only ever read as a comparison, and stepping
+  backwards shows the tree as it was rather than as it ended up.
+
+  **Permutations is in there as the control case.** It has no constraint, so nothing is
+  ever pruned, every leaf is an answer, and the tree is exactly the size of the output — 65
+  nodes for 24 answers. Next to n-queens, where 140 of 172 nodes are rejected on sight, the
+  difference between the two trees is precisely what a constraint buys.
+
+  Searches stop at 4,000 nodes, and the number is not arbitrary: every solution to 7-queens
+  is 3,585 nodes, 8-queens is 15,721, and the newspaper sudoku at the top of the Wikipedia
+  article takes this row-major solver 37,653 nodes and 4,157 backtracks. The three sudoku
+  presets were chosen by running the solver over candidates rather than by how hard they
+  look to a person — one that needs no guessing at all, one with three, one with eight —
+  because those two things turn out to be barely related.
 
 - **Dynamic programming: six problems, one table, filled and then walked backwards.** A
   new family on the landing page — longest common subsequence, edit distance, 0/1

@@ -133,6 +133,8 @@ src/
 │   ├── searching/          one file per searching algorithm
 │   ├── dp/                 one file per DP problem (LCS, edit distance,
 │   │                       knapsack, coin change, LIS, matrix chain)
+│   ├── backtracking/       one file per problem (n-queens, sudoku, subset
+│   │                       sum, permutations) + the search-tree recorder
 │   ├── metrics.js          the operation counters every sort reports
 │   ├── sortContext.js      the run()/count() pair each sort is written against
 │   ├── stability.js        did equal elements keep their original order?
@@ -272,6 +274,20 @@ sideways. See
 - Every cell keeps the decision it made (`↖ ↑ ←`, `✓ ·`, `k=3`), which is what the
   backtrack reads rather than recomputing
 - The recurrence is shown alongside with the executing line highlighted
+
+### Backtracking
+
+- N-Queens, Sudoku, subset sum and permutations, on one board canvas
+- **The state space tree** under it, drawn with its edges: every root-to-node path is one
+  partial solution, and the missing subtrees are what the bounding function removed
+- Nodes carry the classical names — **E-node**, live, killed by the bounding function, dead
+  end, answer node — and the path from the root to the E-node is highlighted and spelled out
+- Live counters for nodes, pruned branches, backtracks and solutions
+- The board marks what the constraint has already ruled out (attacked squares, clashing
+  digits) and highlights the undo itself
+- Permutations has no constraint at all, which makes it the control case: nothing is
+  pruned, so the difference between its tree and n-queens' is exactly what a rule buys
+- FIND FIRST or ALL, and a node budget that stops runaway searches and says so
 
 ### Searching
 
