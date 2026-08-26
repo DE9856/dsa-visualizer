@@ -2953,6 +2953,7 @@ input[type="range"] {
   .hp-canvas,
   .tr-canvas,
   .uf-canvas,
+  .dp-canvas,
   .graph-canvas {
     height: auto;
   }
@@ -2969,6 +2970,26 @@ input[type="range"] {
   .ll-canvas {
     padding: 28px 12px 14px;
     min-height: 190px;
+  }
+
+  /* The table already scrolls inside its own box; shrinking the cells is what
+     keeps a capacity-20 knapsack from being a scroll from the first column. */
+  .dp-canvas {
+    padding: 14px 12px 16px;
+    min-height: 260px;
+  }
+
+  .dp-cell {
+    min-width: 26px;
+    height: 26px;
+  }
+
+  .dp-cell__value {
+    font-size: 11px;
+  }
+
+  .dp-head {
+    font-size: 10px;
   }
 
   .ll-row {
@@ -3698,6 +3719,193 @@ select.text-input option {
     margin-right: 5px;
     position: relative;
   }
+}
+
+/* ---------- dynamic programming ---------- */
+
+/* The table decides the height, and a wide one (capacity 20 is 21 columns)
+   scrolls inside its own box rather than pushing the page sideways. */
+.dp-canvas {
+  height: auto;
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px 20px;
+}
+
+.dp-table-wrap {
+  margin-bottom: 4px;
+}
+
+.dp-table {
+  border-collapse: separate;
+  border-spacing: 3px;
+  font-size: 12px;
+  margin: 0 auto;
+}
+
+.dp-head {
+  color: var(--text);
+  font-weight: 700;
+  font-size: 11px;
+  padding: 4px 6px;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.dp-head--row {
+  text-align: right;
+  padding-right: 8px;
+}
+
+/* The index under a header letter — which prefix, which item, which position.
+   Half the confusion in a DP table is off-by-one between "character 3" and
+   "column 3", so both are always on screen. */
+.dp-sub {
+  display: block;
+  font-size: 9px;
+  font-weight: 400;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+
+.dp-corner {
+  padding: 0;
+}
+
+.dp-cell {
+  position: relative;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 4px;
+  text-align: center;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+  color: var(--text-dim);
+  transition: background-color var(--step-anim) ease, border-color var(--step-anim) ease,
+    color var(--step-anim) ease, transform var(--step-anim) ease;
+}
+
+.dp-cell.is-empty {
+  background: none;
+  border-style: dashed;
+  border-color: var(--border);
+}
+
+/* Not "not filled yet" but "not part of this table" — the lower triangle of a
+   matrix chain. Flat and borderless, so it reads as absent rather than
+   pending. */
+.dp-cell.is-void {
+  background: none;
+  border-color: transparent;
+}
+
+.dp-cell.is-filled {
+  color: var(--text);
+}
+
+.dp-cell.is-read {
+  border-color: var(--border-strong);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* The cell this step's answer actually came from. This is the recurrence made
+   visible, so it is the loudest thing on the table after the cursor. */
+.dp-cell.is-chosen {
+  border-color: var(--blue);
+  background: rgba(79, 184, 224, 0.16);
+  color: var(--blue);
+}
+
+.dp-cell.is-path {
+  border-color: var(--green);
+  background: rgba(95, 214, 160, 0.16);
+  color: var(--green);
+}
+
+.dp-cell.is-cur {
+  border-color: var(--primary);
+  background: var(--primary-dim);
+  color: var(--primary);
+  font-weight: 700;
+  transform: scale(1.06);
+}
+
+.dp-cell__value {
+  font-size: 12px;
+}
+
+/* The arrow or split a cell remembers about how it got its value. Small and
+   dim: it is the backtrack's data, not the fill's answer. */
+.dp-cell__mark {
+  position: absolute;
+  top: 0;
+  right: 2px;
+  font-size: 8px;
+  line-height: 1;
+  opacity: 0.65;
+}
+
+.dp-aux {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.dp-aux__items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.dp-aux__empty {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.dp-chip {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+  color: var(--text);
+}
+
+.dp-chip--take {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.dp-chip--skip {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.dp-chip--plain {
+  color: var(--text-dim);
+}
+
+.dp-field {
+  margin-bottom: 10px;
+}
+
+.dp-hint {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.dp-error {
+  font-size: 11px;
+  color: var(--yellow);
+  margin-bottom: 10px;
+  line-height: 1.5;
 }
 
 /* ---------- empirical complexity ---------- */

@@ -3,6 +3,35 @@
 // what an individual button/operation does).
 
 export const TOPIC_OVERVIEWS = {
+  dp: {
+    overview:
+      "Dynamic programming is what you get when a recursive solution keeps solving the same subproblem. Write the recursion honestly — the best way to make change for 11 is one coin plus the best way to make change for 11 minus that coin — and it is correct and exponentially slow, because the same amounts come up again and again down different branches. DP is the observation that there are only so many distinct subproblems, so you can lay them out in a table, fill it in an order where every cell's dependencies are already there, and pay for each one exactly once. Every problem here is that same move: decide what one cell means, work out which already-filled cells it depends on, pick a fill order that respects them, and then — the half most explanations skip — walk the table backwards to find out not how good the answer is but what it actually was.",
+    howItWorks: [
+      "Define the subproblem so that a cell is an answer, not a step: L[i][j] is the LCS of the first i characters of A and the first j of B; K[i][w] is the best value from the first i items in a bag of capacity w. Getting this sentence right is most of the work — the recurrence usually falls out of it.",
+      "Fill the base cases first. They are the subproblems small enough to answer without recursion: an empty string shares nothing with anything, no items are worth nothing, a run of one matrix costs nothing to multiply.",
+      "Fill the rest in an order where every dependency is already written down. Row by row for the two-string problems, item by item for the knapsack, and by increasing chain length for matrix chain multiplication — which is why that one fills diagonally rather than in rows.",
+      "Each cell makes one small decision and records which way it went: a match or not, take the item or skip it, split the chain here or there. The value is what the decision cost; the mark in the cell's corner is what the decision was.",
+      "Backtrack. The table's answer cell holds a number, and a number is not a solution: 'length 4' is not a subsequence and '23' is not a set of items. Starting at the answer and following the recorded decisions backwards recovers the choices that produced it — which is the part of the table that is actually useful and the part that is usually drawn as an afterthought.",
+      "Notice how few cells the backtrack touches. Filling the table is O(n·m); the walk back is a single path through it. All that work to make one path findable is the honest cost of the technique.",
+    ],
+    useCases: [
+      "Diffing files and version control: the longest common subsequence of two files' lines is exactly what a diff is.",
+      "Spell checking, fuzzy search and DNA sequence alignment, all of which are edit distance with different costs attached to the three operations.",
+      "Resource allocation under a hard limit — budgets, cargo, ad slots — which is the 0/1 knapsack whenever the things being chosen cannot be cut in half.",
+      "Query planners and expression compilers, which choose an evaluation order the same way matrix chain multiplication chooses a bracketing.",
+    ],
+    advantages: [
+      "Turns exponential recursion into polynomial time by paying for each distinct subproblem once instead of once per path that reaches it.",
+      "The table is a complete record: once it is filled, related questions ('what if the bag were smaller?') are already answered in the cells you have.",
+      "Correct where greedy is not. Coin change with denominations 1, 3 and 4 makes 6 in two coins, and always-take-the-largest gets three — the table finds the answer greedy cannot see.",
+    ],
+    disadvantages: [
+      "Memory is the table. O(n·m) cells is fine at these sizes and a real problem at scale, which is why practical implementations often keep only the row they need — at the cost of being able to backtrack at all.",
+      "It only works when the problem has optimal substructure and overlapping subproblems. Without the first, a cell's answer cannot be built from smaller cells; without the second, memoizing buys nothing over plain recursion.",
+      "The table says how good the answer is, never what it was, unless you deliberately keep the decisions as well. That is a separate array in most textbook code and a very easy thing to leave out.",
+      "Finding the right subproblem is genuinely hard and does not generalise. The recurrence is obvious in hindsight and rarely in foresight.",
+    ],
+  },
   treecompare: {
     overview:
       "A binary search tree has no shape of its own. Its shape is decided entirely by the order its keys arrive in, and the worst order is the most natural one: insert 1, 2, 3, … n into a plain BST and every key is larger than everything already there, so nothing ever branches left and you get a linked list with extra pointers — height n−1, lookups O(n). AVL trees and 2-3 trees exist to make that stop being possible. This view builds all three from the same keys in the same order, one insert per tick, so the difference is visible rather than asserted.",

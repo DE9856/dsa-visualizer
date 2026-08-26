@@ -10,6 +10,7 @@
 export const TOPIC_TITLES = {
   race: "Comparing Sorting Algorithms",
   treecompare: "Balance & Height: BST vs AVL vs 2-3",
+  dp: "Dynamic Programming",
   linkedlist: "Linked List",
   polynomial: "Polynomial (Linked List Representation)",
   stack: "Stack",

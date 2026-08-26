@@ -362,6 +362,9 @@ loaded, skipping the category screen.
 | Graph | `#v=graph&w=1&g=A,B,C,D&e=A-B(5),B-C(2),C-D(7),A-D` |
 | Graph, rearranged | `#v=graph&g=A,B,C&e=A-B,B-C&xy=A:0.2:0.15,C:0.75:0.8` |
 | Polynomial | `#v=polynomial&p=6x^4 - 2x^2 + 9` |
+| DP, two strings | `#v=dp&type=lcs&a=AGCAT&b=GAC` |
+| DP, knapsack | `#v=dp&type=knapsack&it=2:3, 3:4, 4:5&cap=8` |
+| DP, coin change | `#v=dp&type=coins&co=1, 3, 4&amt=6` |
 
 The values are the same text the sidebar's custom-data boxes take, so links stay
 readable and can be written by hand. Trees are listed in the order that rebuilds them
@@ -393,6 +396,13 @@ A graph you have [rearranged](#building-and-arranging-the-graph) also carries an
 `label:x:y` per vertex, each coordinate a fraction of the canvas rather than a pixel, so
 the arrangement survives being opened on a phone. Only the vertices actually dragged off
 the ring are listed, so an untouched graph's link is exactly what it was before.
+
+A dynamic programming link names the problem in `type` and then carries only the fields
+that problem actually reads — `a`/`b` for the two-string problems, `it`+`cap` for the
+knapsack, `co`+`amt` for coin change, `sq` for the increasing subsequence and `dm` for the
+matrix chain. They travel as exactly the text their sidebar boxes hold, and each one is
+re-parsed on the way in by the same parser the sidebar uses, so a hand-edited link can only
+produce a table the app would have drawn anyway.
 
 Some details are deliberately not in the link: playback position, speed, which
 operation is selected, and half-typed text in the sidebar. The link is the *data*, not
@@ -460,7 +470,9 @@ The Arrays family holds three views: **Sorting**, **Searching**, and **Race & Co
 [two to four sorts side by side](#the-race-view) on one input, with a live scoreboard and
 an [empirical complexity](#empirical-complexity) sweep. The Trees family adds
 **[Balance & Height](#the-balance--height-view)**, which builds a BST, an AVL tree and a
-2-3 tree from the same keys in the same order.
+2-3 tree from the same keys in the same order. **[Dynamic
+programming](#the-dynamic-programming-view)** is a family of its own, with six problems
+sharing one table canvas.
 
 ### Sorting (9)
 
@@ -528,6 +540,63 @@ A vertex may be joined to **itself**: an edge with both endpoints on one vertex 
 **self-loop**, drawn as a loop leaving the vertex's rim and coming back to it, pointing
 away from the middle of the canvas where there is room for it. See
 [self-loops](#self-loops).
+
+### The dynamic programming view
+
+Six problems, one canvas. Each of them fills a table cell by cell and then walks it
+backwards, and the whole point of putting them together is how much of that is the same
+move every time.
+
+| Problem | The cell | Fill order | What comes back |
+| --- | --- | --- | --- |
+| Longest Common Subsequence | `L[i][j]`: LCS of A's first i and B's first j | row by row | the subsequence |
+| Edit Distance | `D[i][j]`: cheapest way to turn A's first i into B's first j | row by row | the edit script |
+| 0/1 Knapsack | `K[i][w]`: best value from the first i items in a bag of size w | item by item | the items taken |
+| Coin Change | `C[i][a]`: fewest of the first i coins making amount a | coin by coin | the coins spent |
+| Longest Increasing Subsequence | `L[i]`: best subsequence *ending at* i | left to right | the subsequence |
+| Matrix Chain Order | `m[i][j]`: cheapest way to multiply the run i…j | by chain length | the bracketing |
+
+**Four things are marked, and they mean different things.** The cell being written is
+orange. A cell this step *read and rejected* is grey; the cell its answer actually **came
+from** is blue. That last distinction is the recurrence made visible — a knapsack cell
+looks at two neighbours and takes one, and which one it took is the difference between
+putting the item in the bag or leaving it out. During the backtrack, cells on the
+recovered solution turn green.
+
+**The corner mark is what the backtrack runs on.** Each cell records not just its value
+but how it got it: `↖ ↑ ←` for the two-string problems, `✓ ·` for taken or skipped,
+`←j` for which position an increasing subsequence extended, `k=3` for where a matrix chain
+was split. Filling writes those marks; backtracking reads them. Nothing is recomputed on
+the way back, which is why the recovered answer can never disagree with the number the
+fill produced — a real risk when the two halves make the same decision twice.
+
+**The backtrack is half the point.** A filled table holds a number, and a number is not a
+solution: "length 4" is not a subsequence and "23" is not a set of items. Watch how few
+cells the walk touches — five of twenty-four on the default LCS — and the cost of the
+technique is on screen: all that filling to make one path findable.
+
+Some things worth setting up deliberately:
+
+- **LCS and edit distance are the same grid.** Type the same two strings into both and
+  the tables are the same shape with the arithmetic turned upside down: one counts what
+  the strings share, the other what they don't. The inputs are kept when you switch
+  between problems precisely so this is one click.
+- **Coin change with 1, 3, 4 and amount 6.** The answer is 3+3, two coins. Greedy — take
+  the largest that fits — gets 4+1+1, three coins, and the panel says so when it happens.
+  This is the standard demonstration that greedy is not a shortcut here.
+- **Coin change reads from its own row, not the one above.** That single index is the
+  whole difference between it and the 0/1 knapsack: a coin can be spent again, an item
+  cannot.
+- **The increasing subsequence's answer is not in the last cell.** `L[i]` is the best
+  subsequence *ending at* i, so the answer is the largest cell anywhere in the row, which
+  is unusual enough that the frame at the end of the fill stops to point at it.
+- **Matrix chain fills diagonally**, because a run of length 3 needs the answers for the
+  runs of length 2 inside it. The lower triangle is drawn as absent rather than empty — a
+  run never goes backwards, so those cells are not "not yet", they are "not a cell".
+
+Input sizes are capped — 12 characters, 8 items, capacity 20, amount 24, 14 numbers, 7
+matrices — because one frame per cell means the table's *area* is the length of the
+animation. An 8 × 20 knapsack is already 160 steps.
 
 ### Editing the adjacency matrix
 
@@ -1002,6 +1071,9 @@ src/
 ├── algorithms/
 │   ├── sorting/            one file per sorting algorithm
 │   ├── searching/          one file per searching algorithm
+│   ├── dp/                 one file per DP problem + helpers.js + index.js
+│   │                       registry; each exports run(params) -> { steps }
+│   │                       and parses its own sidebar text
 │   ├── metrics.js          createMetrics(): the counters every sort reports
 │   ├── sortContext.js      makeSort(): one body, exported as run() and count()
 │   ├── stability.js        checkStability(): did ties keep their original order?

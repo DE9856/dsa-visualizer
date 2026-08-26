@@ -42,6 +42,9 @@ import HeapSidebar from "./components/HeapSidebar.jsx";
 import HeapCanvas from "./components/HeapCanvas.jsx";
 import TrieSidebar from "./components/TrieSidebar.jsx";
 import TrieCanvas from "./components/TrieCanvas.jsx";
+import DpSidebar from "./components/DpSidebar.jsx";
+import DpCanvas from "./components/DpCanvas.jsx";
+import DpInfoPanel from "./components/DpInfoPanel.jsx";
 import UnionFindSidebar from "./components/UnionFindSidebar.jsx";
 import UnionFindCanvas from "./components/UnionFindCanvas.jsx";
 import TopicPanel from "./components/TopicPanel.jsx";
@@ -60,6 +63,7 @@ import { useDynamicHash } from "./hooks/useDynamicHash.js";
 import { useHeap } from "./hooks/useHeap.js";
 import { useTrie } from "./hooks/useTrie.js";
 import { useUnionFind } from "./hooks/useUnionFind.js";
+import { useDp } from "./hooks/useDp.js";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts.js";
 import { delayForSpeed } from "./hooks/useStepPlayer.js";
 import { readSharedState, shareHashFor, replaceHash, buildShareUrl } from "./utils/urlState.js";
@@ -88,6 +92,7 @@ export default function App() {
   const hp = useHeap(initFor("heap"));
   const tri = useTrie(initFor("trie"));
   const uf = useUnionFind(initFor("unionfind"));
+  const dp = useDp(initFor("dp"));
 
   // The player driving whatever view is on screen — one source for the
   // transport bar, the timeline and the keyboard shortcuts.
@@ -106,6 +111,7 @@ export default function App() {
     heap: hp,
     trie: tri,
     unionfind: uf,
+    dp,
   };
   const active = players[view] || v;
 
@@ -143,7 +149,7 @@ export default function App() {
 
   // The address bar tracks the data on screen, so the link is always ready to
   // copy. Only committed data is encoded — never half-typed sidebar text.
-  const shareHash = shareHashFor(view, { v, race, tcmp, ll, poly, st, q, gr, tr, tt, ht, dh, hp, tri, uf });
+  const shareHash = shareHashFor(view, { v, race, tcmp, ll, poly, st, q, gr, tr, tt, ht, dh, hp, tri, uf, dp });
   const shareUrl = buildShareUrl(shareHash);
 
   useEffect(() => {
@@ -168,9 +174,16 @@ export default function App() {
     onPaste: view === "graph" ? gr.pasteClipboard : undefined,
   });
 
+  // The DP problems are listed individually on the landing page and in the
+  // topic menu, as "dp:lcs" and friends, because "Dynamic Programming" as a
+  // single entry says nothing about what is in there. They are one view with
+  // six problems underneath, so the prefix is split off here and the rest is
+  // handed to the hook.
   const handleViewChange = (next) => {
-    setView(next);
-    if (next === "sorting" || next === "searching") v.switchCategory(next);
+    const [name, problem] = next.split(":");
+    setView(name);
+    if (problem && name === "dp") dp.setProblem(problem);
+    if (name === "sorting" || name === "searching") v.switchCategory(name);
     setStage("app");
   };
 
@@ -185,7 +198,7 @@ export default function App() {
   return (
     <div className="app" style={{ "--step-anim": `${stepAnim}ms` }}>
       <TopBar
-        category={view}
+        category={view === "dp" ? `dp:${dp.problem}` : view}
         onCategoryChange={handleViewChange}
         onGoHome={() => setStage("select")}
         shareUrl={shareUrl}
@@ -577,6 +590,28 @@ export default function App() {
           <ListControls {...transport} />
           <ListInfoPanel opMeta={uf.opMeta} />
           <TopicPanel topicKey="unionfind" />
+        </Workspace>
+      ) : view === "dp" ? (
+        <Workspace
+          {...shell}
+          panelLabel="DP PROBLEMS"
+          sidebar={
+            <DpSidebar
+              problem={dp.problem}
+              onProblemChange={dp.setProblem}
+              meta={dp.meta}
+              inputs={dp.inputs}
+              onInputChange={dp.setInput}
+              onRun={dp.runOperation}
+              onRandom={dp.shuffle}
+              error={dp.error}
+            />
+          }
+        >
+          <DpCanvas step={dp.step} />
+          <ListControls {...transport} />
+          <DpInfoPanel meta={dp.meta} step={dp.step} />
+          <TopicPanel topicKey="dp" />
         </Workspace>
       ) : view === "race" ? (
         <Workspace

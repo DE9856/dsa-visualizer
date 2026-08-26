@@ -13,7 +13,9 @@ Usability and playback-smoothness pass across every visualizer, five new structu
 tables, dynamic hashing, heaps, tries and union-find — and two new comparison views: Race &
 Compare, which puts sorting algorithms against each other on real, self-reported operation
 counts, and Balance & Height, which builds a BST, an AVL tree and a 2-3 tree from one key
-sequence.
+sequence. Dynamic programming arrives as a family of its own: six problems that fill a
+table cell by cell and then walk it backwards to recover the answer the number alone
+never gives you.
 
 ### Changed
 
@@ -64,6 +66,49 @@ sequence.
   building. Shared links are unaffected: they arrive with the graph they carry.
 
 ### Added
+
+- **Dynamic programming: six problems, one table, filled and then walked backwards.** A
+  new family on the landing page — longest common subsequence, edit distance, 0/1
+  knapsack, coin change, longest increasing subsequence and matrix chain order — each
+  listed as its own entry, all six sharing one canvas.
+
+  Every problem is a table filled cell by cell, and the frame model already had exactly
+  the right shape for it: `run(params)` returns an array of frames, so stepping backwards
+  through a fill and scrubbing into the middle of a backtrack are free. Each step marks
+  four things, and they mean different things: the cell being written, the cells it read
+  and rejected, the one cell its answer actually **came from**, and — during the
+  backtrack — the cells on the recovered solution. The third of those is the recurrence
+  made visible: a knapsack cell looks at two neighbours and takes one, and which one it
+  took is the difference between putting the item in the bag or leaving it out.
+
+  **The backtrack is half of it.** A filled table holds a number, and a number is not a
+  solution — "length 4" is not a subsequence and "23" is not a set of items. Every cell
+  records the decision it made in its corner (`↖ ↑ ←`, `✓` or `·`, `←j`, `k=3`), the walk
+  back reads those marks rather than recomputing anything, and the answer builds up under
+  the table as it goes: the subsequence, the edit script, the items taken, the coins
+  spent, the bracketing. Reading rather than recomputing is what stops the recovered
+  answer from ever disagreeing with the number the fill produced.
+
+  The six are grouped by what the table is indexed by, not by what the problem is about,
+  because that is where the lesson is. LCS and edit distance are the same grid with the
+  arithmetic turned upside down — one counts what two strings share, the other what they
+  don't — and switching between them keeps your input so the two are one click apart.
+  Coin change is the knapsack with a single index changed, reading from its own row
+  instead of the one above, which is exactly the difference between a coin you can spend
+  again and an item you cannot. The increasing subsequence's answer is not in the last
+  cell but the largest cell anywhere in its single row. Matrix chain fills diagonally, by
+  chain length, and its lower triangle is drawn as absent rather than unfilled — a run
+  never goes backwards, so those cells are not "not yet", they are "not a cell".
+
+  Defaults are the textbook cases and the numbers match: KITTEN → SITTING is distance 3
+  with the classic script, and the CLRS matrix chain 30, 35, 15, 5, 10, 20 comes out at
+  ((A1(A2A3))(A4A5)) for 11,875 multiplications against 25,500 bracketed left to right.
+  Coin change opens on 1, 3, 4 making 6, where the table finds 3+3 and greedy gets three
+  coins — the panel says so when it happens.
+
+  Input sizes are capped (12 characters, 8 items, capacity 20, amount 24, 14 numbers, 7
+  matrices) because one frame per cell means the table's *area* is the length of the
+  animation.
 
 - **Probes against load factor, for all six collision strategies at once.** A sweep under
   the hash table view. The canvas holds a couple of dozen keys and resizes itself at α 0.5

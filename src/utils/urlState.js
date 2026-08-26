@@ -4,6 +4,7 @@ import { parseWordList } from "../dataStructures/trie/helpers";
 import { ALGO_MAP, SORT_KEYS } from "../algorithms";
 import { DISTRIBUTION_KEYS } from "./distributions";
 import { ORDER_KEYS } from "../dataStructures/tree/compare";
+import { DP_KEYS, DP_PROBLEM_MAP } from "../algorithms/dp";
 
 /**
  * URL state — the current topic and its data round-trip through the location
@@ -28,6 +29,8 @@ import { ORDER_KEYS } from "../dataStructures/tree/compare";
  *   #v=unionfind&p=0,0,2,0,4,4
  *   #v=graph&d=1&w=1&g=A: B(5), C; B: C; D:
  *   #v=graph&g=A,B,C&e=A-B,B-C&xy=A:0.2:0.15,C:0.75:0.8
+ *   #v=dp&type=lcs&a=AGCAT&b=GAC
+ *   #v=dp&type=knapsack&it=2:3, 3:4, 4:5&cap=8
  *
  * The hash is written with replaceState, so it tracks the current data without
  * filling up browser history. It is read once, on load — editing the hash by
@@ -51,6 +54,7 @@ const VIEWS = [
   "heap",
   "trie",
   "unionfind",
+  "dp",
 ];
 
 const LIST_TYPES = ["singly", "doubly", "circular"];
@@ -60,6 +64,21 @@ const HASH_STRATEGIES = ["chaining", "linear", "quadratic", "double", "robinhood
 const HASH_FUNCTIONS = ["division", "multiplication", "midsquare", "folding"];
 const DYNAMIC_KINDS = ["extendible", "linear"];
 const HEAP_KINDS = ["max", "min"];
+
+// A DP problem's inputs are the raw text its sidebar boxes hold, so they can
+// travel as themselves. One short hash key per field, and only the fields the
+// named problem actually declares are read or written — a link to LCS has no
+// business naming a bag capacity.
+const DP_FIELD_KEYS = {
+  stringA: "a",
+  stringB: "b",
+  items: "it",
+  capacity: "cap",
+  coins: "co",
+  amount: "amt",
+  sequence: "sq",
+  dims: "dm",
+};
 
 // Values are capped to the same limits the sidebar parsers use, so a
 // hand-edited link can't build something the app wouldn't let you type.
@@ -384,6 +403,18 @@ function fieldsFor(view, s) {
         e: serializeEdges(s.gr.graph),
         xy: serializePositions(s.gr.graph, s.gr.positions),
       };
+    // Only the active problem's own fields, as the text the sidebar holds.
+    // Every one of them is re-parsed on the way back in by the same parser the
+    // sidebar uses, which is what caps a hand-edited link to a table the app
+    // would have drawn anyway.
+    case "dp":
+      return {
+        v: view,
+        type: s.dp.problem,
+        ...Object.fromEntries(
+          s.dp.meta.fields.map((field) => [DP_FIELD_KEYS[field], s.dp.activeInputs[field]])
+        ),
+      };
     default:
       return { v: view };
   }
@@ -452,6 +483,15 @@ export function readSharedState() {
     // Words, not numbers — validated by the same parser the sidebar uses.
     const words = parseWordList((fields.a || "").slice(0, MAX_TEXT));
     if (words.length) state.words = words;
+  } else if (view === "dp") {
+    if (DP_KEYS.includes(fields.type)) state.problem = fields.type;
+    const problem = DP_PROBLEM_MAP[state.problem || DP_KEYS[0]];
+    const inputs = {};
+    problem.fields.forEach((field) => {
+      const raw = fields[DP_FIELD_KEYS[field]];
+      if (typeof raw === "string") inputs[field] = raw.slice(0, MAX_TEXT);
+    });
+    if (Object.keys(inputs).length) state.inputs = inputs;
   } else if (view === "graph") {
     if (fields.g !== undefined) {
       state.vertices = parseSharedVertices(fields.g.slice(0, MAX_TEXT));

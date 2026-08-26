@@ -54,6 +54,20 @@ export const CATEGORIES = [
     ],
   },
   {
+    key: "dp",
+    label: "DYNAMIC PROGRAMMING",
+    accent: "var(--yellow)",
+    blurb: "Tables filled cell by cell, then walked backwards for the answer.",
+    items: [
+      { key: "dp:lcs", label: "Longest Common Subsequence", desc: "Two strings, one grid" },
+      { key: "dp:edit", label: "Edit Distance", desc: "Insert, delete, substitute" },
+      { key: "dp:knapsack", label: "0/1 Knapsack", desc: "Take it or leave it" },
+      { key: "dp:coins", label: "Coin Change", desc: "Fewest coins, where greedy fails" },
+      { key: "dp:lis", label: "Longest Increasing Subseq.", desc: "One row, answer in the middle" },
+      { key: "dp:matrixchain", label: "Matrix Chain Order", desc: "Where to put the brackets" },
+    ],
+  },
+  {
     key: "graphs",
     label: "GRAPHS",
     accent: "var(--purple)",

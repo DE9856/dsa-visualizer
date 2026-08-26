@@ -131,6 +131,8 @@ src/
 ├── algorithms/
 │   ├── sorting/            one file per sorting algorithm
 │   ├── searching/          one file per searching algorithm
+│   ├── dp/                 one file per DP problem (LCS, edit distance,
+│   │                       knapsack, coin change, LIS, matrix chain)
 │   ├── metrics.js          the operation counters every sort reports
 │   ├── sortContext.js      the run()/count() pair each sort is written against
 │   ├── stability.js        did equal elements keep their original order?
@@ -258,6 +260,18 @@ sideways. See
 - Sync by frame index or by work done
 - A live scoreboard of every counter, with the leader marked
 - An empirical complexity sweep to n = 5000, plotted against n, n log n and n²
+
+### Dynamic Programming
+
+- Six problems on one table canvas: longest common subsequence, edit distance, 0/1
+  knapsack, coin change, longest increasing subsequence, matrix chain order
+- The table fills cell by cell, showing which neighbours each cell read and which one its
+  answer actually came from
+- Then it backtracks, marking the solution path and building the answer itself — the
+  subsequence, the edit script, the items taken, the coins spent, the bracketing
+- Every cell keeps the decision it made (`↖ ↑ ←`, `✓ ·`, `k=3`), which is what the
+  backtrack reads rather than recomputing
+- The recurrence is shown alongside with the executing line highlighted
 
 ### Searching
 
