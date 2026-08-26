@@ -4,11 +4,16 @@ import { ChevronDown, Play, Square } from "lucide-react";
 /**
  * The collapsible "measure it" panel the comparison views share.
  *
- * All three sweeps have the same shape: real work that nobody should pay for
- * on page load, run on demand in chunks so the progress bar keeps painting,
+ * Every sweep has the same shape: real work that nobody should pay for on page
+ * load, run on demand in chunks so the progress bar keeps painting,
  * cancellable, and invalidated when the setup it was measured under changes.
  * This owns that machinery; the caller supplies its own controls, its own
  * `run`, and whatever it wants to draw with the result.
+ *
+ * `summary` is for what a panel already knows without measuring anything — the
+ * numbers for the structure currently on screen. It sits above the controls
+ * and is there the moment the panel is opened, so a panel that has something
+ * exact to say doesn't have to make you run a sweep to hear it.
  *
  * `setupKey` is what the result was measured under. When it stops matching,
  * the numbers are marked stale rather than silently redrawn as if they were
@@ -19,6 +24,7 @@ export default function SweepPanel({
   title,
   subtitle,
   setupKey,
+  summary,
   controls,
   emptyText,
   runLabel = "RUN SWEEP",
@@ -71,6 +77,8 @@ export default function SweepPanel({
 
       {open && (
         <div className="complexity__body">
+          {summary && <div className="complexity__summary">{summary}</div>}
+
           <div className="complexity__controls">
             {controls}
             <div className="complexity__control complexity__control--run">

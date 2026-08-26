@@ -140,8 +140,9 @@ src/
 │
 ├── dataStructures/
 │   ├── dynamicHash/
-│   ├── graph/
-│   ├── hashTable/
+│   ├── graph/              (represent.js: list vs matrix cost;
+│   │                        mstCompare.js: Prim vs Kruskal, counted)
+│   ├── hashTable/          (probeSweep.js: probes against load factor)
 │   ├── heap/
 │   ├── linkedList/
 │   ├── polynomial/
@@ -319,6 +320,8 @@ Interactive visualizations for:
   - Load factor read-out, List keys in hash order
   - Automatic resize + rehash when the load factor crosses its limit, or on demand
   - Switch the collision strategy to replay the same keys into a new table
+  - A probe sweep: slots examined on a hit, a miss, and at worst, for all six strategies
+    across load factors 0.05 to 0.95, against the textbook curves
 
 - Dynamic Hashing — extendible (directory) and linear (directoryless)
   - Insert with bucket splits, directory doubling, and overflow blocks
@@ -337,6 +340,10 @@ Interactive visualizations for:
   - Dijkstra, Floyd–Warshall, Prim's MST, Kruskal's MST
   - Adjacency list and adjacency matrix views — type into a matrix cell to reweight, add
     or remove that edge, the diagonal included
+  - List vs matrix, measured: memory, edge query and traversal cost for the graph on
+    screen, and the same measurement swept to 256 vertices at four densities
+  - Prim vs Kruskal on the graph on screen — both edge orders, both totals, both step
+    counts — and a density sweep showing where the cheaper of the two changes hands
 
 - Polynomial
   - Linked-list representation

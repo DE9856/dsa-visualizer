@@ -27,12 +27,15 @@ import QueueCanvas from "./components/QueueCanvas.jsx";
 import GraphSidebar from "./components/GraphSidebar.jsx";
 import GraphCanvas from "./components/GraphCanvas.jsx";
 import GraphRepresentationPanel from "./components/GraphRepresentationPanel.jsx";
+import GraphCostPanel from "./components/GraphCostPanel.jsx";
+import MstComparePanel from "./components/MstComparePanel.jsx";
 import TreeSidebar from "./components/TreeSidebar.jsx";
 import TreeCanvas from "./components/TreeCanvas.jsx";
 import TwoThreeTreeSidebar from "./components/TwoThreeTreeSidebar.jsx";
 import TwoThreeTreeCanvas from "./components/TwoThreeTreeCanvas.jsx";
 import HashTableSidebar from "./components/HashTableSidebar.jsx";
 import HashTableCanvas from "./components/HashTableCanvas.jsx";
+import ProbePanel from "./components/ProbePanel.jsx";
 import DynamicHashSidebar from "./components/DynamicHashSidebar.jsx";
 import DynamicHashCanvas from "./components/DynamicHashCanvas.jsx";
 import HeapSidebar from "./components/HeapSidebar.jsx";
@@ -356,6 +359,8 @@ export default function App() {
           />
           <ListControls {...transport} />
           <ListInfoPanel opMeta={gr.opMeta} />
+          <GraphCostPanel graph={gr.graph} directed={gr.directed} />
+          <MstComparePanel graph={gr.graph} directed={gr.directed} startId={gr.vertexInput} />
           <TopicPanel topicKey="graph" />
         </Workspace>
       ) : view === "tree" ? (
@@ -465,6 +470,7 @@ export default function App() {
           <HashTableCanvas step={ht.step} />
           <ListControls {...transport} />
           <ListInfoPanel opMeta={ht.opMeta} />
+          <ProbePanel hashFn={ht.hashFn} />
           <TopicPanel topicKey="hashtable" />
         </Workspace>
       ) : view === "dynamichash" ? (

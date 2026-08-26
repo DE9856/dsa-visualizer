@@ -3746,6 +3746,15 @@ select.text-input option {
   padding: 0 18px 18px;
 }
 
+/* What a panel knows without measuring anything, above the controls. Ruled
+   off, because it and the sweep below it are two different measurements and
+   running them together would read as one. */
+.complexity__summary {
+  padding-bottom: 6px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
 .complexity__controls {
   display: flex;
   gap: 18px;
@@ -3909,9 +3918,51 @@ select.text-input option {
   font-weight: 600;
 }
 
+/* The edge orders under Prim vs Kruskal. A wrapping row of chips rather than
+   a list, because the two sequences are read against each other and a column
+   each would put them a scroll apart. */
+.mst-seq {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 0 8px 0 30px;
+}
+
+.mst-seq__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+  font-size: 11px;
+  color: var(--text);
+}
+
+/* Numbered in the algorithm's own colour: the order is the whole point, and
+   the two lists hold the same edges. */
+.mst-seq__n {
+  color: var(--seq-color, var(--text-dim));
+  font-size: 10px;
+}
+
+.mst-seq__w {
+  color: var(--text-dim);
+  font-size: 10px;
+  padding-left: 6px;
+  border-left: 1px solid var(--border);
+}
+
 @media (max-width: 760px) {
   .complexity__control {
     min-width: 100%;
+  }
+
+  .mst-seq {
+    padding-left: 8px;
   }
 
   .complexity__control--run {

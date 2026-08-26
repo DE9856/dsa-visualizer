@@ -65,6 +65,51 @@ sequence.
 
 ### Added
 
+- **Probes against load factor, for all six collision strategies at once.** A sweep under
+  the hash table view. The canvas holds a couple of dozen keys and resizes itself at α 0.5
+  or 0.75, so it can never show the part that decides which strategy you pick: what a
+  lookup costs as the table fills. This fills a table of 79, 331 or 673 slots to each load
+  factor from 0.05 to 0.95 — five tables per point, every strategy dealt the same keys in
+  the same order — and counts the slots a lookup examines, using the same `locate()` the
+  animation walks.
+
+  At α 0.95 in a 673-slot table an unsuccessful search costs linear probing 112 slots,
+  double hashing 19, Robin Hood 9 and chaining 2. Two results are worth the sweep on their
+  own: linear probing and Robin Hood have *identical* averages — Robin Hood moves keys
+  around without changing how many there are, so what it buys is the worst case (284
+  against 22), not the mean — and cuckoo hashing's curve simply stops at α 0.5, where its
+  eviction chains start closing into cycles a bigger table is the only fix for. The
+  classical curves are drawn dashed over the top, and the measurements sit under them past
+  α 0.8, because those results are asymptotic in the table size and a few hundred slots is
+  not asymptotic.
+
+- **Adjacency list vs adjacency matrix, as a cost rather than a rendering.** A panel under
+  the graph view. The representation panel above it shows the two as alternative views of
+  one graph, which is true of a graph with six vertices and misleading about every other:
+  they are opposite bets, and which one pays depends only on density.
+
+  It reads out exact numbers for the graph on screen — memory, edge query and traversal,
+  with every ordered pair of vertices actually asked about rather than sampled — and
+  sweeps the same measurement to 256 vertices at four densities. Both structures are
+  really built and really queried; nothing is quoted from a complexity table. At V = 128
+  and average degree 4 the matrix stores 16,384 cells against the list's 640. At the
+  Complete setting the two land on exactly the same number, because V + 2E = V + V(V−1) =
+  V², which is the whole rule in one line.
+
+- **Prim vs Kruskal on the same graph.** A panel under the graph view. Both algorithms run
+  on the graph the canvas is drawing and their chosen edges are listed in the order each
+  picked them, numbered — Prim's tree connected at every moment, Kruskal's a scattering of
+  fragments until the last edge — with the totals, which are equal, side by side. When no
+  two edges share a weight the edge sets are identical too, and the panel says which case
+  it is looking at.
+
+  Underneath, a density sweep at fixed V: array-based Prim's curve is nearly flat, because
+  it scans every vertex on every round whether the graph has V edges or V², while
+  Kruskal's E log E climbs past it. At V = 128 the crossing lands between E = 1.4k and
+  E = 2.5k, so "Kruskal for sparse graphs" becomes a number you read off rather than a
+  rule of thumb. Every point also checks that the two totals still agree, which is the one
+  assertion the whole comparison rests on and is cheap to verify at every size.
+
 - **Balance & Height: BST vs AVL vs 2-3 tree, on the same keys in the same order.** A new
   view under TREES. A binary search tree has no shape of its own — its shape is decided
   entirely by the order its keys arrive in, and the worst order is the most natural one.

@@ -651,6 +651,72 @@ A vertex is clamped to the canvas, so it can't be dropped somewhere it would be 
 An arrangement travels in the [shared link](#sharing-a-setup) as an `xy` field, so
 whoever opens it sees the graph laid out the way you left it.
 
+### List vs matrix, measured
+
+The panel above shows the adjacency list and the adjacency matrix as two ways of looking
+at one graph. That is true of a graph with six vertices in it and misleading about every
+other one: they are opposite bets. The matrix answers "is there an edge u→v?" in a single
+read and pays V² slots for the privilege, most of them zeros. The list stores only the
+arcs that exist and pays for that by making you walk a row.
+
+**List vs matrix** is that trade-off with numbers on it. The top half is the graph on
+screen — memory, edge query and traversal for both representations, with *every* ordered
+pair of vertices actually asked about rather than sampled, so a six-vertex graph gets 36
+real lookups and an exact answer. The sweep below carries the same measurement out to 256
+vertices at four densities. Both structures are genuinely built and genuinely queried:
+memory and traversal are counted off the structures themselves, and the edge query runs
+thousands of real lookups over random vertex pairs.
+
+| Measure | Matrix | List |
+| --- | --- | --- |
+| Memory | V² cells | V heads + one entry per stored arc (2E when undirected) |
+| Edge query | 1 read, always | walks u's row: deg(u) at worst |
+| Traverse everything | V² cells read | V + 2E |
+
+At V = 128 and average degree 4 that is 16,384 cells against 640 list slots — not a
+constant factor, but a different curve, since at a fixed average degree the matrix grows
+with V² while the list grows with V. Switch DENSITY to **Complete** and the two land on
+exactly the same number, because V + 2E = V + V(V−1) = V². That is the whole rule in one
+line: the matrix is worth its memory exactly when the graph is dense enough to fill it.
+
+### Prim vs Kruskal
+
+The two are the standard example of different algorithms reaching the same answer, and
+the interesting part is *how* the same. **Prim vs Kruskal** runs both on the graph the
+canvas is drawing and lists the edges each one chose, numbered in the order it chose
+them.
+
+They disagree about everything on the way. Prim holds one connected tree and grows it
+outward from the start vertex; Kruskal holds a forest of fragments that only becomes a
+tree with the last edge it adds. The totals are identical anyway — the cut property makes
+every safe edge safe for both — and when no two edges share a weight, so are the edge
+sets, because that is exactly the condition under which the minimum spanning tree is
+unique. The panel says which of those two cases it is looking at rather than leaving you
+to notice.
+
+Where they genuinely differ is cost, and the axis is density. The sweep holds V fixed and
+grows E from a spanning tree up to complete:
+
+- **Prim's curve is nearly flat.** With an array rather than a heap it scans every vertex
+  on every round whether the graph has V edges or V², so a spanning tree costs it almost
+  as much as a complete graph.
+- **Kruskal's climbs**, because sorting E edges is E log E and nothing about a sparse
+  graph makes that cheap once E is large.
+
+At V = 128 the crossing lands between E = 1.4k and E = 2.5k. "Kruskal for sparse graphs,
+Prim for dense" stops being a rule of thumb and becomes a number.
+
+Every point on the sweep also checks that the two returned the same total weight. That is
+not decoration — it is the one assertion the whole comparison rests on, and it is cheap
+to verify at every size.
+
+Two caveats the panel states itself. Steps are each algorithm's own elementary array
+operations — vertex scans and neighbour reads for Prim, sort comparisons and union-find
+parent reads and writes for Kruskal — so the shapes are comparable and the constant
+factors are not; a sort comparison and a parent read do not cost the same thing. And both
+runs here span every component, so their totals stay comparable on a disconnected graph,
+whereas the animated **Prim's MST** operation stops after the start vertex's component.
+
 ### The threaded tree
 
 **THREADED** is the fourth tree type. It builds and searches exactly like a BST — the
@@ -714,6 +780,51 @@ the hash being computed, `h(42) = 42 mod 7 = 2`.
 - Switching the collision strategy **replays the same keys** into a fresh table rather
   than starting over, which is the fastest way to see the three strategies deal the same
   collisions differently.
+
+### Probes against load factor
+
+The canvas holds a couple of dozen keys and resizes itself the moment α crosses 0.5 or
+0.75, so it can never show the thing that actually decides which collision strategy you
+pick: what a lookup costs as the table fills. All six are flat and nearly
+indistinguishable below α = 0.5, and then they come apart.
+
+**Probes against load factor** fills a table of 79, 331 or 673 slots to each load factor
+from 0.05 to 0.95 — five tables per point, every strategy dealt the same keys in the same
+order, since comparing them on different deals would be comparing the deals — and counts
+the slots a lookup examines. It counts them with the same `locate()` the animation walks,
+so a probe in the plot is a bucket the canvas would have lit up. Chaining pays one for
+the bucket plus one per chain node, which is what stops an empty bucket reading as free.
+
+Three measures: a **successful** lookup, an **unsuccessful** one (the curve that matters,
+since every insert pays it before it lands), and the **longest** probe sequence in the
+table. In a 673-slot table at α = 0.95, unsuccessfully:
+
+| Strategy | Average | Worst |
+| --- | --- | --- |
+| Separate chaining | 1.9 | 6 |
+| Linear probing | 112 | 283 |
+| Quadratic probing | 20 | 64 |
+| Double hashing | 19 | 52 |
+| Robin Hood | 9 | 22 |
+| Cuckoo hashing | — refuses keys at α 0.5 — | |
+
+Two results are worth the sweep on their own. **Linear probing and Robin Hood have the
+same average**, exactly: Robin Hood moves keys around without changing how many of them
+there are, so what it buys is the worst case, not the mean. And **cuckoo hashing's line
+simply stops**, at the load factor where its eviction chains start closing into cycles
+that only a bigger table can break. Every line stops where a table of that size began
+refusing keys outright, which is a result rather than a gap.
+
+The textbook curves are dashed over the top — ½(1 + 1/(1−α)) for linear probing and
+(1/α)·ln(1/(1−α)) for uniform hashing on a hit, their squared and 1/(1−α) counterparts on
+a miss. Past about α 0.8 the measurements sit *under* them. That is not an error in
+either: those results are asymptotic in the table size, and a few hundred slots is not
+asymptotic. Step TABLE SIZE from 331 to 673 and linear probing's measured miss climbs
+from 53 to 112, toward the curve rather than away from it.
+
+The hash function is the view's own, because it is upstream of all of this: switch to
+digit folding and every strategy's curve gets worse at once, which is the point that a
+collision strategy only ever cleans up after the hash.
 
 ### The dynamic hashing view
 
@@ -906,8 +1017,16 @@ src/
 │   │           graph/kruskalMST.js uses for its cycle check
 │   │           tree/compare.js holds the insertion orders and the height sweep
 │   │           behind the Balance & Height view
+│   │           three more modules measure rather than animate, each behind one
+│   │           comparison panel: hashTable/probeSweep.js (probes against load
+│   │           factor), graph/represent.js (list vs matrix) and
+│   │           graph/mstCompare.js (Prim vs Kruskal)
 │
 ├── components/             canvases, sidebars, panels, the shared transport bar
+│   ├── SweepPanel.jsx      the collapsible "measure it" shell every comparison
+│   │                       panel is built on: run on demand, in chunks,
+│   │                       cancellable, marked stale when the setup changes
+│   └── LineChart.jsx       the one plot they all draw through
 │
 ├── hooks/
 │   ├── useStepPlayer.js         shared playback engine (see below)
