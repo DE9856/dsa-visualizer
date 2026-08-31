@@ -5,7 +5,7 @@ export const CATEGORIES = [
     accent: "var(--primary)",
     blurb: "Compare orderings and searches, one swap at a time.",
     items: [
-      { key: "sorting", label: "Sorting", desc: "Bubble, merge, quick & more" },
+      { key: "sorting", label: "Sorting", desc: "17 sorts: quadratic, hybrid, network & non-comparison" },
       { key: "searching", label: "Searching", desc: "Linear, binary, jump, interpolation & exponential" },
       { key: "race", label: "Race & Compare", desc: "Sorts side by side, real counters, empirical Big-O" },
     ],

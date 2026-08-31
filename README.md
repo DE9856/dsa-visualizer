@@ -15,15 +15,24 @@ An interactive **Data Structures & Algorithms Visualizer** built with **React + 
 - Bubble Sort
 - Selection Sort
 - Insertion Sort
+- Cycle Sort — the fewest writes any sort can make
 - Shell Sort
+- Comb Sort
 - Merge Sort
 - Quick Sort
+- 3-Way Quick Sort — the Dutch national flag partition, drawn as it holds
 - Heap Sort
+- Introsort — quick sort, heap sort and insertion sort in one, as `std::sort` does it
+- Timsort — natural runs, a run stack and its balancing invariants
 - Counting Sort (Comparison)
+- Counting Sort — tallies and running totals, shown beside the bars
+- Bucket Sort
 - Radix Sort
+- Bitonic Sort — a sorting network, the same comparisons whatever the input
 
-Quick Sort can use a first, last, median-of-three or random pivot, and Shell Sort can use
-the Shell, Knuth or Sedgewick gap sequence — same algorithm, visibly different curves.
+Quick Sort can use a first, last, median-of-three or random pivot, Shell Sort the Shell,
+Knuth or Sedgewick gap sequence, Comb Sort three shrink factors, Bucket Sort three bucket
+counts and Timsort three minimum run lengths — same algorithm, visibly different curves.
 
 #### Searching Algorithms
 - Linear Search

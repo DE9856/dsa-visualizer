@@ -496,31 +496,63 @@ sharing one table canvas, **[backtracking](#the-backtracking-view)** is another,
 problems sharing one board and one search tree, and **[string
 algorithms](#the-string-algorithms-view)** a third.
 
-### Sorting (9)
+### Sorting (17)
 
-| Algorithm | Best | Average | Worst | Space |
-| --- | --- | --- | --- | --- |
-| Bubble Sort | O(n) | O(n²) | O(n²) | O(1) |
-| Selection Sort | O(n²) | O(n²) | O(n²) | O(1) |
-| Insertion Sort | O(n) | O(n²) | O(n²) | O(1) |
-| Shell Sort | O(n log n) | O(n^1.3) | O(n²) | O(1) |
-| Merge Sort | O(n log n) | O(n log n) | O(n log n) | O(n) |
-| Quick Sort | O(n log n) | O(n log n) | O(n²) | O(log n) |
-| Heap Sort | O(n log n) | O(n log n) | O(n log n) | O(1) |
-| Counting Sort (Comparison) | O(n²) | O(n²) | O(n²) | O(n) |
-| Radix Sort | O(nk) | O(nk) | O(nk) | O(n + k) |
+| Algorithm | Best | Average | Worst | Space | Stable |
+| --- | --- | --- | --- | --- | --- |
+| Bubble Sort | O(n) | O(n²) | O(n²) | O(1) | yes |
+| Selection Sort | O(n²) | O(n²) | O(n²) | O(1) | no |
+| Insertion Sort | O(n) | O(n²) | O(n²) | O(1) | yes |
+| Cycle Sort | O(n²) | O(n²) | O(n²) | O(1) | no |
+| Shell Sort | O(n log n) | O(n^1.3) | O(n²) | O(1) | no |
+| Comb Sort | O(n log n) | O(n²/2^p) | O(n²) | O(1) | no |
+| Merge Sort | O(n log n) | O(n log n) | O(n log n) | O(n) | yes |
+| Quick Sort | O(n log n) | O(n log n) | O(n²) | O(log n) | no |
+| 3-Way Quick Sort | O(n) | O(n log n) | O(n²) | O(log n) | no |
+| Heap Sort | O(n log n) | O(n log n) | O(n log n) | O(1) | no |
+| Introsort | O(n log n) | O(n log n) | O(n log n) | O(log n) | no |
+| Timsort | O(n) | O(n log n) | O(n log n) | O(n) | yes |
+| Counting Sort (Comparison) | O(n²) | O(n²) | O(n²) | O(n) | yes |
+| Counting Sort | O(n + k) | O(n + k) | O(n + k) | O(n + k) | yes |
+| Bucket Sort | O(n + k) | O(n + k) | O(n²) | O(n + k) | yes |
+| Radix Sort | O(nk) | O(nk) | O(nk) | O(n + k) | yes |
+| Bitonic Sort | O(n log² n) | O(n log² n) | O(n log² n) | O(1) | no |
 
-Two of them are configurable, and the setting travels in the share link:
+Five of them are configurable, and the setting travels in the share link:
 
 | Algorithm | Setting | Options |
 | --- | --- | --- |
 | Quick Sort | `pivot` | `last` (Lomuto's textbook pivot), `first`, `median3`, `random` |
 | Shell Sort | `gaps` | `shell` (n/2), `knuth` (3h+1), `sedgewick` (1, 5, 19, 41, …) |
+| Comb Sort | `shrink` | `1.3` (the original paper's factor), `1.25`, `2` |
+| Bucket Sort | `buckets` | `half` (n/2), `n`, `few` (4) |
+| Timsort | `minrun` | `8`, `4`, `auto` (the real 32–64 rule) |
 
 These are not cosmetic. Quick sort with a last-element pivot on already-sorted input
 measures a growth exponent of 2.00; switching the same run to median-of-three drops it to
 1.21. Shell sort's three sequences differ by a factor of nearly two in operations at
 n = 1280.
+
+Timsort's `auto` deserves a note, because it is the honest option and also the dull one.
+The real rule picks a minimum run length in [32, 64], and returns n itself when n < 64 —
+so at the array sizes that fit on screen (6–40), real Timsort is a single binary insertion
+sort with nothing to merge. The default is therefore `8`, which is not what CPython
+computes but is what makes the run stack and its invariants visible. The option list says
+so.
+
+#### What the new sorts claim, and where to see it
+
+Each of these is checked by the test suite rather than asserted:
+
+| Claim | How to reproduce |
+| --- | --- |
+| 3-way quick sort is linear on duplicates | ALL EQUAL input: 3-way makes ~n comparisons, plain quick sort ~n²/2 |
+| Timsort is linear on ordered input | SORTED input: one run, one scan, no merges |
+| Cycle sort writes at most n times | Any input: the WR counter never exceeds n |
+| Introsort bounds its recursion | Any input: the DEP counter stays under 2·log₂n |
+| Bitonic sort ignores its input | Any two inputs of the same size produce identical CMP counts |
+| Counting sort compares nothing | Any input: the CMP counter stays at 0 |
+| Bucket sort degenerates on skew | BUCKETS = 4 with a skewed input: one bucket takes everything |
 
 ### Searching (5)
 
@@ -1585,7 +1617,60 @@ something to show, so loop headers and recursive calls that produce no frame sta
 every frame of it — `callCount` is how much of it had been entered at that point, so the
 tree fills in as the run proceeds rather than showing the whole shape up front. Note the
 two sorts recurse over different conventions internally (merge sort's `r` is exclusive,
-quick sort's is inclusive); `range` is always inclusive.
+quick sort's is inclusive); `range` is always inclusive. Introsort and 3-way quick sort
+carry the same fields, so they get the same recursion tree for free.
+
+**Two optional fields describe things the bars alone cannot say.** Bar colour is already
+spoken for — orange unsorted, green sorted, blue comparing, red swapping, purple pivot —
+so a sort that divides the array into named regions gets its own row rather than a sixth
+shade:
+
+```js
+{
+  bands: [
+    { from: 0, to: 3, tone: "lt", label: "< P" },
+    { from: 4, to: 6, tone: "eq", label: "= P" },
+  ],
+}
+```
+
+`Canvas` renders these as a ruler under the bars, sharing their horizontal scale: a band
+spanning k indices grows k times as much as one spanning a single index, so the segments
+line up with the columns above them. Gaps between bands are filled with transparent
+spacers so the ruler always covers the full width. `tone` selects a colour from
+`.band--*` in the stylesheet; the tones in use are `lt`/`eq`/`gt`/`unseen` (3-way quick
+sort's Dutch flag), `runA`/`runB`/`extend`/`merge` (Timsort's run stack),
+`quick`/`heap`/`ins` (which sort introsort has handed a range to), `asc`/`desc` (the
+direction a bitonic sub-network is sorting in) and `bucket`.
+
+The second is for the non-comparison sorts, whose interesting half happens in a second
+array that is not the bars:
+
+```js
+{
+  aux: {
+    label: "COUNT OF EACH VALUE",
+    active: 4,                                    // index of the cell being touched
+    cells: [{ label: "1", value: 0 }, ...],
+  },
+}
+```
+
+Counting sort puts its tallies and running totals here, bucket sort its bucket sizes. The
+row scrolls itself: a counting sort over a wide value range needs one cell per value,
+which can be far more cells than there are bars, and nothing may scroll the page
+sideways.
+
+One trap worth knowing about, because it is invisible until the complexity sweep runs.
+`emit` is a no-op under `count()`, but **its arguments are still evaluated**. Counting
+sort's `aux` is O(k) to build, so constructing it unconditionally made `count()` O(n·k)
+instead of O(n + k) — the sweep took two seconds at n = 5000 to measure an algorithm
+whose whole point is that it is linear. Anything non-trivial passed to `emit` must be
+guarded with `ctx.collect`:
+
+```js
+const auxOf = (active, label) => (ctx.collect ? { label, active, cells: ... } : undefined);
+```
 
 A data-structure step carries the structure plus a human-readable line:
 

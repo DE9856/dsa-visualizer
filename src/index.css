@@ -579,11 +579,15 @@ input[type="range"] {
 
 /* ---------- canvas ---------- */
 
+/* A column so the band ruler and the auxiliary row take their height off the
+   bars rather than pushing them out of a fixed-height panel. */
 .canvas {
   height: 340px;
   padding: 20px;
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .canvas__note {
@@ -596,7 +600,8 @@ input[type="range"] {
 
 .bars {
   width: 100%;
-  height: calc(100% - 4px);
+  flex: 1;
+  min-height: 0;
   display: flex;
   align-items: flex-end;
   gap: 3px;
@@ -627,6 +632,131 @@ input[type="range"] {
 
 .bar--outside .bar__value {
   opacity: 0;
+}
+
+/* ---------- region ruler & auxiliary array ---------- */
+
+/* Segments line up with the bars above because both are flex rows over the
+   same indices: a band spanning k indices grows k times as much as one
+   spanning one. */
+.bands {
+  display: flex;
+  gap: 3px;
+  height: 18px;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+.band {
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  min-width: 0;
+  transition: flex-grow var(--step-anim) ease, background-color var(--step-anim) ease;
+}
+
+.band__label {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: var(--text);
+  opacity: 0.85;
+}
+
+.band--gap {
+  background: transparent;
+}
+
+.band--lt,
+.band--runA,
+.band--desc {
+  background: rgba(79, 184, 224, 0.22);
+}
+
+.band--eq,
+.band--ins {
+  background: rgba(95, 214, 160, 0.24);
+}
+
+.band--gt,
+.band--runB,
+.band--heap {
+  background: rgba(177, 140, 255, 0.24);
+}
+
+.band--asc,
+.band--merge,
+.band--quick {
+  background: rgba(255, 138, 61, 0.22);
+}
+
+.band--bucket,
+.band--extend {
+  background: rgba(245, 196, 81, 0.2);
+}
+
+/* The unexamined middle of a Dutch-flag partition — deliberately the quietest
+   band, since it is the one that is about to disappear. */
+.band--unseen {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.aux {
+  margin-top: 8px;
+  flex-shrink: 0;
+  min-height: 0;
+}
+
+.aux__label {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+/* A counting sort over a wide value range needs one cell per value, which can
+   be far more cells than bars — so this scrolls itself rather than the page. */
+.aux__cells {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.aux__cell {
+  flex: 1 0 auto;
+  min-width: 20px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--panel-alt);
+  padding: 2px 3px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: "JetBrains Mono", monospace;
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease;
+}
+
+.aux__cell--active {
+  border-color: var(--primary);
+  background: rgba(255, 138, 61, 0.18);
+}
+
+.aux__cell-key {
+  font-size: 8px;
+  color: var(--text-dim);
+}
+
+.aux__cell-value {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
 }
 
 .bar__value {

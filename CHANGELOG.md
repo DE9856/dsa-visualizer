@@ -157,6 +157,36 @@ should a tree be shaped by", none of them the same as balance.
 
 ### Added
 
+- **Eight more sorts, taking the list from nine to seventeen.** Cycle sort, comb sort,
+  3-way quick sort, introsort, Timsort, counting sort, bucket sort and bitonic sort. They
+  were chosen to be different in kind rather than more of the same: cycle sort minimises
+  writes rather than comparisons, bitonic sort is a network whose comparisons do not
+  depend on the data at all, introsort and Timsort are the hybrids real standard libraries
+  actually ship, and counting and bucket sort do their real work in an array that is not
+  the bars. The existing comparison counting sort keeps its key, so old share links still
+  resolve; the new `counting` is the true one.
+
+  Each is checked against its own headline claim rather than only for sortedness: that
+  3-way quick sort is linear on all-equal input where plain quick sort is quadratic, that
+  Timsort is linear on sorted input, that cycle sort never writes more than n times, that
+  introsort's recursion depth stays under 2·log₂n on input built to break quick sort, that
+  bitonic sort makes an identical number of comparisons whatever the input, and that
+  counting sort makes none. The suite runs every algorithm against every input shape and
+  every variant at thirteen sizes.
+
+  Timsort's minimum run length is a setting because the real rule returns n for n < 64,
+  which at the array sizes that fit on screen means one run and nothing to merge. The
+  default is 8 so the run stack is visible; `auto` is offered, and labelled as the honest
+  one.
+
+- **Frames can name regions and carry a second array.** `bands` draws a ruler under the
+  bars sharing their horizontal scale — the three regions of a Dutch-flag partition, the
+  runs on Timsort's stack, which sort introsort has handed a range to, the direction a
+  bitonic sub-network is sorting in. `aux` draws a labelled row of cells beside them, which
+  is where counting sort's tallies and bucket sort's bucket sizes live. Bar colour was
+  already carrying five meanings, so regions got a row of their own rather than a sixth
+  shade.
+
 - **B-trees and B+ trees, at order 3, 4 or 5.** A new view under TREES, and the one
   structure in the app whose shape is an argument about hardware rather than about
   mathematics: a node is as wide as the block it lives in, so one read narrows the search
