@@ -62,6 +62,11 @@ in `vite.config.js`:
 export default defineConfig({ base: "/dsa-visualizer/", plugins: [react()] })
 ```
 
+Vite rewrites the icon and manifest links in `index.html` to match, but it does **not**
+look inside `public/site.webmanifest` — that file is copied verbatim, so the
+`/android-chrome-*.png` paths in it stay rooted at `/` and would 404 on a sub-path
+deploy. Prefix them by hand if you move the app off the root.
+
 ---
 
 ## Keyboard shortcuts
@@ -1487,6 +1492,10 @@ A: B(5), C(2)
 ## Architecture
 
 ### Layout
+
+`public/` holds the favicons, the touch icon and `site.webmanifest`. Vite serves that
+folder at `/` in dev and copies it to the root of `dist/` on build, which is what lets
+`index.html` reference them with absolute paths that work in both.
 
 ```
 src/

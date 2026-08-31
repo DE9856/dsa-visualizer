@@ -176,6 +176,13 @@ should a tree be shaped by", none of them the same as balance.
 
 ### Added
 
+- **A favicon, a touch icon and a web manifest.** The app had none, so it showed the
+  browser's blank-page default in a tab and could not be installed. They live in `public/`,
+  which Vite serves at `/` in dev and copies to the root of `dist/` on build. The generated
+  manifest shipped with empty names and white theme and background colours, which would
+  have flashed white on launch against an app that declares `theme-color #0b0d12`; both now
+  match the app.
+
 - **Eight more sorts, taking the list from nine to seventeen.** Cycle sort, comb sort,
   3-way quick sort, introsort, Timsort, counting sort, bucket sort and bitonic sort. They
   were chosen to be different in kind rather than more of the same: cycle sort minimises
