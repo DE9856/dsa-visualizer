@@ -297,6 +297,22 @@ sideways. See
 - Manacher interleaves `#` so every palindrome is odd-length, and reuses the mirror radius
 - Blue marks the span being reused rather than recompared, in all four
 
+### Greedy & Math
+
+Five algorithms that get the right answer by refusing to look at most of the problem.
+
+- **Activity Selection** — earliest finish first, drawn as bars on a timeline. The
+  exchange argument is what makes it optimal, not the sorting.
+- **Fractional Knapsack** — sort by value per unit weight and pour, cutting the one item
+  that straddles the limit. Greedy *only* because items divide; 0/1 knapsack is the same
+  problem without that, and needs the DP view instead.
+- **Sieve of Eratosthenes** — crossing off multiples on a ten-wide grid, starting at p²
+  and stopping at √n, with the reason for both shown as it happens.
+- **Fast Exponentiation** — the exponent in binary, the running squares under each bit,
+  and the multiplication count against the naive one.
+- **Euclid's GCD** — the whole descent as a table of a, b, quotient and remainder, where
+  the quotient column is exactly how many subtractions the modulo replaced.
+
 ### Backtracking
 
 - N-Queens, Sudoku, subset sum and permutations, on one board canvas

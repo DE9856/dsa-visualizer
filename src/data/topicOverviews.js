@@ -95,6 +95,40 @@ export const TOPIC_OVERVIEWS = {
       "The Fenwick index arithmetic is famously easy to write and hard to read: nothing in `i += i & -i` says 'walk to the enclosing range'.",
     ],
   },
+  greedy: {
+    overview:
+      "A greedy algorithm makes the choice that looks best right now and never reconsiders it. That is the easy part; the hard part is that it is almost always wrong. What separates the two problems here from the dozens where greed fails is that each comes with a proof. Activity selection has an exchange argument: any optimal schedule can be rewritten, one swap at a time, into the one greed produces, without ever losing an activity. Fractional knapsack has an interchange argument: if a lower-ratio item occupied space while a higher-ratio one was left outside, swapping equal weights of the two would raise the total, so no optimal packing looks like that. Take away the assumption those proofs rest on and the algorithm breaks immediately — 0/1 knapsack is fractional knapsack minus divisibility, and greed is simply wrong on it, which is why it needs dynamic programming instead. The three number-theory algorithms are not greedy at all; they are the arithmetic that everything else quietly stands on.",
+    howItWorks: [
+      "Activity selection sorts by finishing time and takes anything that starts at or after the last one ended. Finishing earliest leaves the most room for whatever comes next, and the exchange argument turns that intuition into a proof.",
+      "The tempting alternatives are both wrong: taking the shortest activity fails on one short activity that straddles two long ones, and taking the earliest to start fails on a single activity that spans the entire day.",
+      "Fractional knapsack sorts by value per unit weight and pours items in best-first, cutting the one that straddles the capacity. Exactly one item is ever cut, and that cut is what makes the answer exactly optimal rather than approximately so.",
+      "The sieve of Eratosthenes crosses out multiples of each surviving number. Crossing can start at p² because any smaller multiple of p has a factor below p and was struck out already, and the outer loop can stop at √n because a composite must have a factor no larger than its own square root.",
+      "Fast exponentiation reads the exponent in binary: b¹³ = b⁸·b⁴·b¹ because 13 is 1101. Squaring the base walks up the powers of two, and each bit decides whether that square joins the answer — log₂n steps instead of n.",
+      "Euclid's algorithm replaces (a, b) with (b, a mod b) because any common divisor of a and b also divides their remainder. The remainder strictly shrinks, so the descent must end, and the last non-zero value is the answer.",
+      "The quotient at each Euclid step is exactly how many subtractions the modulo did in one go — the original algorithm subtracted repeatedly, and that shortcut is the difference between O(a) and O(log min(a, b)).",
+    ],
+    useCases: [
+      "Scheduling: allocating rooms, machines, CPU intervals, or advertising slots, where activity selection is the base case and its weighted version needs dynamic programming.",
+      "Resource allocation where the resource genuinely divides — bandwidth, fuel, budget, raw material — which is what makes the fractional rule legitimate.",
+      "Cryptography: modular exponentiation is the core operation in RSA, Diffie–Hellman and elliptic-curve schemes, and Euclid's extended form computes the modular inverses those need.",
+      "Primality and factoring work, where a sieve provides the small primes every later stage tests against, and hashing schemes that want a prime table size.",
+      "Reducing fractions, computing least common multiples, and the modular arithmetic underneath random number generators and checksums.",
+    ],
+    advantages: [
+      "Greedy algorithms are fast and use almost no memory — activity selection is a sort plus one linear scan, and needs no table of subproblems.",
+      "They are short enough to get right, and short enough to prove: an exchange argument is a few lines, where a dynamic programming recurrence needs its own correctness case.",
+      "The sieve finds every prime below n in about O(n log log n), far better than testing each number separately, and the numbers it produces are reused by everything downstream.",
+      "Fast exponentiation turns an impossible computation into a trivial one — the difference between n and log₂n is what makes public-key cryptography practical rather than theoretical.",
+      "Euclid needs no factorisation, no table and no recursion in its iterative form; it is a handful of instructions and it has been correct for two thousand years.",
+    ],
+    disadvantages: [
+      "Greed is right far less often than it looks, and a greedy algorithm that is wrong is wrong silently — it returns a plausible answer, not an error. Every use needs its own proof.",
+      "Fractional knapsack's rule fails outright on the 0/1 version, and the failure is not a small approximation: the ratio-best item may have to be excluded entirely.",
+      "The sieve's memory is O(n) and it must know its limit in advance, so finding primes near a large number without sieving everything below it needs a segmented variant.",
+      "Fast exponentiation's running time depends on the bits of the exponent, which leaks it through timing — real cryptographic implementations use constant-time ladders instead of this straightforward version.",
+      "Euclid's worst case is consecutive Fibonacci numbers, where every quotient is 1 and no step ever skips ahead; the algorithm is still logarithmic, but it does the most work it ever can.",
+    ],
+  },
   strings: {
     overview:
       "Searching for a pattern in a text by brute force is O(n·m), and the reason is waste: when a comparison fails after eight matching characters, the naive search throws all eight away, slides the pattern one place right, and starts again from the beginning. Every algorithm here is a different answer to the question 'what did that failed attempt actually prove?'. KMP precomputes, from the pattern alone, how much of a partial match survives a mismatch. The Z-algorithm precomputes how far every position agrees with the prefix, reusing an already-matched window instead of recomparing inside it. Rabin-Karp gives up on characters and compares numbers, rolling a hash across the text so each window costs O(1). Manacher answers a different question — the longest palindrome — with the same instinct as Z: a palindrome you have already found tells you about the positions inside it for free.",

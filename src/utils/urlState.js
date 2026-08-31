@@ -7,6 +7,7 @@ import { ORDER_KEYS } from "../dataStructures/tree/compare";
 import { DP_KEYS, DP_PROBLEM_MAP } from "../algorithms/dp";
 import { BT_KEYS, BT_PROBLEM_MAP } from "../algorithms/backtracking";
 import { STRING_ALGO_MAP, STRING_KEYS } from "../algorithms/strings";
+import { GREEDY_ALGO_MAP, GREEDY_KEYS } from "../algorithms/greedy";
 
 /**
  * URL state — the current topic and its data round-trip through the location
@@ -68,7 +69,11 @@ const VIEWS = [
   "rangequery",
   "huffman",
   "btree",
+  "greedy",
 ];
+
+// The activity list is the longest greedy field; this is comfortably above it.
+const MAX_GREEDY_INPUT = 120;
 
 const LIST_TYPES = ["singly", "doubly", "circular"];
 const TREE_TYPES = ["binary", "bst", "avl", "threaded", "redblack", "splay", "treap"];
@@ -84,6 +89,20 @@ const HEAP_KINDS = ["max", "min"];
 // named problem actually declares are read or written — a link to LCS has no
 // business naming a bag capacity.
 const STRING_FIELD_KEYS = { text: "t", pattern: "p" };
+
+// Short keys keep the hash readable. `b` is taken by the gcd pair, so the
+// knapsack's capacity is `cap` rather than the obvious `c`.
+const GREEDY_FIELD_KEYS = {
+  activities: "act",
+  items: "it",
+  capacity: "cap",
+  limit: "lim",
+  base: "base",
+  exponent: "exp",
+  modulus: "mod",
+  a: "a1",
+  b: "b1",
+};
 
 const BT_FIELD_KEYS = {
   n: "n",
@@ -467,6 +486,14 @@ function fieldsFor(view, s) {
           s.str.meta.fields.map((field) => [STRING_FIELD_KEYS[field], s.str.activeInputs[field]])
         ),
       };
+    case "greedy":
+      return {
+        v: view,
+        type: s.grd.algo,
+        ...Object.fromEntries(
+          s.grd.meta.fields.map((field) => [GREEDY_FIELD_KEYS[field], s.grd.activeInputs[field]])
+        ),
+      };
     default:
       return { v: view };
   }
@@ -560,6 +587,18 @@ export function readSharedState() {
     algo.fields.forEach((field) => {
       const raw = fields[STRING_FIELD_KEYS[field]];
       if (typeof raw === "string") inputs[field] = raw.slice(0, MAX_TEXT);
+    });
+    if (Object.keys(inputs).length) state.inputs = inputs;
+  } else if (view === "greedy") {
+    if (GREEDY_KEYS.includes(fields.type)) state.algo = fields.type;
+    const algo = GREEDY_ALGO_MAP[state.algo || GREEDY_KEYS[0]];
+    const inputs = {};
+    algo.fields.forEach((field) => {
+      const raw = fields[GREEDY_FIELD_KEYS[field]];
+      // Length is capped here and the value is validated by the algorithm's own
+      // `parse` before it runs, so a hand-edited link can only ever produce a
+      // setup the app could have built itself.
+      if (typeof raw === "string") inputs[field] = raw.slice(0, MAX_GREEDY_INPUT);
     });
     if (Object.keys(inputs).length) state.inputs = inputs;
   } else if (view === "btree") {

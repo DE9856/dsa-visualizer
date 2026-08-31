@@ -49,7 +49,8 @@ import HuffmanCanvas from "./components/HuffmanCanvas.jsx";
 import RangeQuerySidebar from "./components/RangeQuerySidebar.jsx";
 import RangeQueryCanvas from "./components/RangeQueryCanvas.jsx";
 import StringSidebar from "./components/StringSidebar.jsx";
-import StringCanvas from "./components/StringCanvas.jsx";
+import GridCanvas from "./components/GridCanvas.jsx";
+import GreedySidebar from "./components/GreedySidebar.jsx";
 import BacktrackSidebar from "./components/BacktrackSidebar.jsx";
 import BacktrackCanvas from "./components/BacktrackCanvas.jsx";
 import SearchTreePanel from "./components/SearchTreePanel.jsx";
@@ -77,6 +78,7 @@ import { useUnionFind } from "./hooks/useUnionFind.js";
 import { useDp } from "./hooks/useDp.js";
 import { useBacktracking } from "./hooks/useBacktracking.js";
 import { useStrings } from "./hooks/useStrings.js";
+import { useGreedy } from "./hooks/useGreedy.js";
 import { useRangeQuery } from "./hooks/useRangeQuery.js";
 import { useHuffman } from "./hooks/useHuffman.js";
 import { useBTree } from "./hooks/useBTree.js";
@@ -114,6 +116,7 @@ export default function App() {
   const rq = useRangeQuery(initFor("rangequery"));
   const hf = useHuffman(initFor("huffman"));
   const btr = useBTree(initFor("btree"));
+  const grd = useGreedy(initFor("greedy"));
 
   // The player driving whatever view is on screen — one source for the
   // transport bar, the timeline and the keyboard shortcuts.
@@ -138,6 +141,7 @@ export default function App() {
     rangequery: rq,
     huffman: hf,
     btree: btr,
+    greedy: grd,
   };
   const active = players[view] || v;
 
@@ -165,7 +169,7 @@ export default function App() {
 
   // The address bar tracks the data on screen, so the link is always ready to
   // copy. Only committed data is encoded — never half-typed sidebar text.
-  const shareHash = shareHashFor(view, { v, race, tcmp, ll, poly, st, q, gr, tr, tt, ht, dh, hp, tri, uf, dp, bt, str, rq, hf, btr });
+  const shareHash = shareHashFor(view, { v, race, tcmp, ll, poly, st, q, gr, tr, tt, ht, dh, hp, tri, uf, dp, bt, str, rq, hf, btr, grd });
   const shareUrl = buildShareUrl(shareHash);
 
   // What the phone action bar needs — the same player, minus the read-outs
@@ -206,7 +210,7 @@ export default function App() {
   // family name on its own says nothing about what is in there. Each is one
   // view with several problems underneath, so the prefix is split off here and
   // the rest is handed to the hook.
-  const problemSetters = { dp: dp.setProblem, bt: bt.setProblem, str: str.setAlgo };
+  const problemSetters = { dp: dp.setProblem, bt: bt.setProblem, str: str.setAlgo, greedy: grd.setAlgo };
 
   const handleViewChange = (next) => {
     const [name, problem] = next.split(":");
@@ -234,7 +238,9 @@ export default function App() {
               ? `bt:${bt.problem}`
               : view === "str"
                 ? `str:${str.algo}`
-                : view
+                : view === "greedy"
+                  ? `greedy:${grd.algo}`
+                  : view
         }
         onCategoryChange={handleViewChange}
         onGoHome={() => setStage("select")}
@@ -756,10 +762,32 @@ export default function App() {
             />
           }
         >
-          <StringCanvas step={str.step} />
+          <GridCanvas step={str.step} />
           <ListControls {...transport} />
           <CodeInfoPanel meta={str.meta} step={str.step} codeLabel="THE ALGORITHM" />
           <TopicPanel topicKey="strings" />
+        </Workspace>
+      ) : view === "greedy" ? (
+        <Workspace
+          {...shell}
+          panelLabel="GREEDY & MATH"
+          sidebar={
+            <GreedySidebar
+              algo={grd.algo}
+              onAlgoChange={grd.setAlgo}
+              meta={grd.meta}
+              inputs={grd.inputs}
+              onInputChange={grd.setInput}
+              onRun={grd.runOperation}
+              onRandom={grd.shuffle}
+              error={grd.error}
+            />
+          }
+        >
+          <GridCanvas step={grd.step} />
+          <ListControls {...transport} />
+          <CodeInfoPanel meta={grd.meta} step={grd.step} codeLabel="THE ALGORITHM" />
+          <TopicPanel topicKey="greedy" />
         </Workspace>
       ) : view === "bt" ? (
         <Workspace

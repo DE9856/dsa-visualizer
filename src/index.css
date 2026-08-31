@@ -3201,7 +3201,7 @@ input[type="range"] {
   .uf-canvas,
   .dp-canvas,
   .bt-canvas,
-  .str-canvas,
+  .grid-canvas,
   .rq-canvas,
   .hf-canvas,
   .graph-canvas {
@@ -3231,21 +3231,21 @@ input[type="range"] {
 
   /* The grid already scrolls inside its own box; narrower cells mean fewer
      strings need it at all. */
-  .str-canvas {
+  .grid-canvas {
     padding: 14px 10px 16px;
     min-height: 240px;
   }
 
-  .str-row__cells {
-    grid-template-columns: repeat(var(--cols), 22px);
+  .grid-row__cells {
+    grid-template-columns: repeat(var(--cols), var(--cell-w, 22px));
   }
 
-  .str-cell {
+  .grid-cell {
     height: 22px;
     font-size: 11px;
   }
 
-  .str-row__label {
+  .grid-row__label {
     width: 46px;
   }
 
@@ -4272,7 +4272,7 @@ select.text-input option {
 
 /* ---------- string algorithms ---------- */
 
-.str-canvas {
+.grid-canvas {
   height: auto;
   min-height: 340px;
   display: flex;
@@ -4280,7 +4280,7 @@ select.text-input option {
   padding: 18px 20px 20px;
 }
 
-.str-grid-wrap {
+.grid-wrap {
   display: flex;
   justify-content: flex-start;
   padding-bottom: 4px;
@@ -4289,14 +4289,14 @@ select.text-input option {
   padding-top: var(--share-clear, 0);
 }
 
-.str-grid {
+.grid-board {
   display: flex;
   flex-direction: column;
   gap: 3px;
   margin: 0 auto;
 }
 
-.str-row {
+.grid-row {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -4304,15 +4304,17 @@ select.text-input option {
 
 /* Every row shares one set of columns, which is what makes an offset row read
    as "aligned here" rather than as a separate picture. */
-.str-row__cells {
+.grid-row__cells {
   display: grid;
-  grid-template-columns: repeat(var(--cols), 26px);
+  /* A frame holding numbers rather than single characters asks for wider
+     columns through --cell-w; the default suits one character. */
+  grid-template-columns: repeat(var(--cols), var(--cell-w, 26px));
   gap: 2px;
 }
 
 /* Pinned, because a long string scrolls sideways and a row you cannot name is
    a row you have to work out from its contents. */
-.str-row__label {
+.grid-row__label {
   width: 62px;
   flex-shrink: 0;
   text-align: right;
@@ -4326,7 +4328,7 @@ select.text-input option {
   background: linear-gradient(to right, var(--panel) 70%, transparent);
 }
 
-.str-cell {
+.grid-cell {
   height: 26px;
   display: flex;
   align-items: center;
@@ -4341,14 +4343,14 @@ select.text-input option {
 }
 
 /* An empty slot in a number row — the failure function before it is filled in. */
-.str-cell.is-blank {
+.grid-cell.is-blank {
   border-style: dashed;
   background: none;
 }
 
 /* The ruler. Present because alignment is the thing being taught, and an index
    you have to count to is an index you get wrong. */
-.str-row--index .str-cell {
+.grid-row--index .grid-cell {
   border: none;
   background: none;
   font-size: 9px;
@@ -4356,26 +4358,61 @@ select.text-input option {
   color: var(--text-dim);
 }
 
-.str-cell.is-active {
+.grid-cell.is-active {
   border-color: var(--primary);
   background: var(--primary-dim);
   color: var(--primary);
 }
 
-.str-cell.is-match {
+.grid-cell.is-match {
   border-color: var(--green);
   background: rgba(95, 214, 160, 0.16);
   color: var(--green);
 }
 
-.str-cell.is-mismatch {
+.grid-cell.is-mismatch {
   border-color: var(--red);
   background: rgba(255, 107, 107, 0.18);
   color: var(--red);
 }
 
 /* A confirmed occurrence — stays lit once found. */
-.str-cell.is-found {
+/* A column header in a table-shaped frame — the Euclidean descent, the item
+   table of a fractional knapsack. Quiet, because it never changes. */
+.grid-cell.is-head {
+  border-color: transparent;
+  background: none;
+  color: var(--text-dim);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+/* Neither yet-decided nor ruled out — 0 and 1 in the sieve, which are neither
+   prime nor composite, and the columns of a row that has not been reached. */
+.grid-cell.is-dim {
+  border-color: var(--border);
+  background: none;
+  color: var(--text-dim);
+  opacity: 0.45;
+}
+
+/* A second value inside a cell: the value/weight ratio under an item, the
+   quotient under a step. Stacked rather than beside, so the column width is
+   still set by the number above it. */
+.grid-cell {
+  flex-direction: column;
+  gap: 0;
+  line-height: 1.05;
+}
+
+.grid-cell__sub {
+  font-size: 8px;
+  font-weight: 400;
+  color: var(--text-dim);
+  opacity: 0.9;
+}
+
+.grid-cell.is-found {
   border-color: var(--green);
   background: rgba(95, 214, 160, 0.3);
   color: var(--green);
@@ -4384,30 +4421,30 @@ select.text-input option {
 
 /* The span that is being reused rather than recompared: KMP's border, Z's
    mirror, Manacher's reflected radius. The blue is the whole idea. */
-.str-cell.is-border {
+.grid-cell.is-border {
   border-color: var(--blue);
   background: rgba(79, 184, 224, 0.18);
   color: var(--blue);
 }
 
 /* The current [l, r] window or the sliding window under inspection. */
-.str-cell.is-window {
+.grid-cell.is-window {
   border-color: var(--border-strong);
   background: rgba(255, 255, 255, 0.08);
 }
 
 /* Z's separator and Manacher's interleaved padding — structural, not content. */
-.str-cell.is-sep {
+.grid-cell.is-sep {
   color: var(--text-dim);
   background: none;
   border-style: dotted;
 }
 
-.str-row--pointers .str-row__cells {
+.grid-row--pointers .grid-row__cells {
   align-items: end;
 }
 
-.str-pointer {
+.grid-pointer {
   height: 14px;
   display: flex;
   align-items: center;
@@ -4417,17 +4454,17 @@ select.text-input option {
   color: var(--primary);
 }
 
-.str-pointer.is-window,
-.str-pointer.is-border {
+.grid-pointer.is-window,
+.grid-pointer.is-border {
   color: var(--blue);
 }
 
-.str-pointer.is-match,
-.str-pointer.is-found {
+.grid-pointer.is-match,
+.grid-pointer.is-found {
   color: var(--green);
 }
 
-.str-pointer.is-mismatch {
+.grid-pointer.is-mismatch {
   color: var(--red);
 }
 

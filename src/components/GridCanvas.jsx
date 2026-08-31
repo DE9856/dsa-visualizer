@@ -1,25 +1,26 @@
 /**
- * The aligned character grid every string algorithm draws on.
+ * The aligned grid every string, greedy and number-theory algorithm draws on.
  *
- * All four are the same picture — characters in a row, sometimes a second row
- * under it starting at some column, and an array of numbers beneath — so a
- * frame is a list of rows sharing one set of columns, and this renders it.
- * Alignment is the whole point: KMP's search draws the pattern as a row that
- * starts at the column it is currently aligned with, so a shift is the row
- * physically moving right, and Z's mirror is two spans lit up in the same
- * columns their indices name.
+ * They are all the same picture: rows sharing one set of columns, sometimes
+ * starting part-way along, with pointers above them. That covers characters
+ * aligned under a pattern, activities laid out on a timeline, a sieve's ten-
+ * wide number grid, the bits of an exponent with the running square under
+ * each, and the rows of a Euclidean descent. Alignment is the whole point:
+ * KMP's search draws the pattern as a row starting at the column it is
+ * currently aligned with, so a shift is the row physically moving right, and
+ * an activity that runs from 3 to 9 is a bar that starts at column 3.
  *
  * A row's `offset` is applied by giving its first cell an explicit grid column;
  * everything after it auto-places, so the columns stay locked to the ruler
  * without any spacer elements.
  */
-export default function StringCanvas({ step }) {
+export default function GridCanvas({ step }) {
   const width = step.width || 0;
   const rows = step.rows || [];
 
   if (!width || !rows.length) {
     return (
-      <div className="panel canvas str-canvas">
+      <div className="panel canvas grid-canvas">
         <div className="ll-empty mono">NOTHING TO SHOW</div>
       </div>
     );
@@ -38,15 +39,18 @@ export default function StringCanvas({ step }) {
   const hasPointers = pointerCells.some(Boolean);
 
   return (
-    <div className="panel canvas str-canvas">
-      <div className="str-grid-wrap canvas-scroll">
-        <div className="str-grid">
+    <div className="panel canvas grid-canvas">
+      <div className="grid-wrap canvas-scroll">
+        <div
+          className="grid-board"
+          style={step.cellWidth ? { "--cell-w": `${step.cellWidth}px` } : undefined}
+        >
           {hasPointers && (
-            <div className="str-row str-row--pointers">
-              <span className="str-row__label mono" />
-              <div className="str-row__cells" style={{ "--cols": width }}>
+            <div className="grid-row grid-row--pointers">
+              <span className="grid-row__label mono" />
+              <div className="grid-row__cells" style={{ "--cols": width }}>
                 {pointerCells.map((p, i) => (
-                  <span key={i} className={`str-pointer mono ${p ? `is-${p.tone || "active"}` : ""}`}>
+                  <span key={i} className={`grid-pointer mono ${p ? `is-${p.tone || "active"}` : ""}`}>
                     {p ? p.label : ""}
                   </span>
                 ))}
@@ -55,16 +59,17 @@ export default function StringCanvas({ step }) {
           )}
 
           {rows.map((row, r) => (
-            <div key={r} className={`str-row ${row.index ? "str-row--index" : ""}`}>
-              <span className="str-row__label mono">{row.label}</span>
-              <div className="str-row__cells" style={{ "--cols": width }}>
+            <div key={r} className={`grid-row ${row.index ? "grid-row--index" : ""}`}>
+              <span className="grid-row__label mono">{row.label}</span>
+              <div className="grid-row__cells" style={{ "--cols": width }}>
                 {row.cells.map((c, i) => (
                   <span
                     key={i}
-                    className={`str-cell mono ${c.tone ? `is-${c.tone}` : ""} ${c.text === "" ? "is-blank" : ""}`}
+                    className={`grid-cell mono ${c.tone ? `is-${c.tone}` : ""} ${c.text === "" ? "is-blank" : ""}`}
                     style={i === 0 && row.offset ? { gridColumnStart: row.offset + 1 } : undefined}
                   >
                     {c.text}
+                    {c.sub !== undefined && <span className="grid-cell__sub">{c.sub}</span>}
                   </span>
                 ))}
               </div>

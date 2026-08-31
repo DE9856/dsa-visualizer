@@ -15,6 +15,7 @@ export const TOPIC_TITLES = {
   strings: "String Algorithms",
   rangequery: "Range Queries: Segment & Fenwick Trees",
   btree: "B-Trees & B+ Trees",
+  greedy: "Greedy Algorithms & Number Theory",
   huffman: "Huffman Coding",
   linkedlist: "Linked List",
   polynomial: "Polynomial (Linked List Representation)",

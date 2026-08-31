@@ -42,6 +42,13 @@ should a tree be shaped by", none of them the same as balance.
 
 ### Changed
 
+- **The string canvas is shared, and knows nothing about strings.** `StringCanvas` was
+  already a generic renderer for rows sharing one set of columns; only its name and its
+  `str-` class prefix said otherwise. It is now `GridCanvas`, the frame builders live in
+  `algorithms/gridFrame.js` where both families can reach them, a frame can ask for wider
+  columns when its cells hold numbers instead of single characters, and the `sub` field
+  the helpers had always built is finally drawn.
+
 - **Panels no longer blur a backdrop nobody can see.** `.panel` — the canvas and the
   sidebar, the two largest elements on screen — carried `backdrop-filter: blur(14px)`, and
   so did the nine landing cards. Everything behind them is a static gradient, so the blur
@@ -175,6 +182,24 @@ should a tree be shaped by", none of them the same as balance.
   building. Shared links are unaffected: they arrive with the graph they carry.
 
 ### Added
+
+- **Greedy algorithms and number theory, as a section of their own.** Activity selection
+  and fractional knapsack are greedy in the technical sense — a locally best choice that is
+  provably globally optimal — and both are drawn beside the reason they work. Activity
+  selection lays the activities out as bars on a real timeline, so the earliest-finish rule
+  is a thing you watch rather than a thing you are told. Fractional knapsack sits next to
+  0/1 knapsack in the DP section on purpose: the only difference between them is whether an
+  item can be cut, and that difference is the whole reason one is greedy and the other is
+  not. The sieve of Eratosthenes, fast exponentiation and Euclid's GCD are the arithmetic
+  underneath everything else, each drawn with the detail that makes it fast — the sieve
+  starting at p² and stopping at √n, the exponent read bit by bit with the running squares
+  beneath it, and Euclid's quotient column showing exactly how many subtractions each
+  modulo replaced.
+
+  Checked against independent references rather than against themselves: activity selection
+  against a brute-force search over every subset, fractional knapsack against a separate
+  reference pour, the sieve against trial division at every limit from 2 to 120, fast
+  exponentiation against exact BigInt arithmetic, and Euclid against a reference gcd.
 
 - **A favicon, a touch icon and a web manifest.** The app had none, so it showed the
   browser's blank-page default in a tab and could not be installed. They live in `public/`,

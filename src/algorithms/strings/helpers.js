@@ -18,15 +18,8 @@
  * All four are the same picture: characters in a row, sometimes a second row
  * aligned under it at an offset, and an array of numbers underneath that. So
  * a frame is a small grid of aligned rows plus the pointers walking along it,
- * and one canvas draws every one of them.
- *
- *   {
- *     width      columns in the grid — the longest row decides it
- *     rows       [{ label, offset, cells: [{ text, tone, sub }] }]
- *     pointers   [{ label, at, tone }] — i, j, l, r, C, drawn above the grid
- *     aux        { label, items } — matches found, hashes, the answer so far
- *     message, line, phase, resultBadge
- *   }
+ * and one canvas draws every one of them — see `../gridFrame.js` for the frame
+ * shape and the builders, which the greedy and number-theory algorithms share.
  *
  * `offset` is what makes alignment visible: KMP's search draws the pattern as
  * a second row starting at the column it is currently aligned with, so a shift
@@ -64,53 +57,10 @@ export function parseText(text, limit = MAX_TEXT) {
 // rows and cells
 // ---------------------------------------------------------------------
 
-export const cell = (text, tone, sub) => {
-  const c = { text: String(text) };
-  if (tone) c.tone = tone;
-  if (sub !== undefined) c.sub = String(sub);
-  return c;
-};
-
-/** A row of characters, optionally starting part-way along the grid. */
-export const charRow = (label, str, tones = {}, offset = 0) => ({
-  label,
-  offset,
-  cells: [...str].map((ch, i) => cell(ch, tones[i], undefined)),
-});
-
-/** A row of numbers under the characters — a failure function, Z, or radii. */
-export const numberRow = (label, values, tones = {}, offset = 0) => ({
-  label,
-  offset,
-  cells: values.map((v, i) => cell(v === null || v === undefined ? "" : v, tones[i])),
-});
-
-/** The 0,1,2… ruler. Alignment is the whole point, so the columns are numbered. */
-export const indexRow = (n) => ({
-  label: "",
-  offset: 0,
-  index: true,
-  cells: Array.from({ length: n }, (_, i) => cell(i)),
-});
-
-export const pointer = (label, at, tone) => ({ label, at, tone });
-
-/**
- * One frame. Rows are rebuilt from scratch each time rather than mutated, so a
- * frame owns its own picture and stepping backwards costs nothing.
- */
-export function snap(extra = {}) {
-  return {
-    width: 0,
-    rows: [],
-    pointers: [],
-    aux: null,
-    line: null,
-    phase: "run",
-    message: "",
-    ...extra,
-  };
-}
+// The grid these draw on is shared with the greedy and number-theory
+// algorithms, so the builders live in `../gridFrame.js`. They are re-exported
+// here because every string algorithm imports them from this file.
+export { cell, charRow, numberRow, indexRow, pointer, snap } from "../gridFrame.js";
 
 // ---------------------------------------------------------------------
 // random inputs

@@ -95,6 +95,19 @@ export const CATEGORIES = [
     ],
   },
   {
+    key: "greedy",
+    label: "GREEDY & MATH",
+    accent: "var(--green)",
+    blurb: "Taking the locally best option, and the arithmetic underneath everything.",
+    items: [
+      { key: "greedy:activity", label: "Activity Selection", desc: "Earliest finish first, and why that is optimal" },
+      { key: "greedy:fracknap", label: "Fractional Knapsack", desc: "Greedy only because items divide" },
+      { key: "greedy:sieve", label: "Sieve of Eratosthenes", desc: "Cross off multiples, starting at p²" },
+      { key: "greedy:fastpow", label: "Fast Exponentiation", desc: "log n multiplications, not n" },
+      { key: "greedy:gcd", label: "Euclid's GCD", desc: "The oldest algorithm still in use" },
+    ],
+  },
+  {
     key: "graphs",
     label: "GRAPHS",
     accent: "var(--purple)",

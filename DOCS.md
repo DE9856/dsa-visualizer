@@ -383,6 +383,11 @@ loaded, skipping the category screen.
 | Backtracking, subset sum | `#v=bt&type=subset&nums=3, 34, 4, 12&tg=9&md=all` |
 | Range queries | `#v=rangequery&type=segment&cb=min&a=5,2,9,1,7,3,8,4` |
 | Huffman coding | `#v=huffman&t=ABRACADABRA` |
+| Activity selection | `#v=greedy&type=activity&act=1-4, 3-5, 0-6, 5-7, 3-9` |
+| Fractional knapsack | `#v=greedy&type=fracknap&it=60/10, 100/20, 120/30&cap=50` |
+| Sieve | `#v=greedy&type=sieve&lim=60` |
+| Fast exponentiation | `#v=greedy&type=fastpow&base=3&exp=13&mod=0` |
+| Euclid's GCD | `#v=greedy&type=gcd&a1=1071&b1=462` |
 
 The values are the same text the sidebar's custom-data boxes take, so links stay
 readable and can be written by hand. Trees are listed in the order that rebuilds them
@@ -1508,8 +1513,13 @@ src/
 │   ├── backtracking/       same shape, one file per problem; helpers.js holds
 │   │                       makeRecorder(), which collects the frames and the
 │   │                       search tree together
-│   ├── strings/            KMP, Z, Rabin-Karp, Manacher; helpers.js builds the
-│   │                       aligned character rows they all draw on
+│   ├── strings/            KMP, Z, Rabin-Karp, Manacher; helpers.js holds the
+│   │                       string-specific parsing and random inputs
+│   ├── greedy/             activity selection, fractional knapsack, sieve, fast
+│   │                       exponentiation, Euclid; same shape as strings/, and
+│   │                       they share its grid
+│   ├── gridFrame.js        the row/cell/pointer frame GridCanvas draws, shared
+│   │                       by strings/ and greedy/
 │   ├── metrics.js          createMetrics(): the counters every sort reports
 │   ├── sortContext.js      makeSort(): one body, exported as run() and count()
 │   ├── stability.js        checkStability(): did ties keep their original order?
