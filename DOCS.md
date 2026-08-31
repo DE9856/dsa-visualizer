@@ -1620,6 +1620,14 @@ two sorts recurse over different conventions internally (merge sort's `r` is exc
 quick sort's is inclusive); `range` is always inclusive. Introsort and 3-way quick sort
 carry the same fields, so they get the same recursion tree for free.
 
+Quick sort builds this tree from an explicit stack rather than the JavaScript call stack.
+Its degenerate case is the lesson the view exists to teach — a last-element pivot on
+sorted input nests n deep — and that is harmless at forty bars but overflows the engine's
+stack at the n = 5000 the empirical sweep reaches. Pushing the right side before the left
+and popping means ranges are visited in the same pre-order two recursive calls produced,
+so the frames and the tree are unchanged; `depth` still reports the depth in the
+conceptual tree, which on a degenerate run is still n.
+
 **Two optional fields describe things the bars alone cannot say.** Bar colour is already
 spoken for — orange unsorted, green sorted, blue comparing, red swapping, purple pivot —
 so a sort that divides the array into named regions gets its own row rather than a sixth

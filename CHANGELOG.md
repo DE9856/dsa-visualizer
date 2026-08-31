@@ -21,6 +21,25 @@ most: red-black trees, splay trees and treaps alongside AVL, segment and Fenwick
 one array, B-trees and B+ trees, and Huffman coding — four different answers to "what
 should a tree be shaped by", none of them the same as balance.
 
+### Fixed
+
+- **Quick sort no longer overflows the stack in the complexity sweep.** Its degenerate
+  case is not hypothetical here, it is the lesson: a last-element pivot on sorted input
+  partitions into n-1 and 0 every time, so the recursive form nests n deep. Harmless at
+  the forty bars the animation draws, fatal at the n = 5000 the empirical sweep reaches —
+  it threw `RangeError: Maximum call stack size exceeded` on sorted, nearly sorted,
+  reversed and all-equal input, killing the whole sweep. The partition is now driven from
+  an explicit stack, pushing the right side before the left so ranges are visited in the
+  same pre-order the two recursive calls produced.
+
+  Nothing observable changed: 960 runs across eight input shapes, four pivot rules, ten
+  sizes and three seeds produce byte-identical frames and identical `count()` statistics.
+  The reported depth on a degenerate run is still n, because that is true and it is the
+  point — what moved is where the pending ranges are kept, not how deep the recursion is.
+  The sweep can now plot quick sort's measured slope of 2.00 against introsort's on the
+  same axes, which is the comparison introsort exists to make and was previously
+  impossible to draw.
+
 ### Changed
 
 - **Panels no longer blur a backdrop nobody can see.** `.panel` — the canvas and the

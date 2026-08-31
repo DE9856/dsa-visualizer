@@ -54,14 +54,31 @@ const { run, count } = makeSort((ctx) => {
   const at = (fields, l, r, depth, callId) =>
     ctx.emit({ ...fields, range: [l, r], depth, callId, calls, callCount: calls.length });
 
-  function qs(l, r, depth, parent) {
+  /**
+   * The partition is driven from an explicit stack rather than the JavaScript
+   * call stack. Quick sort's degenerate case is not hypothetical here — it is
+   * the lesson: a last-element pivot on sorted input splits into n-1 and 0
+   * every single time, so the recursive form nests n deep. That is fine at the
+   * forty bars the animation draws, and fatal at the n = 5000 the empirical
+   * complexity sweep reaches, where it threw RangeError and killed the sweep.
+   *
+   * Popping the left side first and pushing the right side before it means
+   * ranges are visited in exactly the pre-order the two recursive calls
+   * produced, so the frames, the call ids and the tree the recursion panel
+   * draws are all unchanged — the only thing that moved is where the pending
+   * ranges are stored. `depth` is still the depth in the conceptual tree, so a
+   * degenerate run looks and counts as deep as it really is.
+   */
+  const pending = [{ l: 0, r: n - 1, depth: 0, parent: null }];
+  while (pending.length) {
+    const { l, r, depth, parent } = pending.pop();
     // An empty side of a partition isn't a call worth drawing.
-    if (l > r) return;
+    if (l > r) continue;
     ctx.m.atDepth(depth);
     const id = enterCall(l, r, depth, parent);
     if (l === r) {
       ctx.markSorted(l);
-      return;
+      continue;
     }
 
     const chosen = choosePivot(ctx, l, r);
@@ -86,11 +103,9 @@ const { run, count } = makeSort((ctx) => {
     ctx.swap(i + 1, r);
     at({ swap: [i + 1, r], line: LINE.PLACE_PIVOT }, l, r, depth, id);
     ctx.markSorted(i + 1);
-    qs(l, i, depth + 1, id);
-    qs(i + 2, r, depth + 1, id);
+    pending.push({ l: i + 2, r, depth: depth + 1, parent: id });
+    pending.push({ l, r: i, depth: depth + 1, parent: id });
   }
-
-  qs(0, n - 1, 0, null);
   ctx.markAll();
   // The run is over: the whole array is the active range again, so nothing
   // is left dimmed.
