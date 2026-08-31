@@ -16,9 +16,81 @@ counts, and Balance & Height, which builds a BST, an AVL tree and a 2-3 tree fro
 sequence. Dynamic programming arrives as a family of its own: six problems that fill a
 table cell by cell and then walk it backwards to recover the answer the number alone
 never gives you. Backtracking arrives as another: four searches drawn beside the tree they
-explore, with the branches pruning cut away marked as such.
+explore, with the branches pruning cut away marked as such. The TREES section grows the
+most: red-black trees, splay trees and treaps alongside AVL, segment and Fenwick trees over
+one array, B-trees and B+ trees, and Huffman coding — four different answers to "what
+should a tree be shaped by", none of them the same as balance.
 
 ### Changed
+
+- **The landing page says what each view actually holds.** A card description shared its
+  line with the label and was truncated with an ellipsis when it did not fit, then hidden
+  outright below 560px — so the one place a view says what is inside it was the first thing
+  to disappear. Descriptions now wrap onto their own line under the label at every width.
+  The Tree card admits to red-black, splay and treap, and the Graph card to SCC and max
+  flow; both had been describing a smaller app than the one that shipped.
+
+- **The multi-way tree canvas is shared, and knows nothing about 2-3 trees.**
+  `TwoThreeTreeCanvas` was already generic over `keys`/`children` arrays except for one
+  line that drew a divider only when a node held exactly two keys. It is now
+  `MultiwayTreeCanvas`, draws a divider between every adjacent pair, derives its slot width
+  from the widest node in the tree so order-5 boxes cannot overlap, scrolls inside its own
+  container when the tree outgrows the panel, and draws the B+ leaf chain when a frame asks
+  for it.
+
+- **`cloneNode` copies whatever a node carries.** It picked out `id`, `value`, `left` and
+  `right` by name, which was exactly right until a node had a colour or a priority — a clone
+  that silently dropped them would leave the tree looking correct and behaving wrongly.
+
+- **A frame can ask for edge labels.** `GraphCanvas` drew weights only when the WEIGHTS
+  toggle was on, which made max flow unreadable whenever it was off — `flow/capacity` is not
+  optional decoration for that operation. A frame carrying `showWeights` now gets labels
+  regardless. Graph operations are also handed `directed`, `weighted` and the vertex
+  `positions` alongside the sidebar's inputs, because the newer ones need to know whether
+  the arrows mean anything, and A* cannot have a heuristic without knowing where things are.
+
+- **Each problem shows its own example again.** The dynamic programming and string views
+  keep one flat record of input fields so that switching between related problems keeps what
+  you typed — LCS and edit distance are the same grid read two ways, and seeing one input
+  under both is the point. But the record was seeded by merging every problem's defaults,
+  so where two of them share a field name the last one silently won: landing on LCS gave
+  you edit distance's KITTEN/SITTING, and three of the four string algorithms lost the
+  demo text chosen to show them off. The current problem's own defaults now go on top, and
+  they are re-applied when you switch — unless you have edited the input, in which case
+  what you typed survives, which was the behaviour worth keeping in the first place.
+
+- **The algorithm modules are their own bundle chunk.** Every family added brings frame
+  builders, pseudocode and long-form descriptions with it, and the four of them pushed the
+  app chunk back over Rollup's 500 kB warning. They are pure logic with no components in
+  them, so they now split out and cache independently of the UI: the largest chunk is 290 kB
+  rather than 510 kB.
+
+- **A shorter header: categories beside the title, SHARE on the canvas.** The title,
+  category strip and share button were a wrapping flex row, which was fine at six
+  categories. At nine — with the active one showing its open problem, so
+  `DYNAMIC PROGRAMMING / Longest Common Subsequence` is a 377px pill by itself — they
+  wanted 1529px against the 1209px a 1280px screen has, and wrapped onto *three* lines.
+  That put 165px of header above the visualization.
+
+  The categories now sit beside the title and wrap to a second line, and **SHARE** has
+  moved to the canvas's top-right corner. Header height goes from 165px to 85px, every
+  category stays visible without scrolling, and the row count is capped at two.
+
+  They are also drawn as a plain row rather than inside a rounded container. A container
+  has to be as wide as its widest line, so on two rows it left a large empty box beside the
+  short one. Inactive categories are transparent and fill in on hover; only the one you are
+  on keeps the filled treatment, which gives the row a focal point instead of eight
+  identical chips. A hairline after the wordmark separates it from the nav.
+
+  Two things had to move with it. The dropdowns are now positioned `fixed` from their
+  trigger's rect and clamped to the viewport, rather than absolutely inside the strip,
+  since with eight wrapping categories the right-most pill is no longer the last one. And
+  `.main-col` now publishes a `--share-safe` custom property naming how much of the
+  corner the button occupies: canvas headers that run the full width of the panel pad
+  themselves out of it, which the hash table and dynamic hashing views need — their load
+  factor read-out ends exactly where the button floats. Headers that are centred or
+  left-aligned ignore it, and on a phone it is zero, because SHARE is in the nav sheet
+  there and the corner is free.
 
 - **`DpInfoPanel` is now `CodeInfoPanel`, shared by two views.** It was already just
   "description, costs, and code with the executing line lit up", which is what the
@@ -72,6 +144,182 @@ explore, with the branches pruning cut away marked as such.
   building. Shared links are unaffected: they arrive with the graph they carry.
 
 ### Added
+
+- **B-trees and B+ trees, at order 3, 4 or 5.** A new view under TREES, and the one
+  structure in the app whose shape is an argument about hardware rather than about
+  mathematics: a node is as wide as the block it lives in, so one read narrows the search
+  *m* ways instead of two, and the height falls from log₂ n to log_m n.
+
+  What it is built to show is that **nothing rebalances it**. There is not a rotation
+  anywhere in the implementation. Every leaf stays at the same depth because the update
+  rules are symmetric about the vertical — an overflowing node splits and pushes its median
+  *up*, an underflowing one borrows from a sibling or merges and pulls a separator *down*,
+  and the only way to gain a level is to split the root while the only way to lose one is to
+  empty it. Run Insert at order 3 and watch a split travel upward a level at a time.
+
+  Delete is the intricate half and the frames say so as they go: an internal key is a
+  separator and cannot simply be removed, so it is overwritten with its predecessor — which
+  lives in a leaf — and that copy is deleted instead, which turns every deletion into a leaf
+  deletion followed by a repair that can cascade to the root.
+
+  **VARIANT** rebuilds the same keys the other way. A B+ tree moves every key into a leaf,
+  keeps only routing separators upstairs and links the leaves left to right — drawn as a
+  dashed chain along the bottom — so Inorder Traversal walks one level instead of touring
+  the tree. That is why database indexes are B+ trees: a range scan finds its starting leaf
+  once and never touches the interior again. It costs a uniform full-height search, which
+  sounds worse and makes every lookup predictable.
+
+  Verified against the invariants at every order and in both variants: all leaves at one
+  depth, key counts inside [⌈m/2⌉−1, m−1] for every node but the root, separators bounding
+  their subtrees, sorted traversal — checked after each of twelve inserts in sorted,
+  reversed and mixed order, after **every one of fourteen single deletions** from a
+  fourteen-key tree, and after deleting everything in three different orders.
+
+  That testing caught a real bug that no amount of looking at the screen would have. A B+
+  separator equal to the key being searched for is only a *copy* of the right subtree's
+  smallest key, so an equal key must route **right**; routing it left walked past the leaf
+  holding it, and deleting a key that had been copied upward silently did nothing while the
+  tree still looked perfectly correct.
+
+- **Huffman coding trees.** Also under TREES. Build a code from any text and watch the
+  greedy rule that produces the optimal one: repeatedly merge the two lightest trees.
+
+  The canvas is a forest for every step but the last, which is the point — you watch trees
+  get eaten. Each frame draws the priority queue as it stands beside the forest, so "the two
+  lightest" is something you see selected rather than a rule you are asked to take on trust.
+  The last frame reads the codes off the paths and reports the encoded size against a
+  fixed-width code for the same text.
+
+  Checked against an independent reference implementation on eight texts — the total cost
+  matches the optimum every time — plus the properties that matter and are easy to get
+  subtly wrong: the codes are prefix-free, encoding and decoding round-trip through the
+  finished tree, every internal weight is the sum of its children, the root weighs exactly
+  the length of the text, and the sibling property holds so a rarer symbol is never given a
+  shorter code than a commoner one.
+
+- **Range queries: segment trees and Fenwick trees, over one array.** A new view under
+  TREES. Both answer "what is the sum of positions 1 to 5?" on an array that keeps changing,
+  and both get O(log n) for query *and* update by storing partial answers over ranges rather
+  than positions — where a plain array is O(n) to query and a prefix-sum array is O(n) to
+  repair.
+
+  They share a canvas on purpose. Under the array sits a row of spans, each drawn across the
+  cells it summarises; spans on one row never overlap, because a segment tree's row is a
+  depth and a Fenwick tree's is a lowbit class. That makes the punchline visible in both: a
+  query lights up three or four stored values that happen to tile the range exactly. On the
+  default array a Fenwick `a[1..5]` shows two green spans tiling prefix(5) = 17 + 10 = 27 and
+  one red span for the prefix(0) = 5 it never wanted — 22, from three reads instead of five.
+
+  MIN and MAX are disabled for the Fenwick tree, and that is the lesson rather than a
+  limitation of the implementation: a Fenwick range is one prefix minus another, subtraction
+  undoes a sum, and nothing undoes a minimum. A segment tree takes all three because it never
+  relies on undoing anything.
+
+  Checked exhaustively rather than by sampling: every one of the 36 ranges of an 8-element
+  array, for segment/sum, segment/min, segment/max and fenwick/sum, against brute force —
+  then four point updates each, re-verifying all 36 ranges after every one. Plus the invariant
+  the canvas depends on: no two spans overlap within a row, in either structure.
+
+- **Red-black trees, splay trees and treaps.** Three more TREE TYPE options in the existing
+  tree view, sharing its operations, canvas and shared links — and disagreeing with AVL, and
+  with each other, about what "balanced" should mean. AVL keeps sibling heights within one
+  and pays for it in rotations; a red-black tree only promises the longest path is at most
+  twice the shortest, and restructures far less; a splay tree promises *nothing* per
+  operation and is O(log n) only amortised; a treap has no balancing rule at all and gets
+  O(log n) expected height from random priorities alone.
+
+  Red-black nodes are drawn in their colour, because the colour is the data. A new key
+  arrives red, since a black one would change its path's black-height immediately while red
+  only risks the locally repairable "no two reds in a row". Treap priorities are drawn above
+  each node in purple. Splay's **Search** is the only search in the app that rewrites the
+  structure it is searching — and it does it on a failed search too.
+
+  All three needed a mutable, parent-linked representation internally, which the rest of the
+  app deliberately does not use: rotations and fix-up walk *upward*. Each converts on the way
+  in and freezes on the way out. That is also what made red-black deletion tractable to get
+  right — the double-black cases are hard enough without rebuilding the spine every step.
+
+  Verified against the invariants rather than by eye: red-black insert over four key sets
+  including sorted and reversed input; **every one of fourteen single deletions** from an
+  eleven-key tree, plus delete-everything in three orders, each checked for root-black,
+  no-red-red and equal black-height; treaps checked for BST order *and* heap order over six
+  random trials; splay checked for last-inserted-at-root, searched-key-at-root, and that a
+  failed search still splays.
+
+- **Eight more graph algorithms, and the operation list split by what each is allowed to
+  know.** Shortest paths now sit under two headings rather than one, because the difference
+  between them is not speed but assumptions. **Uninformed** — Dijkstra, Bellman-Ford,
+  Floyd–Warshall — know the edges and nothing else, expand in every direction including
+  away from the target, and hold on any graph. **Heuristic** — A* — is handed an estimate of
+  what is left and leans towards the goal, expanding 4 of 6 vertices on the default network
+  where Dijkstra would settle everything nearer than the target first.
+
+  A*'s estimate is the straight-line distance between vertices *as drawn*, so dragging one
+  changes it. That needs care: A* only returns the true shortest path when the estimate
+  never overshoots the real remaining cost, and straight-line distance is not admissible on
+  its own, because edge weights have nothing to do with how far apart vertices happen to be
+  drawn. It is scaled by (cheapest edge ÷ longest edge on screen) — a route covering
+  geometric distance D needs at least D ÷ longest-edge hops at at least the cheapest edge
+  each — and checked against Dijkstra on three graphs to confirm they agree.
+
+  **Bellman-Ford** earns its O(V·E) twice: it survives negative edges, and one pass past the
+  V−1 guarantee turns it into a negative-cycle detector — a distance that still improves
+  proves that going round a loop makes the total smaller, so no shortest path exists at all.
+
+  **Connectivity & structure** is a new group of five. Cycle detection runs a genuinely
+  different algorithm per DIRECTED setting — grey/black stack colouring against
+  parent-exclusion — so a diamond is a DAG directed and cyclic undirected, from one picture.
+  Bipartite check reports its failure as an *odd cycle*, which is what non-bipartite
+  actually means. Bridges & articulation points finds single points of failure from
+  discovery times and low-links in one pass. Tarjan's and Kosaraju's find the same strongly
+  connected components two different ways — one pass with a stack, or two passes with the
+  graph reversed — and are worth running back to back on the same graph.
+
+  **Max flow (Edmonds–Karp)** labels every edge `flow/capacity` regardless of the WEIGHTS
+  toggle, and the residual backward edges are the point: they let a later augmenting path
+  undo an earlier decision without having to notice it was wrong. When no path remains, the
+  vertices still reachable are one side of a minimum cut whose capacities add to exactly the
+  flow. Verified at 23 on the CLRS network, and at 2 on the small case that only reaches the
+  optimum by using a backward edge.
+
+  All eight are checked against reference implementations: Tarjan against Kosaraju on four
+  graphs, A* against Dijkstra on three, bridges against hand-worked path/triangle/bowtie
+  cases, and max flow against two known networks.
+
+- **Floyd–Warshall is actually reachable now.** It has been in the repository, complete and
+  with a matching `DistanceMatrixPanel`, since before this changelog — and imported by
+  nothing, so it has never appeared in the app while README and DOCS both listed it. Both
+  are now wired in: it sits with the other uninformed shortest-path operations and fills an
+  all-pairs distance matrix under the canvas. Its S→T distance agrees with A*'s on the same
+  graph, which is a pleasant way to find out that two unrelated implementations are right.
+
+- **String algorithms: KMP, Z, Rabin-Karp and Manacher on one aligned grid.** A new family.
+  Brute-force matching is O(n·m) because a comparison that fails after eight matching
+  characters throws all eight away; each of these keeps a different piece of what the failed
+  attempt proved, and the view is built to show which piece.
+
+  Everything is drawn on one set of columns, and a row can start part-way along — so KMP's
+  search draws the pattern as a second row beginning at the column it is aligned with, and a
+  shift is that row physically moving right rather than a number changing. Blue marks the
+  span being *reused instead of recompared* — KMP's border, Z's mirror, Manacher's reflected
+  radius — which is the one idea the whole family shares.
+
+  **KMP builds its failure function on screen first.** π[i] is the length of the longest
+  proper prefix of P[0..i] that is also a suffix, and when one is found both ends light up
+  at once: the prefix at the front and the matching suffix ending at i. That picture is the
+  failure function; the number under it is only its length. Then the search uses it, and
+  each mismatch says what it is trading — "8 matched, π[7] = 4 of them are also a prefix, so
+  slide 4 and keep those 4" — with the text pointer never moving backwards.
+
+  Two of the defaults were chosen by measurement rather than taste. Rabin-Karp's modulus is
+  233, found by searching for one that actually produces a spurious hit on the default text,
+  because a verification loop that never fires looks like pointless ceremony — "BABCA" and
+  "ABABC" both hash to 170. And the Z default exercises the mirror on 18 of its 46 frames,
+  four of them needing no character comparisons at all.
+
+  All four are checked against brute force: the three matchers agree with a naive search on
+  eight cases including overlapping matches, KMP's π matches a reference implementation, and
+  Manacher agrees with an O(n²) longest-palindrome search.
 
 - **Backtracking: four searches, one board, and a tree that shows what pruning removes.**
   A new family — n-queens, sudoku, subset sum and permutations — sharing one canvas and

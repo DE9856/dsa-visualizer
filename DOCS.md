@@ -153,11 +153,16 @@ the page, or with the cursor in a sidebar field, is left alone as an ordinary te
 
 ### Flow
 
-1. **Category picker** — six families (Arrays, Linked Lists, Stacks & Queues, Trees,
-   Hashing, Graphs). Pick a topic to enter.
+1. **Category picker** — nine families (Arrays, Linked Lists, Stacks & Queues, Trees,
+   Hashing, Dynamic Programming, Strings, Backtracking, Graphs). Pick a topic to enter.
 2. **Visualizer** — sidebar on the left, canvas + transport + explanation on the right.
    The top bar switches topics at any time; clicking the `DSA://VISUALIZER` title
    returns to the category picker.
+
+   The top bar is the title with every category beside it, wrapping to a second line
+   rather than scrolling — all eight stay visible and one click away. **SHARE** is not up
+   there: it sits in the top-right corner of the canvas, which is what keeps the header to
+   two rows. On a phone it moves into the ☰ sheet instead.
 
 ### The transport bar
 
@@ -353,6 +358,8 @@ loaded, skipping the category screen.
 | Tree | `#v=tree&type=avl&a=30,20,10,25,40,50` |
 | Threaded tree | `#v=tree&type=threaded&tm=single&a=30,20,10,25,40,50` |
 | 2-3 tree | `#v=twothree&a=12,5,30,3,8,21,44` |
+| B-tree | `#v=btree&type=btree&ord=4&a=20,6,10,40,3,5,7,12,17` |
+| B+ tree | `#v=btree&type=bplus&ord=3&a=17,6,25,3,5,7,12,20,30` |
 | Heap | `#v=heap&type=min&a=4,10,3,5,1,8` |
 | Hash table | `#v=hashtable&type=linear&a=42,13,7,20&m=17` |
 | Hash table, cuckoo | `#v=hashtable&type=cuckoo&hf=midsquare&a=42,13,7,20` |
@@ -365,8 +372,12 @@ loaded, skipping the category screen.
 | DP, two strings | `#v=dp&type=lcs&a=AGCAT&b=GAC` |
 | DP, knapsack | `#v=dp&type=knapsack&it=2:3, 3:4, 4:5&cap=8` |
 | DP, coin change | `#v=dp&type=coins&co=1, 3, 4&amt=6` |
+| Strings | `#v=str&type=kmp&t=ABABDABACDABABCABAB&p=ABABCABAB` |
+| Strings, palindromes | `#v=str&type=manacher&t=ABACABABA` |
 | Backtracking, queens | `#v=bt&type=queens&n=6&md=first` |
 | Backtracking, subset sum | `#v=bt&type=subset&nums=3, 34, 4, 12&tg=9&md=all` |
+| Range queries | `#v=rangequery&type=segment&cb=min&a=5,2,9,1,7,3,8,4` |
+| Huffman coding | `#v=huffman&t=ABRACADABRA` |
 
 The values are the same text the sidebar's custom-data boxes take, so links stay
 readable and can be written by hand. Trees are listed in the order that rebuilds them
@@ -398,6 +409,9 @@ A graph you have [rearranged](#building-and-arranging-the-graph) also carries an
 `label:x:y` per vertex, each coordinate a fraction of the canvas rather than a pixel, so
 the arrangement survives being opened on a phone. Only the vertices actually dragged off
 the ring are listed, so an untouched graph's link is exactly what it was before.
+
+A string algorithm link is `type` plus `t` (the text) and `p` (the pattern), and Manacher
+carries only `t` because it takes no pattern.
 
 A backtracking link works the same way: `type` names the problem, `n` and `md` carry the
 board size and whether to stop at the first solution, `gr` an 81-character sudoku grid,
@@ -478,8 +492,9 @@ an [empirical complexity](#empirical-complexity) sweep. The Trees family adds
 **[Balance & Height](#the-balance--height-view)**, which builds a BST, an AVL tree and a
 2-3 tree from the same keys in the same order. **[Dynamic
 programming](#the-dynamic-programming-view)** is a family of its own, with six problems
-sharing one table canvas, and **[backtracking](#the-backtracking-view)** is another, with
-four problems sharing one board and one search tree.
+sharing one table canvas, **[backtracking](#the-backtracking-view)** is another, with four
+problems sharing one board and one search tree, and **[string
+algorithms](#the-string-algorithms-view)** a third.
 
 ### Sorting (9)
 
@@ -528,14 +543,16 @@ says so — and draw `lo` / `mid` / `hi` pointers under the bars.
 | **Polynomial** | linked-list backed | add, multiply, evaluate P(x) |
 | **Stack** | fixed capacity 8 | push, pop, peek/top, search, size, isEmpty, isFull, clear |
 | **Queue** | fixed capacity 8 | enqueue, dequeue, peek/front, search, size, isEmpty, isFull, clear |
-| **Tree** | Binary Tree, BST, AVL, Threaded (single/double) | insert, delete, search, inorder, preorder, postorder, DFS, BFS (level order), height, size, clear — plus threaded inorder, reverse inorder and inorder successor on a threaded tree |
+| **Tree** | Binary Tree, BST, AVL, Threaded (single/double), Red-Black, Splay, Treap | insert, delete, search, inorder, preorder, postorder, DFS, BFS (level order), height, size, clear — plus threaded inorder, reverse inorder and inorder successor on a threaded tree |
 | **2-3 Tree** | balanced multi-way | insert (with splits), delete, search, inorder, height, size, clear |
+| **B-Tree** | B-tree or B+ tree, order 3, 4 or 5 | insert (splits promoting upward), delete (predecessor replacement, borrow, merge), search, inorder traversal, clear |
+| **Huffman Tree** | built from any text | count frequencies, merge the two lightest trees repeatedly, read the codes off the paths |
 | **Heap** | max-heap, min-heap | insert (sift up), extract root (sift down), peek, build heap, search, height, size, clear |
 | **Hash Table** | separate chaining, linear probing, quadratic probing, double hashing, Robin Hood, cuckoo — each over division, multiplication, mid-square or digit-folding hashing | insert, search, delete, load factor, list keys, resize, clear |
 | **Dynamic Hashing** | extendible (directory), linear (directoryless) | insert (with bucket splits, directory doubling and overflow blocks), search, delete, depths & pointers, list keys, clear |
 | **Trie** | prefix tree over a–z | insert, delete (with pruning), search, autocomplete, list words, size, clear |
 | **Union-Find** | union by size + path compression | union, find, connected?, components, add element, reset |
-| **Graph** | directed/undirected, weighted/unweighted | add & remove vertex/edge, neighbours, degree, is-adjacent, BFS, DFS, topological sort, Dijkstra, Floyd–Warshall, Prim's MST, Kruskal's MST |
+| **Graph** | directed/undirected, weighted/unweighted | add & remove vertex/edge, neighbours, degree, is-adjacent, BFS, DFS, topological sort, cycle detection, bipartite check, bridges & articulation points, Tarjan's and Kosaraju's SCC, Prim's and Kruskal's MST, Dijkstra, Bellman-Ford, Floyd–Warshall, A*, max flow (Edmonds–Karp) |
 
 The graph canvas is editable directly: **click two vertices** to connect them, **drag**
 one to move it and **double-click empty space** to add one — see [building and
@@ -547,6 +564,55 @@ A vertex may be joined to **itself**: an edge with both endpoints on one vertex 
 **self-loop**, drawn as a loop leaving the vertex's rim and coming back to it, pointing
 away from the middle of the canvas where there is room for it. See
 [self-loops](#self-loops).
+
+### The string algorithms view
+
+Four algorithms, one aligned grid. Searching for a pattern by brute force is O(n·m) and the
+reason is waste: a comparison that fails after eight matching characters throws all eight
+away and starts again one place along. Each of these is a different answer to "what did
+that failed attempt actually prove?".
+
+| Algorithm | What it precomputes | The thing to watch |
+| --- | --- | --- |
+| KMP | the failure function π over the pattern | π being built by matching the pattern against *itself* |
+| Z-Algorithm | how far every position agrees with the prefix | a value copied from its mirror with no comparisons at all |
+| Rabin-Karp | a rolling hash of each window | a spurious hit — equal hashes, different strings |
+| Manacher | palindrome radii around each centre | the same mirror trick, on palindromes |
+
+**Everything is drawn on one set of columns.** A row can start part-way along, so KMP's
+search draws the pattern as a second row beginning at the column it is currently aligned
+with — a shift is the row physically moving right, not a number changing. The ruler across
+the top is there because alignment is the entire subject and an index you have to count to
+is an index you get wrong. Row labels stay pinned when a long string scrolls sideways.
+
+**Colours mean the same thing in all four.** Green is a confirmed match, red a mismatch,
+orange the position being worked on, and **blue is the span being reused rather than
+recompared** — KMP's border, Z's mirror, Manacher's reflected radius. Blue is the whole
+idea of this family: it marks the work that is being skipped.
+
+Some things worth setting up deliberately:
+
+- **Watch KMP's π being built before watching it search.** Each π[i] is the length of the
+  longest proper prefix of P[0..i] that is also a suffix, and when one is found both ends
+  are lit in blue at once — the prefix at the front and the matching suffix ending at i.
+  That picture *is* the failure function; the number underneath is just its length.
+- **On a mismatch, KMP does not restart.** The message names the trade: "8 characters
+  matched, π[7] = 4 of them are also a prefix, so slide 4 right and keep those 4". The text
+  pointer never moves backwards, which is the whole O(n) guarantee.
+- **Z runs on P + '$' + T.** The separator can match nothing, so any position whose Z value
+  equals the pattern's length is an occurrence. On the default input the mirror fires on 18
+  of 46 frames and four of those need no comparisons at all.
+- **Rabin-Karp uses a deliberately tiny modulus (233).** A real implementation uses
+  something near 2³¹ and collides essentially never; this one was chosen by searching for a
+  modulus that actually produces a spurious hit on the default text, because otherwise the
+  verification loop looks like pointless ceremony. On the default, "BABCA" and "ABABC" both
+  hash to 170.
+- **Manacher interleaves `#`.** "ABACABABA" becomes "#A#B#A#C#A#B#A#B#A#", which makes
+  every palindrome odd-length so the even-length case disappears entirely — and a radius in
+  the padded string is exactly the palindrome's length in the original.
+
+Texts are capped at 30 characters and patterns at 12, because there is roughly one frame
+per comparison.
 
 ### The dynamic programming view
 
@@ -691,6 +757,87 @@ trees scroll inside their own box, and the E-node is kept in view as you step.
 
 Searches stop at 4,000 nodes. Backtracking is exponential and a bad setup finds that out
 the hard way; stopping and reporting it is better than a tab that never comes back.
+
+### Shortest paths: informed and uninformed
+
+The operation list splits shortest paths into two headings, because the difference is not
+which one is faster but what each is allowed to know.
+
+**Uninformed** — Dijkstra, Bellman-Ford, Floyd–Warshall — know the edges and nothing else.
+They expand outward in every direction, including directly away from the target, and their
+guarantees hold on any graph you hand them.
+
+| | Handles negative weights | Answers | Cost |
+| --- | --- | --- | --- |
+| Dijkstra | no | one source | O((V+E) log V) |
+| Bellman-Ford | **yes**, and detects negative cycles | one source | O(V·E) |
+| Floyd–Warshall | yes (no negative cycles) | **all pairs** | O(V³) |
+
+Bellman-Ford earns its slower running time twice over: it is the only one of the three that
+survives a negative edge, and running the relaxation one pass past the guarantee turns it
+into a negative-cycle detector. A distance that still improves after V−1 passes proves that
+going round a loop makes the total smaller — which means no shortest path exists at all,
+only ever-cheaper ones. Floyd–Warshall fills a distance matrix shown under the canvas.
+
+**Heuristic** — A* — is given an estimate of how far each vertex still is from the target
+and expands the smallest `g + h` rather than the smallest `g`, so the search leans towards
+the goal. On the default six-vertex network it reaches the target after expanding 4 of 6
+vertices; Dijkstra would settle everything closer than the target first.
+
+The estimate is the straight-line distance between vertices *as drawn on the canvas*, which
+means dragging a vertex changes it. That comes with a condition: A* only returns the true
+shortest path if the estimate never overshoots the real remaining cost — **admissibility**.
+Straight-line distance is not admissible on its own here, because edge weights have nothing
+to do with how far apart the vertices happen to be drawn, so it is scaled by (cheapest edge
+÷ longest edge on screen). A route covering geometric distance D needs at least D ÷
+longest-edge hops, each costing at least the cheapest edge, so the scaled straight line can
+never exceed the real cost. Drag the vertices about and the number of expansions changes;
+the answer does not.
+
+### Connectivity & structure
+
+Five operations that ask what shape the graph is, rather than how to get across it.
+
+- **Cycle detection** runs a different algorithm depending on the DIRECTED toggle. Directed,
+  it colours vertices grey while they are on the current recursion stack and black once
+  finished: an edge into a grey vertex is a back edge and therefore a cycle, while an edge
+  into a black one is merely a cross edge. Undirected, every edge to a visited vertex closes
+  a cycle *except* the one you arrived on. Build a diamond (A→B, A→C, B→D, C→D) and flip the
+  toggle: it is a DAG directed and has a cycle undirected, from the same picture.
+- **Bipartite check** 2-colours the graph breadth-first. A conflict is not just a failure,
+  it is an odd cycle — and "bipartite" and "no odd cycle" are the same statement. Every tree
+  passes; every triangle fails.
+- **Bridges & articulation points** finds the single points of failure with one depth-first
+  search, using discovery times and low-links. A child whose low-link is strictly greater
+  than this vertex's discovery time can only get back through the edge you came down, so
+  that edge is a **bridge**; if it is merely greater than or equal, the subtree cannot get
+  past *this vertex*, making it an **articulation point**. The root is a special case — it
+  is a cut vertex only when it has two independent children.
+- **Tarjan's SCC** finds every strongly connected component in a single pass, using the same
+  discovery/low-link idea plus a stack of vertices not yet assigned.
+- **Kosaraju's SCC** finds the same components with two passes and the graph reversed in
+  between. Reversing leaves each component intact but flips the direction *between* them, so
+  starting from the last vertex to finish traps the search inside one component. Two passes
+  instead of one, and far easier to convince yourself of — run both on the same graph.
+
+### Network flow
+
+**Max Flow (Edmonds–Karp)** pushes as much as it can from a source to a sink, edge
+capacities permitting. Ford–Fulkerson's idea is to find any path with spare capacity, send
+the most its tightest edge allows, and repeat; Edmonds–Karp adds one rule — always take the
+*shortest* such path, found breadth-first — which is what makes the running time O(V·E²)
+rather than something that depends on the capacities themselves.
+
+Every edge is labelled `flow/capacity` while this runs, whether or not WEIGHTS is on. The
+part worth watching is the **residual** edges: pushing flow along an edge creates a backward
+edge of the same size, and a later augmenting path is allowed to use it, undoing an earlier
+decision without ever having to notice it was wrong. Without them, a greedy first choice
+could strand the answer below the true maximum — try `S→A(1), S→B(1), A→B(1), A→T(1),
+B→T(1)`, where the honest answer is 2 and only the backward edge gets you there.
+
+When no augmenting path remains, the vertices still reachable from the source form one side
+of a **minimum cut**: every edge leaving that set is saturated, and their capacities add to
+exactly the flow. That is the max-flow min-cut theorem, on screen.
 
 ### Editing the adjacency matrix
 
@@ -879,6 +1026,155 @@ parent reads and writes for Kruskal — so the shapes are comparable and the con
 factors are not; a sort comparison and a parent read do not cost the same thing. And both
 runs here span every component, so their totals stay comparable on a disconnected graph,
 whereas the animated **Prim's MST** operation stops after the start vertex's component.
+
+### Range queries: segment trees and Fenwick trees
+
+**TREES / Range Queries** puts both structures over one array, because they are two answers
+to the same question and the answer is easier to see side by side.
+
+The problem: an array that keeps changing, and questions like "what is the sum of positions
+1 to 5?". A plain array answers in O(n) and updates in O(1); a prefix-sum array swaps that
+round, O(1) to query and O(n) to repair after one write. Both structures here get O(log n)
+for each, by storing partial answers over **ranges** rather than over positions.
+
+They draw identically, and that is the argument for the pairing. Under the array sits a row
+of **spans**, each one a stored partial answer covering the cells it is drawn across. Spans
+on one row never overlap — for a segment tree a row is a depth, for a Fenwick tree it is a
+lowbit class, which cannot overlap for the same reason. A query lighting up three spans that
+happen to tile the requested range looks the same in both.
+
+| | What it is | Navigates by | Combines |
+| --- | --- | --- | --- |
+| Segment tree | an explicit binary tree of ranges, ~2n nodes | descending from the root | any associative operation |
+| Fenwick tree | an array where index i means the range (i − lowbit(i), i] | adding/subtracting the lowest set bit | **sums only** |
+
+**The Fenwick restriction is worth pausing on.** A range is `prefix(r) − prefix(l−1)`, and
+that subtraction needs an operation with an inverse. Nothing undoes a minimum, so MIN and MAX
+are disabled when Fenwick is selected — a segment tree takes all three because it never
+relies on undoing anything. Switching STRUCTURE rebuilds the other one over the same array.
+
+Things worth doing here:
+
+- **Run Build on each.** The segment tree fills post-order — a node cannot combine until both
+  children exist — while the Fenwick tree is one forward pass of four lines, each index
+  handing its running total to `i + lowbit(i)`, the next range that contains it.
+- **Run a Range Query on the Fenwick tree.** Two green spans tile the prefix and one red span
+  is the prefix that was never wanted, subtracted away. On the default array, `a[1..5]` is
+  `prefix(5) = 17 + 10 = 27` minus `prefix(0) = 5`, giving 22 from three reads instead of five.
+- **Run a Point Update.** In the segment tree exactly one root-to-leaf path changes and
+  everything off it is untouched; in the Fenwick tree the walk is `i += lowbit(i)`, and the
+  indices it lands on are exactly those whose range contains the cell. Both touch about log n
+  stored values, which is the whole reason to build either over a prefix-sum array.
+
+Arrays are capped at 12 values so the spans stay readable.
+
+### B-trees and B+ trees
+
+**TREES / B-Tree & B+ Tree** is the one structure here shaped by hardware rather than by
+mathematics. A BST assumes following a pointer is cheap. Storage does not work that way: a
+disk read or a cache miss costs thousands of times what a comparison costs, and a BST pays
+that at every level to learn a single bit. A B-tree fixes the ratio by making a node as wide
+as the block it lives in — order *m* means up to *m* children and *m*−1 keys, so one read
+narrows the search *m* ways. Height falls to log_m n, which at the orders a real database uses
+is three or four reads for millions of keys.
+
+**Every leaf is at the same depth, always, and nothing rebalances it.** That is the thing to
+watch for. There is no rotation rule anywhere in the implementation. The invariant falls out
+of the update rules being symmetric about the vertical:
+
+| | What happens | Effect on height |
+| --- | --- | --- |
+| Overflow (> *m*−1 keys) | the node splits and its **median moves up** into the parent | +1 level, but only when it reaches the root |
+| Underflow (< ⌈*m*/2⌉−1 keys) | borrow from a sibling, or **merge and pull the separator down** | −1 level, but only when the root empties |
+
+Because the only way to grow is to split the root and the only way to shrink is to empty it,
+every leaf necessarily moves together. Run **Insert** repeatedly at order 3 and you will see
+splits travel upward one level at a time; run **Delete** and watch a merge cost the parent a
+key and propagate the same way.
+
+Delete is the intricate half, and the view spells out why. A key in an internal node is a
+*separator* between two subtrees, so it cannot simply be removed — the operation overwrites
+it with its predecessor, which lives in a leaf, and deletes that copy instead. Every deletion
+therefore becomes a leaf deletion, and the only remaining problem is repairing a leaf that
+has gone one key short.
+
+**VARIANT** switches between the two shapes, rebuilding the same keys the other way:
+
+| | Where the keys live | What a search costs | A range scan |
+| --- | --- | --- | --- |
+| **B-tree** | every level; an internal hit is the answer | varies — a key in the root is found immediately | a traversal that climbs back up between subtrees |
+| **B+ tree** | leaves only; keys upstairs are copies used to route | always the full height | a walk along the linked leaf chain |
+
+The B+ leaf chain is drawn as a dashed green line between consecutive leaves, and
+**Inorder Traversal** on a B+ tree walks it rather than the tree — which is the whole reason
+essentially every relational database index is a B+ tree and not a B-tree. Uniform search
+cost sounds like a regression and is not: it makes every lookup predictable, and it puts all
+the data on one level that can be scanned without touching the interior again.
+
+One consequence worth naming, because it caused a real bug during development: a B+ separator
+equal to the key you are looking for is only a *copy* of the smallest key in the right
+subtree, so an equal key must be routed **right**, not left. Route it left and the search
+walks past the leaf holding it and reports the key missing. `childIndexFor` takes the variant
+for exactly this reason.
+
+**ORDER** (3, 4 or 5) rebuilds at a different node width. Order 3 is the 2-3 tree the
+neighbouring view animates, which makes the pair a useful comparison: the same rules, drawn
+by two different canvases.
+
+### Huffman coding trees
+
+**TREES / Huffman Coding** builds a code from a text. A fixed-width code spends the same
+number of bits on every symbol, which is only correct when every symbol is equally likely;
+Huffman spends fewer on the common ones and more on the rare ones, and — remarkably — the
+optimal assignment comes out of a one-line greedy rule: **repeatedly merge the two lightest
+trees**.
+
+The view is a forest for every step but the last, which is what makes it legible: you watch
+trees get eaten. Each frame shows the priority queue as it currently stands beside the
+forest, so "the two lightest" is something you see selected rather than a rule you are asked
+to believe. The final frame reads the codes off the paths — left is 0, right is 1, a leaf's
+code is the route to it, and its length is exactly its depth — and reports the encoded size
+against the fixed-width cost for the same text.
+
+Two properties are visible in the finished tree rather than argued for. Every symbol is a
+**leaf**, so no code can be a prefix of another and the decoder needs no separators. And the
+**sibling property** holds: a rarer symbol is never shallower than a commoner one, because
+merging the two lightest first is exactly what pushes them deepest.
+
+### Three more ways to keep a tree short
+
+A plain BST has no shape of its own — feed it sorted keys and it becomes a linked list.
+AVL fixes that by measuring height and rotating the moment it slips. **TREE TYPE** now
+offers three other answers, and they disagree about what "balanced" should even mean.
+
+| | The rule | Guarantee | Cost of an update |
+| --- | --- | --- | --- |
+| AVL | heights of siblings differ by ≤ 1 | strictest height | most rotations |
+| **Red-Black** | no red node has a red parent; every root-to-leaf path has the same number of black nodes | longest path ≤ twice the shortest | markedly fewer |
+| **Splay** | *none* | none per-operation; O(log n) **amortised** | one splay per access |
+| **Treap** | keys form a BST, random priorities form a heap | O(log n) *expected* | one rotation per level |
+
+**Red-black** nodes are drawn in their colour, because the colour is the data — it is what
+every rotation decides on. A new key always arrives **red**: a black one would change the
+black-height of its path immediately, while red only risks the weaker "no two reds in a
+row", and that is repairable locally. Deletion is the hard half — removing a black node
+leaves every path through it one black short, and the fix-up pushes that shortfall around
+until a red node can absorb it.
+
+**Splay** makes no promise about shape whatsoever. It moves whatever you just touched to
+the root, and its guarantees are amortised over a sequence rather than held at any moment.
+Run **Search** on a splay tree and watch: it is the only search in the app that rewrites
+the structure it is searching, and it does so on a *failed* search too. The zig-zig case
+rotates the grandparent first, which is not an arbitrary choice — that ordering is what
+halves the depth of the whole path instead of merely lifting one node, and it is the
+difference between splaying being amortised O(log n) and being no better than a plain BST.
+
+**Treap** stores a random priority alongside each key, drawn above the node in purple, and
+keeps a max-heap on those while the keys stay a search tree. Rotations fix the heap without
+disturbing the key order — a rotation never changes an inorder walk. The result is exactly
+the tree a *random* insertion order would have built, which is why the expected height is
+O(log n) with no balancing rule anywhere in sight. Insert sorted keys into a treap and it
+still comes out short; insert them into a BST and you get a chain.
 
 ### The threaded tree
 
@@ -1171,6 +1467,8 @@ src/
 │   ├── backtracking/       same shape, one file per problem; helpers.js holds
 │   │                       makeRecorder(), which collects the frames and the
 │   │                       search tree together
+│   ├── strings/            KMP, Z, Rabin-Karp, Manacher; helpers.js builds the
+│   │                       aligned character rows they all draw on
 │   ├── metrics.js          createMetrics(): the counters every sort reports
 │   ├── sortContext.js      makeSort(): one body, exported as run() and count()
 │   ├── stability.js        checkStability(): did ties keep their original order?

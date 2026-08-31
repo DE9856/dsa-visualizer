@@ -26,7 +26,19 @@ export function useDp(init) {
   const [problem, setProblem] = useState(() =>
     init?.problem && DP_PROBLEM_MAP[init.problem] ? init.problem : "lcs"
   );
-  const [inputs, setInputs] = useState(() => ({ ...DP_DEFAULT_INPUTS, ...(init?.inputs || {}) }));
+  // The merged record holds every field any problem can ask for, so where two of
+  // them share a field name the last one's default would otherwise win for
+  // everybody. The current one's own defaults go on top, and a link's values on
+  // top of that.
+  const [inputs, setInputs] = useState(() => ({
+    ...DP_DEFAULT_INPUTS,
+    ...toStrings(DP_PROBLEM_MAP[init?.problem && DP_PROBLEM_MAP[init.problem] ? init.problem : "lcs"].defaults),
+    ...(init?.inputs || {}),
+  }));
+  // Whether the input on screen is the user's rather than a default. Switching
+  // problems keeps what you typed, but replaces an untouched default with the
+  // one chosen to show the new problem off.
+  const [customised, setCustomised] = useState(() => Boolean(init?.inputs));
   const [error, setError] = useState("");
   const [steps, setSteps] = useState([{ ...EMPTY_STEP }]);
 
@@ -38,12 +50,14 @@ export function useDp(init) {
   /**
    * Fills the table for `key` from `raw`, or reports why it can't.
    *
-   * Nothing plays automatically: a fill is dozens of steps and starting it the
-   * moment you land on a problem would have the table half-built before you
-   * had read what the problem was. The transport is one key away.
+   * `play` is what separates filling the table from choosing what to fill.
+   * Pressing FILL THE TABLE starts the animation — the button says so, and it
+   * is what every other view's run button does. Landing on a problem only
+   * builds the frames and waits, because having the table half-filled before
+   * you have read what the problem is helps nobody.
    */
   const runWith = useCallback(
-    (key, raw) => {
+    (key, raw, { play = false } = {}) => {
       const problemMeta = DP_PROBLEM_MAP[key];
       const parsed = problemMeta.parse(raw);
       if (parsed.error) {
@@ -54,27 +68,30 @@ export function useDp(init) {
       const { steps: next } = problemMeta.run(parsed);
       setSteps(next);
       setStepIdx(0);
-      setPlaying(false);
+      setPlaying(play && next.length > 1);
       return true;
     },
     [setStepIdx, setPlaying]
   );
 
-  // Landing on a problem shows its table straight away, at step 0. Typing in a
-  // box deliberately does not re-run — a half-typed sequence is not a question
-  // anyone asked.
+  // Landing on a problem shows its table straight away, at step 0, and waits.
+  // Typing in a box deliberately does not re-run — a half-typed sequence is not
+  // a question anyone asked.
   useEffect(() => {
-    runWith(problem, inputs);
+    const next = customised ? inputs : { ...inputs, ...toStrings(meta.defaults) };
+    if (!customised) setInputs(next);
+    runWith(problem, next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [problem]);
 
   const setInput = useCallback((field, value) => {
     setInputs((prev) => ({ ...prev, [field]: value }));
+    setCustomised(true);
     setError("");
   }, []);
 
   const runOperation = useCallback(() => {
-    runWith(problem, inputs);
+    runWith(problem, inputs, { play: true });
   }, [problem, inputs, runWith]);
 
   /** A fresh example for the current problem, run immediately. */
@@ -82,6 +99,7 @@ export function useDp(init) {
     const fresh = toStrings(meta.random());
     const next = { ...inputs, ...fresh };
     setInputs(next);
+    setCustomised(true);
     runWith(problem, next);
   }, [meta, inputs, problem, runWith]);
 

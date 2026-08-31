@@ -31,8 +31,15 @@ export function useBacktracking(init) {
 
   const meta = BT_PROBLEM_MAP[problem];
 
+  /**
+   * `play` is what separates running the search from setting one up. Pressing
+   * RUN THE SEARCH should start it — the button says so — which is what every
+   * other view's run button does. Landing on a problem or picking a preset
+   * only builds the frames and waits, because those are configuration and
+   * animating three hundred steps at someone who has just arrived is not.
+   */
   const runWith = useCallback(
-    (key, raw) => {
+    (key, raw, { play = false } = {}) => {
       const problemMeta = BT_PROBLEM_MAP[key];
       const parsed = problemMeta.parse(raw);
       if (parsed.error) {
@@ -46,15 +53,14 @@ export function useBacktracking(init) {
       const { steps: next } = problemMeta.run(parsed);
       setSteps(next);
       setStepIdx(0);
-      setPlaying(false);
+      setPlaying(play && next.length > 1);
       return true;
     },
     [setStepIdx, setPlaying]
   );
 
-  // Landing on a problem shows its first frame. Nothing plays on its own — a
-  // search is hundreds of steps and starting it before you have read the setup
-  // would waste the interesting part.
+  // Landing on a problem shows its first frame and waits. Only the run button
+  // starts playback.
   useEffect(() => {
     runWith(problem, inputs);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -77,7 +83,7 @@ export function useBacktracking(init) {
   );
 
   const runOperation = useCallback(() => {
-    runWith(problem, inputs);
+    runWith(problem, inputs, { play: true });
   }, [problem, inputs, runWith]);
 
   const shuffle = useCallback(() => {

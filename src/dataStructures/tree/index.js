@@ -55,6 +55,9 @@ export const TREE_TYPES = [
   { key: "bst", label: "Binary Search Tree", short: "BST" },
   { key: "avl", label: "AVL Tree", short: "AVL" },
   { key: "threaded", label: "Threaded Binary Tree", short: "THREADED" },
+  { key: "redblack", label: "Red-Black Tree", short: "RED-BLACK" },
+  { key: "splay", label: "Splay Tree", short: "SPLAY" },
+  { key: "treap", label: "Treap", short: "TREAP" },
 ];
 
 // How many of a node's null pointers become threads: both of them (also

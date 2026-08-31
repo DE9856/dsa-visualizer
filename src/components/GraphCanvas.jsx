@@ -152,6 +152,9 @@ export default function GraphCanvas({
   const hasNodes = nodes.length > 0;
 
   const laidOut = layout(nodes, view, positions);
+  // Max flow writes "flow/capacity" onto every edge, which is unreadable if
+  // the weighted toggle happens to be off — so a frame can ask for labels.
+  const showWeights = weighted || step.showWeights;
   const positioned = moving
     ? laidOut.map((n) => (n.id === moving.id ? { ...n, x: moving.x, y: moving.y } : n))
     : laidOut;
@@ -456,7 +459,7 @@ export default function GraphCanvas({
               return (
                 <g key={edge.id}>
                   <path d={loop.d} fill="none" style={{ stroke }} strokeWidth={strokeWidth} markerEnd={markerEnd} />
-                  {weighted && <EdgeWeight x={loop.labelX} y={loop.labelY} weight={edge.weight} />}
+                  {showWeights && <EdgeWeight x={loop.labelX} y={loop.labelY} weight={edge.weight} />}
                 </g>
               );
             }
@@ -482,7 +485,7 @@ export default function GraphCanvas({
                   strokeWidth={strokeWidth}
                   markerEnd={markerEnd}
                 />
-                {weighted && <EdgeWeight x={midX} y={midY} weight={edge.weight} />}
+                {showWeights && <EdgeWeight x={midX} y={midY} weight={edge.weight} />}
               </g>
             );
           })}

@@ -36,11 +36,14 @@ export const CATEGORIES = [
     accent: "var(--green)",
     blurb: "Branching structures and how they stay balanced.",
     items: [
-      { key: "tree", label: "Tree", desc: "BST, AVL & threaded trees" },
+      { key: "tree", label: "Tree", desc: "BST, AVL, red-black, splay, treap & threaded" },
       { key: "twothree", label: "2-3 Tree", desc: "Balanced multi-way tree" },
+      { key: "btree", label: "B-Tree & B+ Tree", desc: "Wide nodes, splits & merges" },
       { key: "heap", label: "Heap", desc: "Max/min heap, sift up & down" },
       { key: "trie", label: "Trie", desc: "Prefix tree & autocomplete" },
       { key: "treecompare", label: "Balance & Height", desc: "BST vs AVL vs 2-3 on the same keys" },
+      { key: "rangequery", label: "Range Queries", desc: "Segment tree & Fenwick, side by side" },
+      { key: "huffman", label: "Huffman Coding", desc: "Built bottom-up from frequencies" },
     ],
   },
   {
@@ -68,6 +71,18 @@ export const CATEGORIES = [
     ],
   },
   {
+    key: "strings",
+    label: "STRINGS",
+    accent: "var(--blue)",
+    blurb: "Never re-read what you have already read.",
+    items: [
+      { key: "str:kmp", label: "KMP", desc: "The failure function, built and used" },
+      { key: "str:z", label: "Z-Algorithm", desc: "Prefix agreement, reused" },
+      { key: "str:rabinkarp", label: "Rabin-Karp", desc: "Rolling hash & spurious hits" },
+      { key: "str:manacher", label: "Manacher", desc: "Longest palindrome in O(n)" },
+    ],
+  },
+  {
     key: "backtracking",
     label: "BACKTRACKING",
     accent: "var(--red)",
@@ -85,7 +100,7 @@ export const CATEGORIES = [
     accent: "var(--purple)",
     blurb: "Vertices, edges, and the shortest way between them.",
     items: [
-      { key: "graph", label: "Graph", desc: "BFS, DFS, MST & shortest paths" },
+      { key: "graph", label: "Graph", desc: "BFS, DFS, MST, shortest paths, SCC & max flow" },
       { key: "unionfind", label: "Union-Find", desc: "Disjoint sets & path compression" },
     ],
   },

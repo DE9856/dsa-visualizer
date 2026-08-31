@@ -1,12 +1,34 @@
+import {
+  freeze as freezeBalanced,
+  randomPriority,
+  rbInsert,
+  splayInsert,
+  treapInsert,
+} from "./selfBalancing";
+
+const SELF_BALANCING_TYPES = ["redblack", "splay", "treap"];
+const isSelfBalancing = (treeType) => SELF_BALANCING_TYPES.includes(treeType);
+
+/** One silent insert into whichever of the three this is. */
+function buildSelfBalancing(root, value, treeType) {
+  const noop = () => {};
+  if (treeType === "redblack") return freezeBalanced(rbInsert(root, value, noop));
+  if (treeType === "splay") return freezeBalanced(splayInsert(root, value, noop));
+  return freezeBalanced(treapInsert(root, value, randomPriority(), noop));
+}
+
 let nodeCounter = 0;
 export function nextNodeId() {
   nodeCounter += 1;
   return `tn${nodeCounter}`;
 }
 
+// Spread rather than pick: a red-black node carries a colour and a treap node
+// a priority, and a clone that quietly dropped them would leave the tree
+// looking right and behaving wrongly.
 export function cloneNode(node) {
   if (!node) return null;
-  return { id: node.id, value: node.value, left: cloneNode(node.left), right: cloneNode(node.right) };
+  return { ...node, left: cloneNode(node.left), right: cloneNode(node.right) };
 }
 
 export function cloneTree(tree) {
@@ -158,13 +180,30 @@ export function parseValueList(input) {
 // so shares its insert/delete/search walk — a threaded tree is a BST whose
 // spare null pointers happen to be spoken for.
 export function isOrderedTree(treeType) {
-  return treeType === "bst" || treeType === "avl" || treeType === "threaded";
+  return (
+    treeType === "bst" ||
+    treeType === "avl" ||
+    treeType === "threaded" ||
+    treeType === "redblack" ||
+    treeType === "splay" ||
+    treeType === "treap"
+  );
 }
 
+/**
+ * Builds a tree of `treeType` from scratch. The self-balancing three go
+ * through their own insert so the result is a tree they could actually have
+ * produced — a red-black tree assembled by plain BST inserts would be
+ * mis-coloured, and a treap with no priorities is just a BST.
+ */
 export function buildTreeFromValues(values, treeType) {
   let root = null;
   values.forEach((v) => {
     const id = nextNodeId();
+    if (isSelfBalancing(treeType)) {
+      root = buildSelfBalancing(root, v, treeType);
+      return;
+    }
     if (treeType === "avl") root = avlInsertByValue(root, v, id);
     else if (isOrderedTree(treeType)) root = bstInsertByValue(root, v, id);
     else root = levelOrderInsert(root, v, id);

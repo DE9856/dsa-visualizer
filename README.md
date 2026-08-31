@@ -135,6 +135,7 @@ src/
 │   │                       knapsack, coin change, LIS, matrix chain)
 │   ├── backtracking/       one file per problem (n-queens, sudoku, subset
 │   │                       sum, permutations) + the search-tree recorder
+│   ├── strings/            KMP, Z-algorithm, Rabin-Karp, Manacher
 │   ├── metrics.js          the operation counters every sort reports
 │   ├── sortContext.js      the run()/count() pair each sort is written against
 │   ├── stability.js        did equal elements keep their original order?
@@ -275,6 +276,18 @@ sideways. See
   backtrack reads rather than recomputing
 - The recurrence is shown alongside with the executing line highlighted
 
+### String Algorithms
+
+- KMP, Z-algorithm, Rabin-Karp and Manacher on one aligned character grid
+- KMP builds its failure function first, lighting up both ends of each border — the prefix
+  and the matching suffix — so π is something you watch being discovered, not a table of
+  numbers that appears
+- On a mismatch the pattern row physically slides by exactly what the match earned
+- Z runs on `P + '$' + T` and marks the values it copied from a mirror instead of comparing
+- Rabin-Karp rolls its hash and shows a real spurious hit — two different strings, one hash
+- Manacher interleaves `#` so every palindrome is odd-length, and reuses the mirror radius
+- Blue marks the span being reused rather than recompared, in all four
+
 ### Backtracking
 
 - N-Queens, Sudoku, subset sum and permutations, on one board canvas
@@ -315,16 +328,46 @@ Interactive visualizations for:
   - Search & traverse, Reverse, Sort, Count length
   - Concatenate, Merge sorted lists, Clear
 
-- Trees — Binary Tree, BST, AVL, Threaded (single or double)
+- Range Queries — segment tree and Fenwick tree over one array
+  - Build, point update, range query, with SUM / MIN / MAX (a Fenwick tree is sum-only,
+    because a range is one prefix minus another and nothing undoes a min)
+  - Both draw as spans over the array cells they summarise, so a query tiling the range
+    with three stored values is something you see rather than infer
+  - Switch structure to rebuild the other one over the same array
+
+- Trees — Binary Tree, BST, AVL, Threaded (single or double), Red-Black, Splay, Treap
   - Insert, Delete, Search
   - Inorder, Preorder, Postorder, DFS, BFS (level order)
   - Height, Size, Clear
   - On a threaded tree: Threaded Inorder and Reverse Inorder (no stack, no recursion),
     Inorder Successor
+  - Red-Black: nodes drawn in their colour, with the insert recolour/rotate cases and the
+    harder delete fix-up shown step by step
+  - Splay: every access moves the touched node to the root, including a failed search —
+    the one search in the app that rewrites what it is searching
+  - Treap: random priorities drawn above each key, kept as a heap by rotations that leave
+    the key order untouched
 
 - 2-3 Tree
   - Insert (with node splits), Delete, Search
   - Inorder, Height, Size, Clear
+
+- B-Tree & B+ Tree — order 3, 4 or 5
+  - Insert (splits travelling up), Delete (borrow, merge, and the shrink at the root),
+    Search, Inorder traversal, Clear
+  - Every leaf stays at the same depth without a single rotation — the tree grows only by
+    splitting its root and shrinks only by emptying it
+  - Switch variant to rebuild the same keys the other way: a B+ tree moves every key into a
+    leaf, keeps only separators upstairs and links the leaves, so its traversal is a walk
+    along one level rather than a tour of the tree
+  - Switch order to rebuild at a different node width and watch the height change
+
+- Huffman Coding Tree
+  - Build a code from any text: the forest of leaves, then each merge of the two lightest
+    trees, then the codes read off the finished paths
+  - Every step shows the priority queue as it stands, so "merge the two lightest" is a thing
+    you watch rather than a rule you are told
+  - Compares the fixed-width cost against the Huffman cost on the same text
 
 - Heap — max-heap, min-heap
   - Insert (sift up), Extract root (sift down), Peek
@@ -367,7 +410,14 @@ Interactive visualizations for:
     instead of leaving it on the default ring
   - Neighbours, Degree, Is-adjacent
   - BFS, DFS, Topological sort
-  - Dijkstra, Floyd–Warshall, Prim's MST, Kruskal's MST
+  - Connectivity & structure: cycle detection (directed and undirected), bipartite check,
+    bridges & articulation points, Tarjan's SCC, Kosaraju's SCC
+  - Minimum spanning tree: Prim's, Kruskal's
+  - Shortest path, uninformed: Dijkstra, Bellman-Ford (negative weights + negative-cycle
+    detection), Floyd–Warshall (all pairs, with a distance matrix)
+  - Shortest path, heuristic: A*, with an admissible straight-line estimate taken from
+    where the vertices sit on the canvas — drag them and the expansions change
+  - Network flow: max flow (Edmonds–Karp), with residual edges and `flow/capacity` labels
   - Adjacency list and adjacency matrix views — type into a matrix cell to reweight, add
     or remove that edge, the diagonal included
   - List vs matrix, measured: memory, edge query and traversal cost for the graph on

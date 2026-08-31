@@ -1,4 +1,5 @@
 import { cloneTree, isOrderedTree } from "./helpers";
+import { selfBalancingSearch } from "./selfBalancingOps";
 
 export const search = {
   key: "search",
@@ -9,6 +10,10 @@ export const search = {
   time: "O(log n) avg / O(h) worst-case for a BST, O(n) for a plain binary tree",
   space: "O(h)",
   run(tree, { value, treeType }) {
+    // A splay tree's search rewrites the tree, so it needs its own frames.
+    const splayed = selfBalancingSearch(tree, value, treeType);
+    if (splayed) return splayed;
+
     const t = cloneTree(tree);
     if (!t.root) {
       return { steps: [{ ...t, notFound: true, message: "Tree is empty" }], finalTree: t };

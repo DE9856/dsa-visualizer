@@ -3,6 +3,130 @@
 // what an individual button/operation does).
 
 export const TOPIC_OVERVIEWS = {
+  btree: {
+    overview:
+      "A binary search tree is built for a machine where following a pointer is cheap. Real storage is not that machine: reading a disk block or pulling a cache line costs thousands of times what a comparison costs, and a BST pays that price at every level while extracting a single bit of information from it. A B-tree fixes the ratio by making nodes as wide as the block they live in — order m means up to m children and m−1 keys, so one read narrows the search m ways instead of two. The height falls from log₂ n to log_m n, which for the orders a database actually uses (hundreds) means three or four reads for millions of keys. Every leaf sits at the same depth, always, and that is not maintained by rotations. It falls out of the update rules: a node that overflows splits and pushes its median key *up*, and a node that underflows borrows from a sibling or merges with one, pulling a separator *down*. The tree grows only by splitting at the root and shrinks only by emptying it, so every leaf necessarily moves together.",
+    howItWorks: [
+      "A node holds a sorted run of keys and one more child than it has keys. The keys are separators: everything in the child before a key is smaller than it, everything in the child after is larger. Searching a node is a scan or a binary search within one block, then a single descent.",
+      "Insert always lands in a leaf. If the leaf now holds more than m−1 keys it splits in half and its median key moves up into the parent as a new separator.",
+      "The parent may overflow in turn, so the split can travel upward. If it reaches the root, the root splits and a new root is created above it — the only event that ever makes the tree taller.",
+      "Delete is arranged so that it always ends up removing from a leaf. A key in an internal node is a separator and cannot simply vanish, so it is overwritten with its predecessor — which lives in a leaf — and that copy is deleted instead.",
+      "A node left with fewer than ⌈m/2⌉−1 keys borrows from a sibling that has one to spare: the separator drops into the short node and the sibling's outermost key rises to replace it. If neither sibling can spare one, the two merge and the separator comes down between them.",
+      "A merge costs the parent a key, so the repair can travel upward exactly as a split does. When the root loses its last key, its only child becomes the new root and the tree gets one level shorter.",
+      "A B+ tree changes where the data lives: every key is stored in a leaf, internal nodes hold only routing separators, and the leaves are linked left to right. A splitting leaf therefore *copies* its median upward rather than moving it, since the key still has to be findable at the bottom.",
+    ],
+    useCases: [
+      "Essentially every relational database index — InnoDB, PostgreSQL's default index, SQL Server — is a B+ tree, and the table itself is often stored in one.",
+      "Filesystems: NTFS directories, HFS+, ext4's htree, btrfs (whose name is the point), and ReiserFS all index with B-trees.",
+      "Key–value stores and embedded engines such as LMDB and BerkeleyDB, where a page of the tree is a page of the memory map.",
+      "Anywhere the unit of access is a block rather than a word: the shape is a response to the storage hierarchy, not to the data.",
+    ],
+    advantages: [
+      "Height is log_m n, so the number of block reads per lookup is tiny and grows almost imperceptibly with n.",
+      "Perfect balance is free — there is no rotation rule to get right, because splitting and merging cannot produce an unbalanced tree.",
+      "Node size can be tuned to the hardware: pick m so a node is exactly one page, and every read does the maximum possible work.",
+      "Space is bounded from below as well as above: every node except the root is at least half full, so the tree cannot degenerate into a sparse chain of nearly-empty blocks.",
+      "In a B+ tree a range scan finds its starting leaf once and then walks the leaf chain, never touching the interior again — which is why `WHERE x BETWEEN a AND b` is fast.",
+    ],
+    disadvantages: [
+      "In memory, where a pointer chase is cheap, the wide nodes buy nothing and the extra intra-node scanning makes a B-tree slower than a red-black tree or a plain BST.",
+      "Delete is genuinely intricate — predecessor replacement, two borrow cases and a merge case, each of which can cascade — and is where most hand-written implementations get it wrong.",
+      "Nodes sit half empty in the worst case, so a tree built by ascending inserts wastes close to half its space until it is rebuilt.",
+      "Splits and merges rewrite whole blocks, which is expensive on write-amplified media — the reason log-structured merge trees displaced B-trees in write-heavy stores.",
+      "A B+ tree pays for its leaf chain: separators are duplicated in the leaves and every search runs the full height, even one that finds its key in the root.",
+    ],
+  },
+  huffman: {
+    overview:
+      "A fixed-width code spends the same number of bits on every symbol, which is only the right choice when every symbol is equally likely. Huffman coding spends fewer bits on the common symbols and more on the rare ones, and — remarkably — finds the *optimal* such assignment with a greedy rule that takes one line to state: repeatedly merge the two lightest trees. The argument for why that is optimal runs backwards. In any optimal code the two rarest symbols must sit deepest, and siblings, because if they were not you could swap them with something deeper and rarer and shorten the total. So merging them first costs nothing you could have avoided, and once merged they behave exactly like a single symbol of their combined weight — which reduces the problem to the same problem with one fewer symbol.",
+    howItWorks: [
+      "Count how often each symbol occurs. Nothing else about the text matters — two texts with the same frequencies get the same tree.",
+      "Make a leaf per symbol and put them all in a priority queue ordered by weight. The queue is the forest, and every step shrinks it by one.",
+      "Take the two lightest trees, merge them under a new parent whose weight is their sum, and put the parent back. Everything inside both trees just gained one bit, which is why it must be the two lightest.",
+      "Repeat until one tree remains. Its shape is the code.",
+      "Read the codes off the paths: left is 0, right is 1, and a leaf's code is the route taken to reach it. A symbol's code length is exactly its depth.",
+      "The result is a prefix code for free: every symbol is a leaf, so no symbol's code can be a prefix of another's, and a decoder can read a bit stream with no separators — walk down from the root, emit a symbol when you hit a leaf, start again.",
+    ],
+    useCases: [
+      "DEFLATE — the algorithm behind gzip, zip and PNG — which combines Huffman coding with LZ77 matching.",
+      "JPEG and MP3, where Huffman coding compresses the quantised coefficients after the lossy step has already done its work.",
+      "Any place a known, skewed symbol distribution needs packing: telemetry codes, opcode encodings, protocol field tags.",
+    ],
+    advantages: [
+      "Provably optimal among codes that assign a whole number of bits per symbol — no other such code does better on the same frequencies.",
+      "Decoding is a walk down a tree, which is fast and needs no lookahead.",
+      "Prefix-freeness comes from the structure rather than from careful design, so there is no way to accidentally produce an ambiguous code.",
+    ],
+    disadvantages: [
+      "'A whole number of bits per symbol' is the ceiling. A symbol with probability 0.9 deserves about 0.15 bits and Huffman must spend 1, so on very skewed alphabets arithmetic coding and ANS beat it outright.",
+      "The tree has to reach the decoder — either shipped with the data or rebuilt from an agreed model — which is pure overhead on short inputs.",
+      "It assumes the frequencies are known up front and stable. Adaptive Huffman exists but complicates both ends considerably.",
+      "It codes symbols independently, so it captures nothing about *sequences* — which is exactly why real compressors put an LZ stage in front of it.",
+    ],
+  },
+  rangequery: {
+    overview:
+      "Given an array that keeps changing, answer questions about ranges of it quickly. A plain array answers 'what is the sum of positions 3 to 9?' in O(n) and updates in O(1); an array of prefix sums swaps that round — O(1) to query, O(n) to repair after a single write. Neither is good enough when both happen often. Segment trees and Fenwick trees both get O(log n) for each, and they do it the same way: store partial answers over *ranges* rather than over positions, so any range can be assembled from a handful of them and any single change only invalidates a handful. The two differ in how they find those ranges. A segment tree is an explicit binary tree you descend; a Fenwick tree has no tree at all, only an array whose indices stand for ranges that happen to nest the way binary counting does — so it navigates by adding and subtracting the lowest set bit.",
+    howItWorks: [
+      "A segment tree's root covers the whole array, and every node splits its range in half until the leaves are single cells. Building is depth-first and finished post-order: a node cannot be combined until both children exist.",
+      "A range query descends from the root and stops at every node lying entirely inside the requested range. Those nodes tile the range exactly, and there are never more than about 2 log n of them — so a query of a thousand cells reads a couple of dozen stored values.",
+      "A point update changes one leaf, and only the nodes on the path from that leaf to the root contain it. Recombining that path is the whole update.",
+      "A Fenwick tree stores, at index i, the combined value of the range (i − lowbit(i), i], where lowbit is the lowest set bit. Ranges of the same width can never overlap, which is why the picture lays out in rows.",
+      "A prefix query walks backwards from i, adding bit[i] and then stripping the lowest set bit — each jump lands on the range ending just before the one it left, so the ranges tile the prefix with no gaps or overlaps.",
+      "A point update walks forwards from i by *adding* the lowest set bit, which visits exactly the indices whose range contains i.",
+      "A Fenwick range is prefix(r) − prefix(l−1). That subtraction is also the structure's limit: it needs an operation with an inverse, so a Fenwick tree can do sums and cannot do minima.",
+    ],
+    useCases: [
+      "Competitive programming, where 'array with updates and range queries' is close to a genre of its own.",
+      "Order statistics and inversion counting — a Fenwick tree over value-frequencies answers 'how many seen so far are smaller than this?' in O(log n).",
+      "Databases and analytics engines maintaining running aggregates over a changing column.",
+      "Any sliding-window statistic where the window's contents change one element at a time.",
+    ],
+    advantages: [
+      "Both queries and updates are O(log n), rather than one of them being fast and the other linear.",
+      "A segment tree works for any associative combine — sum, min, max, gcd, matrix product — because it never relies on undoing anything.",
+      "A Fenwick tree is remarkably small: n integers, no pointers, no recursion, and an implementation that fits in four lines per operation. It is also very cache-friendly for the same reason.",
+      "Segment trees extend to lazy propagation, which makes *range* updates O(log n) too — the point at which they leave Fenwick trees behind entirely.",
+    ],
+    disadvantages: [
+      "Both are redundant storage: a segment tree needs roughly 2n nodes, and both must be kept in step with the array by hand.",
+      "A Fenwick tree only supports invertible operations. Range minimum needs a segment tree, or a sparse table if the array never changes.",
+      "For a static array, prefix sums beat both — O(1) queries and no structure to maintain. These are worth building only when updates actually happen.",
+      "The Fenwick index arithmetic is famously easy to write and hard to read: nothing in `i += i & -i` says 'walk to the enclosing range'.",
+    ],
+  },
+  strings: {
+    overview:
+      "Searching for a pattern in a text by brute force is O(n·m), and the reason is waste: when a comparison fails after eight matching characters, the naive search throws all eight away, slides the pattern one place right, and starts again from the beginning. Every algorithm here is a different answer to the question 'what did that failed attempt actually prove?'. KMP precomputes, from the pattern alone, how much of a partial match survives a mismatch. The Z-algorithm precomputes how far every position agrees with the prefix, reusing an already-matched window instead of recomparing inside it. Rabin-Karp gives up on characters and compares numbers, rolling a hash across the text so each window costs O(1). Manacher answers a different question — the longest palindrome — with the same instinct as Z: a palindrome you have already found tells you about the positions inside it for free.",
+    howItWorks: [
+      "KMP builds a failure function π over the pattern, where π[i] is the length of the longest proper prefix of P[0..i] that is also a suffix of it. It is computed by matching the pattern against itself, before the text is touched at all.",
+      "On a mismatch after j matched characters, KMP shifts the pattern by j − π[j−1] rather than by 1. Those π[j−1] characters are already known to match, so the text pointer never moves backwards — which is exactly why the search is O(n).",
+      "The Z-algorithm keeps a window [l, r] that is known to match the prefix. For a position inside it, the answer at its mirror near the front is a free lower bound; only the part reaching past r costs real comparisons, and r never moves left.",
+      "Pattern matching with Z is a trick of concatenation: run it on P + '$' + T, where the separator occurs in neither string. Any position whose Z value equals the pattern's length is an occurrence, because a match can never run across the separator.",
+      "Rabin-Karp hashes each window of the text. A window whose hash differs from the pattern's cannot match, so one integer comparison replaces m character ones — and the rolling update subtracts the departing character and adds the arriving one instead of rehashing.",
+      "Equal hashes do not mean equal strings, so every hash hit must be verified character by character. The failures are spurious hits, and they are why Rabin-Karp is O(n + m) expected but O(n·m) in the worst case.",
+      "Manacher interleaves separators — 'abc' becomes '#a#b#c#' — so every palindrome becomes odd-length and the even-length case disappears. Radii in the padded string are lengths in the original, and the mirror inside the current palindrome gives most radii away for nothing.",
+    ],
+    useCases: [
+      "grep, editors and anything with a find bar; KMP and Boyer–Moore variants are what makes searching a large file feel instant.",
+      "Plagiarism detection and near-duplicate finding, where Rabin-Karp's hashing extends naturally to comparing many substrings at once (the Rabin fingerprint).",
+      "Bioinformatics: finding motifs in DNA, where alphabets are tiny and texts are enormous, so linear time is not optional.",
+      "Intrusion detection and virus scanners, matching many patterns against a stream that can only be read once.",
+      "Competitive programming, where Z and Manacher are the standard tools for prefix-agreement and palindrome questions respectively.",
+    ],
+    advantages: [
+      "Linear time, and for KMP and Z that is a worst-case guarantee rather than an average — no input makes them degrade.",
+      "KMP and Z read the text once, left to right, with no backtracking, which means they work on a stream you cannot rewind.",
+      "The precomputation depends only on the pattern, so searching many texts for the same pattern pays for it once.",
+      "Rabin-Karp generalises where the others do not: it extends to two-dimensional patterns and to searching for many patterns at once, because hashes are cheap to compare in bulk.",
+    ],
+    disadvantages: [
+      "Each needs an auxiliary array proportional to the pattern (KMP) or the whole string (Z, Manacher) — the constant-space naive search does not.",
+      "Rabin-Karp is only expected-linear. A modulus chosen badly, or an adversary who knows it, can make every window collide and drive it to O(n·m).",
+      "In practice a good Boyer–Moore–Horspool often beats KMP on natural text, because it can skip *forward* by more than one character; KMP's guarantee is about never going backwards, which is a different thing from being fast.",
+      "The failure function is easy to get subtly wrong — off-by-one in the fallback is the classic bug, and it produces an algorithm that works on most inputs and fails on a few.",
+    ],
+  },
   backtracking: {
     overview:
       "Backtracking is depth-first search over the space of partial answers, with one addition that changes everything: the moment a partial answer is provably hopeless, the entire subtree underneath it is abandoned without being built. Choose a value for the next slot, check whether it can still lead somewhere, recurse if it can, and if the recursion comes back empty-handed, undo the choice and try the next one. That undo is the whole name of the technique, and it is the one step people skip when they write it out by hand — the state has to be put back exactly as it was found, or the next branch starts from a lie. What separates the four problems here is only what a slot is and how much the check can rule out, and the fourth of them has no check at all, which is what makes it the useful control case.",

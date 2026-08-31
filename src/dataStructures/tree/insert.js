@@ -1,5 +1,6 @@
 import { cloneTree, nextNodeId, bstInsertByValue, levelOrderInsert, findNodeById, avlRebalanceWithSteps, isOrderedTree } from "./helpers";
 import { threadsFrom } from "./threads";
+import { selfBalancingInsert } from "./selfBalancingOps";
 
 export const insert = {
   key: "insert",
@@ -10,6 +11,11 @@ export const insert = {
   time: "O(log n) for a BST/AVL average case, O(h) worst-case for a BST, O(log n) guaranteed for AVL",
   space: "O(h)",
   run(tree, { value, treeType, threadMode }) {
+    // Red-black, splay and treap run their own fix-up loops and draw their own
+    // frames; a null answer means this is not one of them.
+    const balanced = selfBalancingInsert(tree, value, treeType);
+    if (balanced) return balanced;
+
     const before = cloneTree(tree);
     const steps = [];
 

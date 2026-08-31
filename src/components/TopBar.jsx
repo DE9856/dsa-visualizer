@@ -6,12 +6,20 @@ import ShareButton from "./ShareButton.jsx";
 
 export default function TopBar({ category, onCategoryChange, onGoHome, shareUrl }) {
   const [openMenu, setOpenMenu] = useState(null);
+  // Where the open menu's button is, in viewport coordinates. The menus are
+  // positioned `fixed` rather than absolutely inside the tab strip, because
+  // the strip scrolls horizontally and an overflow ancestor clips its
+  // absolutely-positioned children on both axes — the menu would be cut off
+  // the moment it opened.
+  const [menuAt, setMenuAt] = useState(null);
   const [navOpen, setNavOpen] = useState(false);
   const rootRef = useRef(null);
+  const tabsRef = useRef(null);
   const isMobile = useIsMobile();
 
   const activeCategory = CATEGORIES.find((cat) => cat.items.some((item) => item.key === category));
   const activeItem = activeCategory?.items.find((item) => item.key === category);
+
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -25,11 +33,19 @@ export default function TopBar({ category, onCategoryChange, onGoHome, shareUrl 
         setNavOpen(false);
       }
     };
+    // A fixed menu does not travel with its button, so anything that moves the
+    // button closes the menu rather than leaving it stranded mid-air.
+    const closeMenu = () => setOpenMenu(null);
+
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleEscape);
+    window.addEventListener("resize", closeMenu);
+    window.addEventListener("scroll", closeMenu, true);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
+      window.removeEventListener("resize", closeMenu);
+      window.removeEventListener("scroll", closeMenu, true);
     };
   }, []);
 
@@ -40,8 +56,21 @@ export default function TopBar({ category, onCategoryChange, onGoHome, shareUrl 
     setNavOpen(false);
   }, [isMobile]);
 
-  const toggleMenu = (key) => {
-    setOpenMenu((prev) => (prev === key ? null : key));
+  const toggleMenu = (key, event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setOpenMenu((prev) => {
+      if (prev === key) return null;
+      setMenuAt(rect);
+      return key;
+    });
+  };
+
+  /** Keeps a menu inside the viewport instead of pushing the page sideways. */
+  const menuStyle = (rect) => {
+    if (!rect) return undefined;
+    const width = 220;
+    const left = Math.min(Math.max(12, rect.left), window.innerWidth - width - 12);
+    return { top: Math.round(rect.bottom + 8), left: Math.round(left) };
   };
 
   const selectItem = (item) => {
@@ -126,7 +155,7 @@ export default function TopBar({ category, onCategoryChange, onGoHome, shareUrl 
         <span className="topbar__mark">&#9642;</span>
         <h1 className="mono">DSA://VISUALIZER</h1>
       </div>
-      <div className="topbar__tabs">
+      <div className="topbar__tabs" ref={tabsRef}>
         {CATEGORIES.map((cat) => {
           const isActiveCategory = activeCategory?.key === cat.key;
           const catItem = cat.items.find((item) => item.key === category);
@@ -135,9 +164,10 @@ export default function TopBar({ category, onCategoryChange, onGoHome, shareUrl 
             <div className="topbar__dropdown" key={cat.key}>
               <button
                 className={`btn topbar__category ${isActiveCategory ? "active" : ""}`}
-                onClick={() => toggleMenu(cat.key)}
+                onClick={(e) => toggleMenu(cat.key, e)}
                 aria-haspopup="menu"
                 aria-expanded={isOpen}
+                title={cat.label}
               >
                 {cat.label}
                 {isActiveCategory && catItem && (
@@ -146,7 +176,7 @@ export default function TopBar({ category, onCategoryChange, onGoHome, shareUrl 
                 <ChevronDown size={13} className={`topbar__chevron ${isOpen ? "open" : ""}`} />
               </button>
               {isOpen && (
-                <div className="topbar__menu" role="menu">
+                <div className="topbar__menu" role="menu" style={menuStyle(menuAt)}>
                   {cat.items.map((item) => (
                     <button
                       type="button"
@@ -164,7 +194,6 @@ export default function TopBar({ category, onCategoryChange, onGoHome, shareUrl 
           );
         })}
       </div>
-      {shareUrl && <ShareButton url={shareUrl} className="topbar__share" />}
     </div>
   );
 }

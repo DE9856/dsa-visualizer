@@ -84,7 +84,7 @@ summary {
   min-height: 100vh;
   /* Dynamic viewport units account for the mobile URL bar sliding away. */
   min-height: 100dvh;
-  padding: 28px;
+  padding: 18px 24px 24px;
   background:
     radial-gradient(circle at 15% -10%, rgba(255, 138, 61, 0.10), transparent 45%),
     radial-gradient(circle at 85% 0%, rgba(79, 184, 224, 0.08), transparent 40%),
@@ -92,55 +92,91 @@ summary {
     var(--bg);
 }
 
+/* The title on the left, every category beside it. Eight of them do not fit
+   on one line next to the title, so the strip wraps to a second — every
+   category stays visible and reachable, which a scrolling strip could not
+   promise. SHARE is not here at all; it sits in the canvas's top-right corner,
+   which is what keeps this to two rows rather than three. */
 .topbar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
+  align-items: flex-start;
   gap: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 14px;
 }
 
 .topbar__title {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  flex-shrink: 0;
+  /* Matches a single row of pills, so the title sits on the first line rather
+     than floating against the top of a two-line nav. */
+  height: 34px;
+  padding-right: 14px;
+  margin-right: 2px;
+  border-right: 1px solid var(--border);
 }
 
 .topbar__title h1 {
-  font-size: 21px;
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.02em;
   margin: 0;
+  white-space: nowrap;
 }
 
 .topbar__mark {
   color: var(--primary);
-  font-size: 20px;
+  font-size: 17px;
   filter: drop-shadow(0 0 8px rgba(255, 138, 61, 0.6));
 }
 
+/* No container of its own. A bubble drawn around the categories has to be as
+   wide as the widest line, which on two rows leaves a large empty box beside
+   the short one; the categories read better as a plain row against the page. */
 .topbar__tabs {
   display: flex;
-  gap: 6px;
-  padding: 4px;
-  background: var(--panel-alt);
-  border: 1px solid var(--border);
-  border-radius: 999px;
+  column-gap: 4px;
+  row-gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .topbar__dropdown {
-  position: relative;
+  flex-shrink: 0;
 }
 
-.topbar__category {
-  gap: 8px;
+/* Qualified by the strip on purpose: `.btn` is defined further down this file
+   and would otherwise win on source order at equal specificity, leaving every
+   rule here dead. */
+.topbar__tabs .topbar__category {
+  gap: 7px;
+  white-space: nowrap;
+  background: none;
+  padding: 7px 12px;
+  letter-spacing: 0.02em;
+}
+
+.topbar__tabs .topbar__category:hover:not(.active) {
+  background: var(--panel-alt);
+  color: var(--text);
+}
+
+/* The one that is open keeps the filled treatment, so it reads as the current
+   place rather than as one more button. */
+.topbar__tabs .topbar__category.active {
+  color: #14100b;
+  background: var(--primary);
+  box-shadow: 0 0 14px rgba(255, 138, 61, 0.28);
 }
 
 .topbar__category-sub {
   color: inherit;
   opacity: 0.75;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .topbar__chevron {
@@ -152,10 +188,10 @@ summary {
   transform: rotate(180deg);
 }
 
+/* Fixed, with coordinates from the trigger's rect: the tab strip scrolls, and
+   an overflow ancestor clips absolutely-positioned children on both axes. */
 .topbar__menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
+  position: fixed;
   /* fallback so a menu never pushes the page sideways */
   max-width: calc(100vw - 32px);
   min-width: 180px;
@@ -169,13 +205,6 @@ summary {
   display: flex;
   flex-direction: column;
   gap: 2px;
-}
-
-/* The right-most menu would otherwise open past the viewport edge and add a
-   horizontal scrollbar to the whole page. */
-.topbar__dropdown:last-child .topbar__menu {
-  left: auto;
-  right: 0;
 }
 
 .topbar__menu-item {
@@ -232,6 +261,37 @@ summary {
   flex-direction: column;
   gap: 18px;
   min-width: 0;
+  position: relative;
+  /* How much of the first panel's top-right corner the floating SHARE button
+     occupies. A canvas header that runs the full width of the panel keeps out
+     of it; most headers are centred or left-aligned and never come close. */
+  --share-safe: 96px;
+  /* And how far down it reaches. Content that scrolls sideways cannot dodge
+     the button by reserving a right-hand strip — scrolling would carry it
+     underneath anyway — so it clears the button vertically instead. */
+  --share-clear: 30px;
+}
+
+/* Sits in the first panel's top-right corner rather than taking a row of its
+   own. Every canvas keeps that corner clear — notes and headings run from the
+   left — and the button is opaque, so it reads as part of the panel's chrome.
+   The wrapper is what gets positioned: ShareButton's own class prop lands on
+   the inner <button>, and its `.share` wrapper is `position: relative` for the
+   copy-by-hand fallback that drops out of it. */
+.main-col__share {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 5;
+}
+
+.main-col__share .btn {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  /* Opaque rather than the usual 3.5%-white button fill: this one floats over
+     whatever the canvas is drawing, so it has to stay legible on top of it. */
+  background: var(--panel);
+  backdrop-filter: blur(8px);
 }
 
 /* ---------- shared panel / button ---------- */
@@ -1644,6 +1704,9 @@ input[type="range"] {
   gap: 12px;
   padding-bottom: 10px;
   border-bottom: 1px solid var(--border);
+  /* The load factor read-out ends at the panel's right edge, which is exactly
+     where the SHARE button floats — without this it disappears underneath. */
+  padding-right: var(--share-safe, 0);
 }
 
 .ht-head__strategy {
@@ -2567,8 +2630,9 @@ input[type="range"] {
 
 .landing__item-btn {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
   width: 100%;
   text-align: left;
   padding: 10px 12px;
@@ -2593,21 +2657,25 @@ input[type="range"] {
   flex-shrink: 0;
 }
 
-.landing__item-desc {
+.landing__item-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.landing__item-head svg {
   margin-left: auto;
+}
+
+/* The description is the only place a view says what is actually inside it,
+   so it wraps under the label rather than sharing the line — a card is only
+   260px wide and "BST, AVL, red-black, splay, treap & threaded" competing
+   for that space got ellipsised down to nothing. */
+.landing__item-desc {
   font-size: 11px;
   color: var(--text-dim);
   font-weight: 400;
-  text-align: right;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-@media (max-width: 560px) {
-  .landing__item-desc {
-    display: none;
-  }
+  line-height: 1.45;
 }
 
 /* =====================================================================
@@ -2800,6 +2868,9 @@ input[type="range"] {
   top: 0;
   z-index: 40;
   flex-wrap: nowrap;
+  /* The desktop row pushes SHARE right with the flexible tab strip between
+     them; this one has only a title and a menu button, so it needs saying. */
+  justify-content: space-between;
   gap: 8px;
   margin: -12px -12px 12px;
   padding: calc(10px + env(safe-area-inset-top)) 12px 10px;
@@ -2820,6 +2891,12 @@ input[type="range"] {
   min-width: 0;
   gap: 8px;
   cursor: pointer;
+  /* The desktop header rules the wordmark off from the categories beside it;
+     there are no categories here, so there is nothing to divide. */
+  height: auto;
+  padding-right: 0;
+  margin-right: 0;
+  border-right: none;
 }
 
 .topbar--mobile .topbar__title h1 {
@@ -2922,6 +2999,12 @@ input[type="range"] {
     padding: 12px 12px 0;
   }
 
+  /* SHARE is in the nav sheet on a phone, so the corner is not spoken for. */
+  .main-col {
+    --share-safe: 0px;
+    --share-clear: 0px;
+  }
+
   .layout {
     gap: 12px;
   }
@@ -2955,6 +3038,9 @@ input[type="range"] {
   .uf-canvas,
   .dp-canvas,
   .bt-canvas,
+  .str-canvas,
+  .rq-canvas,
+  .hf-canvas,
   .graph-canvas {
     height: auto;
   }
@@ -2978,6 +3064,39 @@ input[type="range"] {
   .bt-canvas {
     padding: 14px 10px 16px;
     min-height: 260px;
+  }
+
+  /* The grid already scrolls inside its own box; narrower cells mean fewer
+     strings need it at all. */
+  .str-canvas {
+    padding: 14px 10px 16px;
+    min-height: 240px;
+  }
+
+  .str-row__cells {
+    grid-template-columns: repeat(var(--cols), 22px);
+  }
+
+  .str-cell {
+    height: 22px;
+    font-size: 11px;
+  }
+
+  .str-row__label {
+    width: 46px;
+  }
+
+  .rq-canvas {
+    padding: 14px 10px 16px;
+    min-height: 240px;
+  }
+
+  .rq-cells {
+    grid-template-columns: repeat(var(--cols), 36px);
+  }
+
+  .rq-row__label {
+    width: 40px;
   }
 
   .bt-board {
@@ -3743,6 +3862,415 @@ select.text-input option {
     margin-right: 5px;
     position: relative;
   }
+}
+
+/* A treap node's random priority, above the key. Dim, because the key is what
+   you are looking for and the priority is only why the tree has this shape. */
+.tree-priority {
+  font-size: 9px;
+  fill: var(--purple);
+  opacity: 0.85;
+}
+
+/* ---------- Huffman ---------- */
+
+.hf-canvas {
+  height: auto;
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 20px 20px;
+}
+
+.hf-wrap {
+  display: flex;
+  justify-content: center;
+  padding-top: var(--share-clear, 0);
+}
+
+/* The B+ leaf chain: dashed so it reads as a shortcut across the bottom
+   rather than as another parent-child edge. */
+.mw-leaflink {
+  stroke: var(--green);
+  stroke-width: 1.6;
+  stroke-dasharray: 4 3;
+  opacity: 0.8;
+}
+
+.hf-svg {
+  display: block;
+  margin: 0 auto;
+}
+
+.hf-empty {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 30px 0;
+}
+
+.hf-link {
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+}
+
+/* The bit a branch contributes. The code for a symbol is the path to it. */
+.hf-bit {
+  fill: var(--text-dim);
+  font-size: 9px;
+}
+
+.hf-node {
+  fill: var(--panel-alt);
+  stroke: var(--border-strong);
+  stroke-width: 2;
+  transition: fill var(--step-anim) ease, stroke var(--step-anim) ease;
+}
+
+/* Leaves are the symbols; internal nodes are only sums of what is below. */
+.hf-node.is-leaf {
+  fill: rgba(79, 184, 224, 0.18);
+  stroke: var(--blue);
+}
+
+.hf-node.is-active {
+  fill: var(--primary-dim);
+  stroke: var(--primary);
+  filter: drop-shadow(0 0 6px rgba(255, 138, 61, 0.5));
+}
+
+.hf-node__label {
+  fill: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.hf-node__weight {
+  fill: var(--text-dim);
+  font-size: 9px;
+}
+
+.sidebar__note {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  margin: 8px 0 0;
+}
+
+/* ---------- range queries (segment tree / Fenwick) ---------- */
+
+.rq-canvas {
+  height: auto;
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 20px 20px;
+}
+
+.rq-wrap {
+  display: flex;
+  justify-content: flex-start;
+  padding-top: var(--share-clear, 0);
+}
+
+.rq-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 auto;
+}
+
+.rq-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rq-row__label {
+  width: 54px;
+  flex-shrink: 0;
+  text-align: right;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: linear-gradient(to right, var(--panel) 70%, transparent);
+}
+
+/* Every row shares the array's columns, so a span physically covers the cells
+   it stands for — which is the entire reason this diagram reads. */
+.rq-cells {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 46px);
+  gap: 3px;
+}
+
+.rq-cells--index {
+  height: 14px;
+}
+
+.rq-index {
+  font-size: 9px;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.rq-cell {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+  color: var(--text);
+  transition: background-color var(--step-anim) ease, border-color var(--step-anim) ease,
+    color var(--step-anim) ease;
+}
+
+/* One stored partial answer, drawn across the cells it summarises. */
+.rq-span {
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-dim);
+  overflow: hidden;
+  transition: background-color var(--step-anim) ease, border-color var(--step-anim) ease,
+    color var(--step-anim) ease;
+}
+
+.rq-cell.is-active,
+.rq-span.is-active {
+  border-color: var(--primary);
+  background: var(--primary-dim);
+  color: var(--primary);
+}
+
+/* The range the query asked about, marked on the array itself. */
+.rq-cell.is-range {
+  border-color: var(--blue);
+  background: rgba(79, 184, 224, 0.14);
+  color: var(--blue);
+}
+
+/* A stored value taken whole — the span that made the query cheap. */
+.rq-span.is-take,
+.rq-cell.is-take {
+  border-color: var(--green);
+  background: rgba(95, 214, 160, 0.22);
+  color: var(--green);
+  font-weight: 700;
+}
+
+/* Fenwick subtracts a prefix it never wanted; worth a colour of its own. */
+.rq-span.is-subtract {
+  border-color: var(--red);
+  background: rgba(255, 107, 107, 0.18);
+  color: var(--red);
+}
+
+/* Overlaps the range but is not contained by it, so it had to be split. */
+.rq-span.is-partial {
+  border-color: var(--yellow);
+  background: rgba(245, 196, 81, 0.14);
+  color: var(--yellow);
+}
+
+.rq-span.is-skip {
+  opacity: 0.3;
+}
+
+.rq-span.is-read {
+  border-color: var(--border-strong);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+/* Where a Fenwick build hands its running total. */
+.rq-span.is-target {
+  border-color: var(--purple);
+  background: rgba(177, 140, 255, 0.16);
+  color: var(--purple);
+}
+
+/* A stacked segmented control, for choices whose labels are too long to sit
+   side by side. */
+.seg--stack {
+  flex-direction: column;
+}
+
+/* ---------- string algorithms ---------- */
+
+.str-canvas {
+  height: auto;
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 20px 20px;
+}
+
+.str-grid-wrap {
+  display: flex;
+  justify-content: flex-start;
+  padding-bottom: 4px;
+  /* A long text scrolls sideways under the floating SHARE button, so the grid
+     starts below it rather than trying to keep out of its column. */
+  padding-top: var(--share-clear, 0);
+}
+
+.str-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0 auto;
+}
+
+.str-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Every row shares one set of columns, which is what makes an offset row read
+   as "aligned here" rather than as a separate picture. */
+.str-row__cells {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 26px);
+  gap: 2px;
+}
+
+/* Pinned, because a long string scrolls sideways and a row you cannot name is
+   a row you have to work out from its contents. */
+.str-row__label {
+  width: 62px;
+  flex-shrink: 0;
+  text-align: right;
+  padding-right: 6px;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: linear-gradient(to right, var(--panel) 70%, transparent);
+}
+
+.str-cell {
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+  color: var(--text);
+  transition: background-color var(--step-anim) ease, border-color var(--step-anim) ease,
+    color var(--step-anim) ease;
+}
+
+/* An empty slot in a number row — the failure function before it is filled in. */
+.str-cell.is-blank {
+  border-style: dashed;
+  background: none;
+}
+
+/* The ruler. Present because alignment is the thing being taught, and an index
+   you have to count to is an index you get wrong. */
+.str-row--index .str-cell {
+  border: none;
+  background: none;
+  font-size: 9px;
+  height: 14px;
+  color: var(--text-dim);
+}
+
+.str-cell.is-active {
+  border-color: var(--primary);
+  background: var(--primary-dim);
+  color: var(--primary);
+}
+
+.str-cell.is-match {
+  border-color: var(--green);
+  background: rgba(95, 214, 160, 0.16);
+  color: var(--green);
+}
+
+.str-cell.is-mismatch {
+  border-color: var(--red);
+  background: rgba(255, 107, 107, 0.18);
+  color: var(--red);
+}
+
+/* A confirmed occurrence — stays lit once found. */
+.str-cell.is-found {
+  border-color: var(--green);
+  background: rgba(95, 214, 160, 0.3);
+  color: var(--green);
+  font-weight: 700;
+}
+
+/* The span that is being reused rather than recompared: KMP's border, Z's
+   mirror, Manacher's reflected radius. The blue is the whole idea. */
+.str-cell.is-border {
+  border-color: var(--blue);
+  background: rgba(79, 184, 224, 0.18);
+  color: var(--blue);
+}
+
+/* The current [l, r] window or the sliding window under inspection. */
+.str-cell.is-window {
+  border-color: var(--border-strong);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Z's separator and Manacher's interleaved padding — structural, not content. */
+.str-cell.is-sep {
+  color: var(--text-dim);
+  background: none;
+  border-style: dotted;
+}
+
+.str-row--pointers .str-row__cells {
+  align-items: end;
+}
+
+.str-pointer {
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.str-pointer.is-window,
+.str-pointer.is-border {
+  color: var(--blue);
+}
+
+.str-pointer.is-match,
+.str-pointer.is-found {
+  color: var(--green);
+}
+
+.str-pointer.is-mismatch {
+  color: var(--red);
+}
+
+.str-input {
+  font-family: "JetBrains Mono", monospace;
+  letter-spacing: 0.08em;
 }
 
 /* ---------- backtracking ---------- */

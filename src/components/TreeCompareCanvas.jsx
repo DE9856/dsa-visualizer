@@ -1,6 +1,6 @@
 import { Trophy } from "lucide-react";
 import TreeCanvas from "./TreeCanvas.jsx";
-import TwoThreeTreeCanvas from "./TwoThreeTreeCanvas.jsx";
+import MultiwayTreeCanvas from "./MultiwayTreeCanvas.jsx";
 
 /**
  * Three structures, the same keys, the same order.
@@ -60,7 +60,7 @@ export default function TreeCompareCanvas({ lanes, order, keys, tick, shortest }
 
             <div className="treelane__canvas">
               {lane.key === "twothree" ? (
-                <TwoThreeTreeCanvas step={{ root: lane.state.root, active: lane.state.active }} />
+                <MultiwayTreeCanvas step={{ root: lane.state.root, active: lane.state.active }} />
               ) : (
                 <TreeCanvas
                   step={{ root: lane.state.root, active: lane.state.active }}

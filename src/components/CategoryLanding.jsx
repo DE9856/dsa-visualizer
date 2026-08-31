@@ -35,8 +35,10 @@ export default function CategoryLanding({ onSelect }) {
                   className="landing__item-btn mono"
                   onClick={() => onSelect(item.key)}
                 >
-                  <span>{item.label}</span>
-                  <ArrowRight size={14} />
+                  <span className="landing__item-head">
+                    <span>{item.label}</span>
+                    <ArrowRight size={14} />
+                  </span>
                   <span className="landing__item-desc">{item.desc}</span>
                 </button>
               ))}

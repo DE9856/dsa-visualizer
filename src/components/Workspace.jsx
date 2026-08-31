@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { SlidersHorizontal, X, Shuffle, Play, Pause, RefreshCw } from "lucide-react";
 import { useIsMobile } from "../hooks/useMediaQuery.js";
+import ShareButton from "./ShareButton.jsx";
 
 // Buttons that kick off a new run — tapping one means "I'm done configuring",
 // so the sheet gets out of the way. Selecting an operation deliberately does
@@ -20,6 +21,7 @@ export default function Workspace({
   onTogglePlay,
   canPlay = false,
   atEnd = false,
+  shareUrl,
   children,
 }) {
   const isMobile = useIsMobile();
@@ -43,7 +45,18 @@ export default function Workspace({
     return (
       <div className="layout">
         {sidebar}
-        <div className="main-col">{children}</div>
+        <div className="main-col">
+          {/* Tucked into the canvas's top-right corner rather than given a row
+              of its own: it is a thing you reach for occasionally, and the
+              header has better uses for the height. On a phone it lives in the
+              nav sheet instead, where there is room to label it. */}
+          {shareUrl && (
+            <div className="main-col__share">
+              <ShareButton url={shareUrl} />
+            </div>
+          )}
+          {children}
+        </div>
       </div>
     );
   }

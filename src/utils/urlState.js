@@ -6,6 +6,7 @@ import { DISTRIBUTION_KEYS } from "./distributions";
 import { ORDER_KEYS } from "../dataStructures/tree/compare";
 import { DP_KEYS, DP_PROBLEM_MAP } from "../algorithms/dp";
 import { BT_KEYS, BT_PROBLEM_MAP } from "../algorithms/backtracking";
+import { STRING_ALGO_MAP, STRING_KEYS } from "../algorithms/strings";
 
 /**
  * URL state — the current topic and its data round-trip through the location
@@ -34,6 +35,10 @@ import { BT_KEYS, BT_PROBLEM_MAP } from "../algorithms/backtracking";
  *   #v=dp&type=knapsack&it=2:3, 3:4, 4:5&cap=8
  *   #v=bt&type=queens&n=6&md=first
  *   #v=bt&type=subset&nums=3, 34, 4, 12&tg=9&md=all
+ *   #v=str&type=kmp&t=ABABDABACDABABCABAB&p=ABABCABAB
+ *   #v=rangequery&type=segment&cb=min&a=5,2,9,1,7,3,8,4
+ *   #v=huffman&t=ABRACADABRA
+ *   #v=btree&type=bplus&ord=4&a=10,20,5,6,12
  *
  * The hash is written with replaceState, so it tracks the current data without
  * filling up browser history. It is read once, on load — editing the hash by
@@ -59,11 +64,16 @@ const VIEWS = [
   "unionfind",
   "dp",
   "bt",
+  "str",
+  "rangequery",
+  "huffman",
+  "btree",
 ];
 
 const LIST_TYPES = ["singly", "doubly", "circular"];
-const TREE_TYPES = ["binary", "bst", "avl", "threaded"];
+const TREE_TYPES = ["binary", "bst", "avl", "threaded", "redblack", "splay", "treap"];
 const THREAD_MODES = ["double", "single"];
+const BTREE_ORDERS = [3, 4, 5];
 const HASH_STRATEGIES = ["chaining", "linear", "quadratic", "double", "robinhood", "cuckoo"];
 const HASH_FUNCTIONS = ["division", "multiplication", "midsquare", "folding"];
 const DYNAMIC_KINDS = ["extendible", "linear"];
@@ -73,6 +83,8 @@ const HEAP_KINDS = ["max", "min"];
 // travel as themselves. One short hash key per field, and only the fields the
 // named problem actually declares are read or written — a link to LCS has no
 // business naming a bag capacity.
+const STRING_FIELD_KEYS = { text: "t", pattern: "p" };
+
 const BT_FIELD_KEYS = {
   n: "n",
   mode: "md",
@@ -186,9 +198,10 @@ function serializeTree(root, treeType) {
   return values.join(",");
 }
 
-// 2-3 tree nodes hold one or two keys; taking them level by level puts the
-// upper nodes in first, which rebuilds the same shape.
-function serializeTwoThree(root) {
+// A 2-3 or B-tree node holds several keys; taking them level by level puts the
+// upper nodes in first, which rebuilds the same shape. (A B+ tree repeats its
+// separators in the leaves, and parseValueList drops the repeats.)
+function serializeMultiway(root) {
   const out = [];
   const queue = root ? [root] : [];
   while (queue.length) {
@@ -374,7 +387,7 @@ function fieldsFor(view, s) {
         tm: s.tr.treeType === "threaded" ? s.tr.threadMode : undefined,
       };
     case "twothree":
-      return { v: view, a: serializeTwoThree(s.tt.tree.root) };
+      return { v: view, a: serializeMultiway(s.tt.tree.root) };
     // Insertion order, not bucket order: with probing, the order keys arrive
     // in is what decides where the collisions land. Capacity travels too — a
     // table that grew and then had keys deleted is bigger than its key count
@@ -436,6 +449,22 @@ function fieldsFor(view, s) {
         type: s.bt.problem,
         ...Object.fromEntries(
           s.bt.meta.fields.map((field) => [BT_FIELD_KEYS[field], s.bt.activeInputs[field]])
+        ),
+      };
+    // The array is the structure; the kind and combine are how it is read.
+    case "huffman":
+      return { v: view, t: s.hf.text };
+    // Order and variant decide the shape, so both travel with the keys.
+    case "btree":
+      return { v: view, type: s.btr.variant, ord: String(s.btr.order), a: serializeMultiway(s.btr.root) };
+    case "rangequery":
+      return { v: view, type: s.rq.kind, cb: s.rq.combine === "sum" ? undefined : s.rq.combine, a: s.rq.values.join(",") };
+    case "str":
+      return {
+        v: view,
+        type: s.str.algo,
+        ...Object.fromEntries(
+          s.str.meta.fields.map((field) => [STRING_FIELD_KEYS[field], s.str.activeInputs[field]])
         ),
       };
     default:
@@ -524,6 +553,26 @@ export function readSharedState() {
       if (typeof raw === "string") inputs[field] = raw.slice(0, MAX_TEXT);
     });
     if (Object.keys(inputs).length) state.inputs = inputs;
+  } else if (view === "str") {
+    if (STRING_KEYS.includes(fields.type)) state.algo = fields.type;
+    const algo = STRING_ALGO_MAP[state.algo || STRING_KEYS[0]];
+    const inputs = {};
+    algo.fields.forEach((field) => {
+      const raw = fields[STRING_FIELD_KEYS[field]];
+      if (typeof raw === "string") inputs[field] = raw.slice(0, MAX_TEXT);
+    });
+    if (Object.keys(inputs).length) state.inputs = inputs;
+  } else if (view === "btree") {
+    if (values.length) state.values = values;
+    if (fields.type === "btree" || fields.type === "bplus") state.variant = fields.type;
+    const order = parseInt(fields.ord, 10);
+    if (BTREE_ORDERS.includes(order)) state.order = order;
+  } else if (view === "huffman") {
+    if (typeof fields.t === "string" && fields.t.trim()) state.text = fields.t.slice(0, MAX_TEXT);
+  } else if (view === "rangequery") {
+    if (values.length) state.values = values;
+    if (fields.type === "segment" || fields.type === "fenwick") state.kind = fields.type;
+    if (["sum", "min", "max"].includes(fields.cb)) state.combine = fields.cb;
   } else if (view === "graph") {
     if (fields.g !== undefined) {
       state.vertices = parseSharedVertices(fields.g.slice(0, MAX_TEXT));

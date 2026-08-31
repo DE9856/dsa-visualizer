@@ -192,6 +192,21 @@ export default function TreeCanvas({ step, treeType, threadMode }) {
                 glow = "rgba(255,138,61,0.55)";
               }
 
+              // A red-black node's colour IS its data — it decides every
+              // rotation — so it wins over the default fill. Highlights still
+              // override it, because knowing which node the step is talking
+              // about matters more for one frame than knowing its colour.
+              const rbColor = node.color;
+              if (rbColor && !isCurrent(node.id) && !isActive(node.id) && !isOnPath(node.id)) {
+                if (rbColor === "R") {
+                  fill = "rgba(255,107,107,0.28)";
+                  stroke = "var(--red)";
+                } else {
+                  fill = "rgba(255,255,255,0.06)";
+                  stroke = "var(--text-dim)";
+                }
+              }
+
               return (
                 <g key={node.id}>
                   <circle
@@ -205,6 +220,18 @@ export default function TreeCanvas({ step, treeType, threadMode }) {
                       filter: glow ? `drop-shadow(0 0 6px ${glow})` : "none",
                     }}
                   />
+                  {/* A treap's priority is the other half of what it is: keys
+                      obey the search rule, priorities obey the heap rule. */}
+                  {node.priority !== undefined && (
+                    <text
+                      x={pos.x}
+                      y={pos.y - RADIUS - 6}
+                      textAnchor="middle"
+                      className="tree-priority mono"
+                    >
+                      {node.priority}
+                    </text>
+                  )}
                   <text x={pos.x} y={pos.y + 4} textAnchor="middle" className="graph-node__label mono">
                     {node.value}
                   </text>

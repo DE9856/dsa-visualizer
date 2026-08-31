@@ -1,12 +1,21 @@
-import { isLeaf } from "../dataStructures/twoThreeTree/helpers";
 import { useIsMobile } from "../hooks/useMediaQuery.js";
 
 const HEIGHT = 300;
 const BOX_H = 28;
 const KEY_W = 38;
+// The gap a node box needs beyond its own width before it touches its neighbour.
+const SLOT_PAD = 12;
 // See TreeCanvas: a phone scrolls the tree sideways rather than shrinking it.
 const MOBILE_SLOT = 96;
 const MOBILE_MIN_WIDTH = 300;
+const DESKTOP_MIN_WIDTH = 640;
+
+// Any node with a `keys` array and a `children` array: a 2-3 node, or a B-tree
+// node of any order.
+const isLeaf = (node) => !node.children || node.children.length === 0;
+
+const widestBox = (node) =>
+  !node ? 0 : Math.max(node.keys.length * KEY_W, ...(node.children || []).map(widestBox));
 
 function countLeaves(node) {
   if (!node) return 0;
@@ -70,15 +79,19 @@ function collectEdges(node, edges = []) {
   return edges;
 }
 
-export default function TwoThreeTreeCanvas({ step }) {
+export default function MultiwayTreeCanvas({ step }) {
   const isMobile = useIsMobile();
   const root = step.root;
-  const WIDTH = isMobile
-    ? Math.max(MOBILE_MIN_WIDTH, countLeaves(root) * MOBILE_SLOT)
-    : 640;
+  // A node of order 5 is four times as wide as a 2-3 leaf, so the slot a leaf
+  // occupies has to be derived from the widest node in the tree rather than
+  // fixed — otherwise sibling boxes overlap instead of the canvas scrolling.
+  const leaves = countLeaves(root);
+  const slot = Math.max(isMobile ? MOBILE_SLOT : 0, widestBox(root) + SLOT_PAD);
+  const WIDTH = Math.max(isMobile ? MOBILE_MIN_WIDTH : DESKTOP_MIN_WIDTH, leaves * slot + 92);
   const positions = layout(root, WIDTH);
   const nodes = flattenNodes(root);
   const edges = collectEdges(root);
+  const leafNodes = nodes.filter(isLeaf);
 
   const isVisited = (id) => step.visited && step.visited.includes(id);
   const isOnPath = (id) => step.path && step.path.includes(id);
@@ -95,9 +108,9 @@ export default function TwoThreeTreeCanvas({ step }) {
         <div className="canvas-scroll">
           <svg
             viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-            className={`graph-svg ${isMobile ? "graph-svg--fixed" : ""}`}
-            width={isMobile ? WIDTH : undefined}
-            height={isMobile ? HEIGHT : undefined}
+            className={`graph-svg ${isMobile || WIDTH > DESKTOP_MIN_WIDTH ? "graph-svg--fixed" : ""}`}
+            width={isMobile || WIDTH > DESKTOP_MIN_WIDTH ? WIDTH : undefined}
+            height={isMobile || WIDTH > DESKTOP_MIN_WIDTH ? HEIGHT : undefined}
           >
             {edges.map((edge) => {
               const from = positions[edge.from];
@@ -118,6 +131,26 @@ export default function TwoThreeTreeCanvas({ step }) {
                 />
               );
             })}
+
+            {/* B+ trees chain their leaves, which is what makes a range scan
+                one walk along the bottom instead of a tour of the tree. */}
+            {step.leafLinks &&
+              leafNodes.slice(0, -1).map((leaf, i) => {
+                const from = positions[leaf.id];
+                const nextLeaf = leafNodes[i + 1];
+                const to = positions[nextLeaf.id];
+                if (!from || !to) return null;
+                return (
+                  <line
+                    key={`leaflink-${leaf.id}`}
+                    x1={from.px + (leaf.keys.length * KEY_W) / 2}
+                    y1={from.py}
+                    x2={to.px - (nextLeaf.keys.length * KEY_W) / 2}
+                    y2={to.py}
+                    className="mw-leaflink"
+                  />
+                );
+              })}
 
             {nodes.map((node) => {
               const pos = positions[node.id];
@@ -157,9 +190,16 @@ export default function TwoThreeTreeCanvas({ step }) {
                       filter: glow ? `drop-shadow(0 0 6px ${glow})` : "none",
                     }}
                   />
-                  {node.keys.length === 2 && (
-                    <line x1={pos.px} y1={top} x2={pos.px} y2={top + BOX_H} style={{ stroke, strokeWidth: 1.4 }} />
-                  )}
+                  {node.keys.slice(1).map((k, i) => (
+                    <line
+                      key={`div-${k}`}
+                      x1={left + (i + 1) * KEY_W}
+                      y1={top}
+                      x2={left + (i + 1) * KEY_W}
+                      y2={top + BOX_H}
+                      style={{ stroke, strokeWidth: 1.4 }}
+                    />
+                  ))}
                   {node.keys.map((k, i) => (
                     <text
                       key={k}

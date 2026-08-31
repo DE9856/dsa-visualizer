@@ -145,10 +145,28 @@ export function useGraph(init) {
       fromVertex: fromVertexInput,
       toVertex: toVertexInput,
       weight: weighted ? parseInt(weightInput, 10) || 1 : 1,
+      // Context the newer algorithms need: whether the arrows mean anything
+      // (cycle detection and strong connectivity are different questions on a
+      // directed graph), and where the vertices are, which is the only thing
+      // A* can build a heuristic out of.
+      directed,
+      weighted,
+      positions,
     };
     runWith(operation, params);
     setVertexLabelInput("");
-  }, [operation, vertexLabelInput, vertexInput, fromVertexInput, toVertexInput, weightInput, weighted, runWith]);
+  }, [
+    operation,
+    vertexLabelInput,
+    vertexInput,
+    fromVertexInput,
+    toVertexInput,
+    weightInput,
+    weighted,
+    directed,
+    positions,
+    runWith,
+  ]);
 
   // Triple-clicking a vertex on the canvas. The same operation the sidebar's
   // REMOVE VERTEX runs, so the edges go with it and the steps look the same.

@@ -246,3 +246,45 @@ export function randomGraph() {
 
   return { nodes, edges };
 }
+
+/**
+ * Where each vertex sits, in 0..1 canvas fractions.
+ *
+ * A* needs coordinates to have a heuristic at all, and the only coordinates
+ * that mean anything to someone looking at the screen are the ones the canvas
+ * is drawing. Dragged vertices carry their own; the rest sit on the default
+ * ring, reproduced here at the same angles the canvas uses. The radius is
+ * approximate — the canvas stretches the ring to fill a portrait viewport —
+ * but the shape is the same, which is what a straight-line heuristic needs.
+ */
+export function vertexPoints(nodes, positions = {}) {
+  const n = nodes.length;
+  const out = {};
+  nodes.forEach((node, i) => {
+    const custom = positions[node.id];
+    if (custom) {
+      out[node.id] = { x: custom.nx, y: custom.ny };
+      return;
+    }
+    const angle = n > 0 ? (2 * Math.PI * i) / n - Math.PI / 2 : 0;
+    out[node.id] = { x: 0.5 + 0.4 * Math.cos(angle), y: 0.5 + 0.4 * Math.sin(angle) };
+  });
+  return out;
+}
+
+export const distanceBetween = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+/**
+ * Adjacency as a map of id -> [{ to, edge }]. Undirected graphs get both
+ * directions; a directed graph gets only the way its arrows point.
+ */
+export function adjacencyOf(graph, directed) {
+  const adj = new Map(graph.nodes.map((n) => [n.id, []]));
+  graph.edges.forEach((edge) => {
+    adj.get(edge.from)?.push({ to: edge.to, edge });
+    if (!directed && edge.from !== edge.to) adj.get(edge.to)?.push({ to: edge.from, edge });
+  });
+  return adj;
+}
+
+export const labelMap = (graph) => Object.fromEntries(graph.nodes.map((n) => [n.id, n.label]));

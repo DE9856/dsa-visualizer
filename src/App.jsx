@@ -27,12 +27,13 @@ import QueueCanvas from "./components/QueueCanvas.jsx";
 import GraphSidebar from "./components/GraphSidebar.jsx";
 import GraphCanvas from "./components/GraphCanvas.jsx";
 import GraphRepresentationPanel from "./components/GraphRepresentationPanel.jsx";
+import DistanceMatrixPanel from "./components/DistanceMatrixPanel.jsx";
 import GraphCostPanel from "./components/GraphCostPanel.jsx";
 import MstComparePanel from "./components/MstComparePanel.jsx";
 import TreeSidebar from "./components/TreeSidebar.jsx";
 import TreeCanvas from "./components/TreeCanvas.jsx";
 import TwoThreeTreeSidebar from "./components/TwoThreeTreeSidebar.jsx";
-import TwoThreeTreeCanvas from "./components/TwoThreeTreeCanvas.jsx";
+import MultiwayTreeCanvas from "./components/MultiwayTreeCanvas.jsx";
 import HashTableSidebar from "./components/HashTableSidebar.jsx";
 import HashTableCanvas from "./components/HashTableCanvas.jsx";
 import ProbePanel from "./components/ProbePanel.jsx";
@@ -42,6 +43,13 @@ import HeapSidebar from "./components/HeapSidebar.jsx";
 import HeapCanvas from "./components/HeapCanvas.jsx";
 import TrieSidebar from "./components/TrieSidebar.jsx";
 import TrieCanvas from "./components/TrieCanvas.jsx";
+import BTreeSidebar from "./components/BTreeSidebar.jsx";
+import HuffmanSidebar from "./components/HuffmanSidebar.jsx";
+import HuffmanCanvas from "./components/HuffmanCanvas.jsx";
+import RangeQuerySidebar from "./components/RangeQuerySidebar.jsx";
+import RangeQueryCanvas from "./components/RangeQueryCanvas.jsx";
+import StringSidebar from "./components/StringSidebar.jsx";
+import StringCanvas from "./components/StringCanvas.jsx";
 import BacktrackSidebar from "./components/BacktrackSidebar.jsx";
 import BacktrackCanvas from "./components/BacktrackCanvas.jsx";
 import SearchTreePanel from "./components/SearchTreePanel.jsx";
@@ -68,6 +76,10 @@ import { useTrie } from "./hooks/useTrie.js";
 import { useUnionFind } from "./hooks/useUnionFind.js";
 import { useDp } from "./hooks/useDp.js";
 import { useBacktracking } from "./hooks/useBacktracking.js";
+import { useStrings } from "./hooks/useStrings.js";
+import { useRangeQuery } from "./hooks/useRangeQuery.js";
+import { useHuffman } from "./hooks/useHuffman.js";
+import { useBTree } from "./hooks/useBTree.js";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts.js";
 import { delayForSpeed } from "./hooks/useStepPlayer.js";
 import { readSharedState, shareHashFor, replaceHash, buildShareUrl } from "./utils/urlState.js";
@@ -98,6 +110,10 @@ export default function App() {
   const uf = useUnionFind(initFor("unionfind"));
   const dp = useDp(initFor("dp"));
   const bt = useBacktracking(initFor("bt"));
+  const str = useStrings(initFor("str"));
+  const rq = useRangeQuery(initFor("rangequery"));
+  const hf = useHuffman(initFor("huffman"));
+  const btr = useBTree(initFor("btree"));
 
   // The player driving whatever view is on screen — one source for the
   // transport bar, the timeline and the keyboard shortcuts.
@@ -118,6 +134,10 @@ export default function App() {
     unionfind: uf,
     dp,
     bt,
+    str,
+    rangequery: rq,
+    huffman: hf,
+    btree: btr,
   };
   const active = players[view] || v;
 
@@ -143,20 +163,21 @@ export default function App() {
     onToggleHelp: () => setShowHelp((s) => !s),
   };
 
+  // The address bar tracks the data on screen, so the link is always ready to
+  // copy. Only committed data is encoded — never half-typed sidebar text.
+  const shareHash = shareHashFor(view, { v, race, tcmp, ll, poly, st, q, gr, tr, tt, ht, dh, hp, tri, uf, dp, bt, str, rq, hf, btr });
+  const shareUrl = buildShareUrl(shareHash);
+
   // What the phone action bar needs — the same player, minus the read-outs
   // that only make sense in the full transport panel.
   const shell = {
+    shareUrl,
     onShuffle: shuffleActive,
     playing: active.playing,
     onTogglePlay: active.togglePlay,
     canPlay: active.steps.length > 1,
     atEnd: active.stepIdx >= active.steps.length - 1,
   };
-
-  // The address bar tracks the data on screen, so the link is always ready to
-  // copy. Only committed data is encoded — never half-typed sidebar text.
-  const shareHash = shareHashFor(view, { v, race, tcmp, ll, poly, st, q, gr, tr, tt, ht, dh, hp, tri, uf, dp, bt });
-  const shareUrl = buildShareUrl(shareHash);
 
   useEffect(() => {
     if (stage === "app") replaceHash(shareHash);
@@ -185,7 +206,7 @@ export default function App() {
   // family name on its own says nothing about what is in there. Each is one
   // view with several problems underneath, so the prefix is split off here and
   // the rest is handed to the hook.
-  const problemSetters = { dp: dp.setProblem, bt: bt.setProblem };
+  const problemSetters = { dp: dp.setProblem, bt: bt.setProblem, str: str.setAlgo };
 
   const handleViewChange = (next) => {
     const [name, problem] = next.split(":");
@@ -206,7 +227,15 @@ export default function App() {
   return (
     <div className="app" style={{ "--step-anim": `${stepAnim}ms` }}>
       <TopBar
-        category={view === "dp" ? `dp:${dp.problem}` : view === "bt" ? `bt:${bt.problem}` : view}
+        category={
+          view === "dp"
+            ? `dp:${dp.problem}`
+            : view === "bt"
+              ? `bt:${bt.problem}`
+              : view === "str"
+                ? `str:${str.algo}`
+                : view
+        }
         onCategoryChange={handleViewChange}
         onGoHome={() => setStage("select")}
         shareUrl={shareUrl}
@@ -378,6 +407,9 @@ export default function App() {
             weighted={gr.weighted}
             onSetWeight={gr.setWeightAt}
           />
+          {/* All-pairs distances, for the one operation that produces them.
+              The panel renders nothing when a frame carries no matrix. */}
+          <DistanceMatrixPanel distanceMatrix={gr.step.distanceMatrix} />
           <ListControls {...transport} />
           <ListInfoPanel opMeta={gr.opMeta} />
           <GraphCostPanel graph={gr.graph} directed={gr.directed} />
@@ -460,7 +492,7 @@ export default function App() {
             />
           }
         >
-          <TwoThreeTreeCanvas step={tt.step} />
+          <MultiwayTreeCanvas step={tt.step} />
           <ListControls {...transport} />
           <ListInfoPanel opMeta={tt.opMeta} />
           <TopicPanel topicKey="twothree" />
@@ -620,6 +652,114 @@ export default function App() {
           <ListControls {...transport} />
           <CodeInfoPanel meta={dp.meta} step={dp.step} codeLabel="RECURRENCE" />
           <TopicPanel topicKey="dp" />
+        </Workspace>
+      ) : view === "btree" ? (
+        <Workspace
+          {...shell}
+          panelLabel="B-TREE OPS"
+          sidebar={
+            <BTreeSidebar
+              operation={btr.operation}
+              onOperationChange={btr.setOperation}
+              opMeta={btr.opMeta}
+              order={btr.order}
+              onOrderChange={btr.setOrder}
+              variant={btr.variant}
+              onVariantChange={btr.setVariant}
+              valueInput={btr.valueInput}
+              setValueInput={btr.setValueInput}
+              onRun={btr.runOperation}
+              customInput={btr.customInput}
+              setCustomInput={btr.setCustomInput}
+              onApplyCustom={btr.applyCustom}
+              onShuffle={btr.shuffle}
+            />
+          }
+        >
+          <MultiwayTreeCanvas step={btr.step} />
+          <ListControls {...transport} />
+          <ListInfoPanel opMeta={btr.opMeta} />
+          <TopicPanel topicKey="btree" />
+        </Workspace>
+      ) : view === "huffman" ? (
+        <Workspace
+          {...shell}
+          panelLabel="HUFFMAN"
+          sidebar={
+            <HuffmanSidebar
+              text={hf.text}
+              onTextChange={hf.setText}
+              onRun={hf.runOperation}
+              onRandom={hf.shuffle}
+              error={hf.error}
+            />
+          }
+        >
+          <HuffmanCanvas step={hf.step} />
+          <ListControls {...transport} />
+          <CodeInfoPanel meta={hf.meta} step={hf.step} codeLabel="THE ALGORITHM" />
+          <TopicPanel topicKey="huffman" />
+        </Workspace>
+      ) : view === "rangequery" ? (
+        <Workspace
+          {...shell}
+          panelLabel="RANGE QUERIES"
+          sidebar={
+            <RangeQuerySidebar
+              kind={rq.kind}
+              onKindChange={rq.setKind}
+              combine={rq.combine}
+              onCombineChange={rq.setCombine}
+              operation={rq.operation}
+              onOperationChange={rq.setOperation}
+              opMeta={rq.opMeta}
+              indexInput={rq.indexInput}
+              setIndexInput={rq.setIndexInput}
+              valueInput={rq.valueInput}
+              setValueInput={rq.setValueInput}
+              fromInput={rq.fromInput}
+              setFromInput={rq.setFromInput}
+              toInput={rq.toInput}
+              setToInput={rq.setToInput}
+              onRun={rq.runOperation}
+              customInput={rq.customInput}
+              setCustomInput={rq.setCustomInput}
+              onApplyCustom={rq.applyCustom}
+              onShuffle={rq.shuffle}
+              n={rq.values.length}
+            />
+          }
+        >
+          <RangeQueryCanvas step={rq.step} />
+          <ListControls {...transport} />
+          <CodeInfoPanel
+            meta={{ ...rq.opMeta, pseudocode: rq.opMeta.code[rq.kind] }}
+            step={rq.step}
+            codeLabel={rq.kind === "fenwick" ? "FENWICK" : "SEGMENT TREE"}
+          />
+          <TopicPanel topicKey="rangequery" />
+        </Workspace>
+      ) : view === "str" ? (
+        <Workspace
+          {...shell}
+          panelLabel="STRING ALGORITHMS"
+          sidebar={
+            <StringSidebar
+              algo={str.algo}
+              onAlgoChange={str.setAlgo}
+              meta={str.meta}
+              inputs={str.inputs}
+              onInputChange={str.setInput}
+              onRun={str.runOperation}
+              onRandom={str.shuffle}
+              error={str.error}
+            />
+          }
+        >
+          <StringCanvas step={str.step} />
+          <ListControls {...transport} />
+          <CodeInfoPanel meta={str.meta} step={str.step} codeLabel="THE ALGORITHM" />
+          <TopicPanel topicKey="strings" />
         </Workspace>
       ) : view === "bt" ? (
         <Workspace
