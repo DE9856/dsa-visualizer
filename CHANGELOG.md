@@ -23,6 +23,18 @@ should a tree be shaped by", none of them the same as balance.
 
 ### Changed
 
+- **Panels no longer blur a backdrop nobody can see.** `.panel` — the canvas and the
+  sidebar, the two largest elements on screen — carried `backdrop-filter: blur(14px)`, and
+  so did the nine landing cards. Everything behind them is a static gradient, so the blur
+  was invisible, but it forced the compositor to re-blur that region on every frame the
+  panel or its contents changed, which is every step of every animation. Blur is kept for
+  the overlays that sit over real content: menus, the mobile sheet, the action bar.
+
+- **Per-step transitions name the properties they animate.** Linked-list nodes, queue and
+  stack slots, union-find and heap cells used `transition: all`, which asks the browser to
+  watch every animatable property — including the ones that trigger layout — on elements
+  that restyle on every frame. They now list only what actually changes.
+
 - **The landing page says what each view actually holds.** A card description shared its
   line with the label and was truncated with an ellipsis when it did not fit, then hidden
   outright below 560px — so the one place a view says what is inside it was the first thing

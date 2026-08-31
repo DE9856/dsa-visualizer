@@ -296,11 +296,17 @@ summary {
 
 /* ---------- shared panel / button ---------- */
 
+/* No backdrop-filter here on purpose. .panel is the canvas and the sidebar —
+   the two largest elements on the page — and everything behind them is a static
+   gradient, so blurring it is invisible. It is not free, though: a backdrop
+   filter forces the compositor to re-blur that region on every frame the panel
+   or its contents change, which is every step of every animation. Blur is kept
+   for the overlays (menus, the mobile sheet, the action bar) where it sits over
+   real content and actually reads. */
 .panel {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 14px;
-  backdrop-filter: blur(14px);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 10px 30px rgba(0, 0, 0, 0.25);
 }
 
@@ -1120,7 +1126,13 @@ input[type="range"] {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--step-anim) ease;
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease,
+    color var(--step-anim) ease,
+    box-shadow var(--step-anim) ease,
+    opacity var(--step-anim) ease,
+    transform var(--step-anim) ease;
 }
 
 .ll-node--removing {
@@ -1312,7 +1324,13 @@ input[type="range"] {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--step-anim) ease;
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease,
+    color var(--step-anim) ease,
+    box-shadow var(--step-anim) ease,
+    opacity var(--step-anim) ease,
+    transform var(--step-anim) ease;
 }
 
 .sq-slot--removing {
@@ -1494,7 +1512,13 @@ input[type="range"] {
   font-size: 13px;
   font-weight: 600;
   color: var(--text);
-  transition: all var(--step-anim) ease;
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease,
+    color var(--step-anim) ease,
+    box-shadow var(--step-anim) ease,
+    opacity var(--step-anim) ease,
+    transform var(--step-anim) ease;
 }
 
 /* A cell holding its own label is a root — the walk stops there. */
@@ -1667,7 +1691,13 @@ input[type="range"] {
   font-size: 13px;
   font-weight: 600;
   color: var(--text);
-  transition: all var(--step-anim) ease;
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease,
+    color var(--step-anim) ease,
+    box-shadow var(--step-anim) ease,
+    opacity var(--step-anim) ease,
+    transform var(--step-anim) ease;
 }
 
 .hp-cell__index {
@@ -2582,7 +2612,10 @@ input[type="range"] {
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 20px;
-  backdrop-filter: blur(14px);
+  /* Same reasoning as .panel, and worse here: the hover state translates the
+     card, and a transform on a backdrop-filtered element re-blurs the backdrop
+     on every frame of the transition — nine times over, for a blur of a static
+     gradient nobody can see. */
   transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -5179,7 +5212,13 @@ select.text-input option {
   background: var(--panel-alt);
   color: var(--text-dim);
   border: 1px solid transparent;
-  transition: all var(--step-anim) ease;
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease,
+    color var(--step-anim) ease,
+    box-shadow var(--step-anim) ease,
+    opacity var(--step-anim) ease,
+    transform var(--step-anim) ease;
 }
 
 .treecmp__key.done {
