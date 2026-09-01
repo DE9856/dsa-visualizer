@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import CategoryLanding from "./components/CategoryLanding.jsx";
 import TopBar from "./components/TopBar.jsx";
 import ExportDialog from "./components/ExportDialog.jsx";
@@ -218,16 +219,20 @@ export default function App() {
     });
   }, [exportOpen, printing, active.steps, codeMeta, shareUrl]);
 
-  // Printing needs the table in the document first, so it waits for a paint
-  // rather than calling print() in the same tick that mounts it.
+  // Printing needs the table in the document first, so print() is deferred
+  // out of the render that mounts it. A timeout rather than a rAF: animation
+  // frames never fire in a hidden or heavily throttled tab, and a print that
+  // silently never opens is a worse failure than one that opens a frame
+  // early. An effect already runs after the commit, so the table is in the
+  // DOM by this point, which is all print() needs.
   useEffect(() => {
     if (!printing) return undefined;
     const done = () => setPrinting(false);
     window.addEventListener("afterprint", done);
-    const raf = requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
+    const id = setTimeout(() => window.print(), 0);
     return () => {
       window.removeEventListener("afterprint", done);
-      cancelAnimationFrame(raf);
+      clearTimeout(id);
     };
   }, [printing]);
 
@@ -957,7 +962,13 @@ export default function App() {
         />
       )}
 
-      {printing && exportTable && <StepTable table={exportTable} />}
+      {/* Portalled to <body> deliberately. Printing hides `.app` wholesale so
+          that a cancelled print leaves the run exactly as it was, and a table
+          rendered inside it would be hidden along with everything else — the
+          page came out blank. */}
+      {printing &&
+        exportTable &&
+        createPortal(<StepTable table={exportTable} />, document.body)}
     </div>
   );
 }

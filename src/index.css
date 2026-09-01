@@ -5686,9 +5686,17 @@ select.text-input option {
 
 @media print {
   /* The app is hidden rather than unmounted so a cancelled print leaves the
-     user exactly where they were, mid-run. */
+     user exactly where they were, mid-run. The table is portalled outside
+     `.app` for exactly this reason — hidden ancestors hide their children. */
   .app {
     display: none !important;
+  }
+
+  /* The dark theme is set on <body>, and a reader who has switched background
+     graphics on would otherwise get a page of ink with pale text on it. */
+  body {
+    background: #fff !important;
+    color: #000;
   }
 
   .step-table {

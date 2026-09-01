@@ -219,7 +219,10 @@ should a tree be shaped by", none of them the same as balance.
   carries the shareable link to the run, so a printout is not a dead end. The
   table is only built and mounted while a print is actually happening; a
   thousand permanently hidden rows would cost every view a layout it never
-  shows.
+  shows. It is portalled to `<body>` rather than rendered in place, because
+  printing hides `.app` wholesale so a cancelled print leaves the run
+  untouched — and a hidden ancestor hides its children, so a table rendered
+  inside it printed a blank page.
 
   Runs longer than 240 steps are thinned evenly, always keeping the first and
   last frame, and the player is restored to the step it was on when the export
