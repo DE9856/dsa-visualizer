@@ -254,11 +254,18 @@ sideways. See
   by the algorithms themselves
 - Eight input shapes (random, nearly sorted, sorted, reversed, few unique, all equal,
   sawtooth, organ pipe)
+- Editable bars — click one to set its value, drag it up and down to scrub, drag it
+  sideways to move it along the array
+- Sound — each value becomes a pitch. Pressing play sweeps the unsorted array first,
+  the run itself sounds every comparison and swap, and a finished sort plays back as
+  a rising scale
 - Pivot and gap-sequence variants for quick and shell sort
 - Colour-by-origin, which turns stability into something you can see
 - Complexity information
 - Pseudocode display, plus a real implementation in five languages
 - Export the run as an animated GIF, a video, or a printable step table
+- Light, dark and high-contrast themes, a colour-blind-safe palette, and a
+  glyph on every state so the picture never depends on colour alone
 
 ### Balance & Height (trees)
 

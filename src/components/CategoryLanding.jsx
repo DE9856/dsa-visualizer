@@ -1,12 +1,25 @@
 import { useState } from "react";
+import ThemeMenu from "./ThemeMenu.jsx";
 import { ArrowRight } from "lucide-react";
 import { CATEGORIES } from "../data/categories.js";
 
-export default function CategoryLanding({ onSelect }) {
+export default function CategoryLanding({ onSelect, appearance }) {
   const [hovered, setHovered] = useState(null);
 
   return (
     <div className="landing">
+      {appearance && (
+        <div className="landing__appearance">
+          <ThemeMenu
+            theme={appearance.theme}
+            palette={appearance.palette}
+            contrast={appearance.contrast}
+            onTheme={appearance.setTheme}
+            onPalette={appearance.setPalette}
+            onToggleContrast={appearance.toggleContrast}
+          />
+        </div>
+      )}
       <div className="landing__header">
         <div className="landing__mark mono">&#9642;</div>
         <h1 className="landing__title mono">DSA://VISUALIZER</h1>

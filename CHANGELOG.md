@@ -23,6 +23,12 @@ should a tree be shaped by", none of them the same as balance.
 
 ### Fixed
 
+- **An export no longer hangs when the tab is in the background.** The capture
+  waited for two animation frames between steps, to be sure the step it had
+  just seeked to was laid out. A backgrounded tab never fires one, so tabbing
+  away mid-export left it stuck behind a progress bar that never moved. The
+  wait now falls back to a timeout.
+
 - **Quick sort no longer overflows the stack in the complexity sweep.** Its degenerate
   case is not hypothetical here, it is the lesson: a last-element pivot on sorted input
   partitions into n-1 and 0 every time, so the recursive form nests n deep. Harmless at
@@ -182,6 +188,106 @@ should a tree be shaped by", none of them the same as balance.
   building. Shared links are unaffected: they arrive with the graph they carry.
 
 ### Added
+
+- **The run can be heard.** A speaker button in the transport bar turns each
+  element's value into a pitch, so a sort is a scatter that resolves into a
+  rising scale and a binary search is three or four probes closing on one
+  note. Classic, and a third channel beside colour and the state glyphs — the
+  only one that carries the *value* rather than the state, and the only one
+  that works with the screen off.
+
+  Pitch is mapped logarithmically over 180Hz–1200Hz. Ears hear ratios, not
+  differences, so a linear map would squeeze the bottom half of the array into
+  a semitone and spread the top half across an octave; the log map gives every
+  equal step in value an equal musical step. Timbre carries the state while
+  pitch carries the value, so two events at the same pitch stay distinct:
+  comparisons are a sine, swaps a triangle, a search's probes a square. Runs
+  end on a cue of their own — three notes across a sorted array, the pitch of
+  what a search found, or one note below the whole range when it found
+  nothing.
+
+  A run is bookended. Pressing play from the top sweeps the array as it
+  stands — one note per element, left to right — and holds the algorithm back
+  until that finishes; when a sort completes the same sweep plays again, and
+  because the array is now in order it comes out as a rising scale. The same
+  notes, the same length, transformed: that contrast is the argument the sound
+  was making, and it only lands because the scatter came first. Searches keep
+  their single found note, since a search ends on an answer that sweeping the
+  array would bury. Sweeps are scheduled on the audio clock rather than fired
+  from a timer, because evenness is the one thing they cannot afford to lose.
+
+  Off by default and remembered, because a page that makes noise on its own is
+  the thing everyone hates about pages that make noise. Notes are shaped with
+  a short attack and an exponential tail rather than switched on and off,
+  which is the difference between a note and a click, and voices are capped so
+  a fast run is a run of notes instead of mud. Exports stay silent: the
+  capture seeks through every frame in turn and would otherwise fire hundreds
+  of notes at once.
+
+- **The bars are editable.** Click one to set its value to the height you
+  clicked at, drag it up and down to scrub with the number shown above it, or
+  drag it sideways to move it along the array. Keyboard equivalents throughout:
+  ↑/↓ change a focused bar by one or, with Shift, by ten, and Alt+←/→ move it,
+  leaving the bare arrows stepping the run as they do everywhere else.
+
+  One press has to serve both edits, so the axis of the first few pixels of
+  movement decides which it is, and a press that never travels four pixels is a
+  click. The array is held as a draft for the length of the gesture and
+  committed once on release — committing per pointer move would have put a
+  hundred entries on the undo stack and recomputed the whole run for each one.
+
+  Editing rewinds to the first step and applies to the array the run *starts*
+  from rather than to what happens to be on screen: mid-run the canvas shows a
+  partly sorted picture, and the searches that sort a copy show an order the
+  base array never had. Reordering is disabled on those searches for the same
+  reason — the sort would undo it before the first frame — while setting values
+  still works. The scale is frozen for the length of a gesture so the bars
+  can't rescale out from under the cursor as a value grows past what used to be
+  the tallest one.
+
+  The column is the target, not the bar: hit-testing on whatever the pointer
+  physically landed on made the empty space above a short bar dead, and that
+  space is exactly where you press to raise it.
+
+- **A theme system, and a second channel for algorithm state.** Light, dark and
+  system themes; high contrast as a *modifier* on top of either, so a light
+  high-contrast mode exists at all; and a colour-blind-safe palette for the
+  hues that carry meaning. Appearance is stored locally and stays out of the
+  shareable link — it describes the reader, not the run — but exports follow
+  it, so a light run exports light.
+
+  The refactor underneath is the point. Colour had been the app's entire
+  encoding for compare, swap, sorted and pivot, and it lived as ~230 hardcoded
+  `rgba()` literals of five hues spread across seventeen components and the
+  stylesheet. Those are now mixed from channel tokens, and the states are named
+  for what they *mean* rather than for what colour they are, so a palette
+  re-points the meaning and no component knows a palette exists. Only
+  primitives are redefined per axis: custom properties resolve where they are
+  used, so overriding one `--ink-rgb` re-derives every border, hairline and
+  panel fill, which is why a whole light theme is a dozen lines.
+
+  **Every state now carries a glyph as well as a colour** — `↔` comparing, `⇄`
+  swapping, `✓` in place, `◆` pivot, `◎` probing, `★` found — with a legend
+  under the bars naming only the states that algorithm can actually reach.
+  Either channel alone is enough, which is what makes the picture survive
+  greyscale printing and the deficiencies no palette fully covers.
+
+  The safe palette was chosen by measurement rather than by picking colours off
+  a list. Candidate sets were simulated for protanopia, deuteranopia and
+  tritanopia and scored on their weakest pair against a contrast floor. Naive
+  Okabe-Ito assignments scored ΔE 3.8 at worst — idle collapsing onto pivot
+  under protanopia, which is *worse* than the palette they were meant to
+  replace. The shipped set scores 19.4 on dark and 9.2 in the hardest case,
+  and beats the default palette by 2–4x in every theme and contrast
+  combination. Text contrast is 16:1 or better everywhere, and all four
+  theme/contrast combinations pass WCAG AA across the interface.
+
+  Two things fixed on the way: high contrast had been overriding the hues
+  unconditionally, so switching it on silently threw the colour-blind-safe
+  palette away — the two settings are meant to compose, and its overrides are
+  now per palette. And `--on-primary` was defined but never used, leaving
+  three rules with a hardcoded dark label that became unreadable on the light
+  theme's darker accent.
 
 - **Export a run as a GIF, a video, or a printable step table.** Every view
   gets an EXPORT button next to SHARE, and all three formats are produced in

@@ -3,8 +3,9 @@ import { ChevronDown, Menu, X, Home, Download } from "lucide-react";
 import { CATEGORIES } from "../data/categories.js";
 import { useIsMobile } from "../hooks/useMediaQuery.js";
 import ShareButton from "./ShareButton.jsx";
+import ThemeMenu from "./ThemeMenu.jsx";
 
-export default function TopBar({ category, onCategoryChange, onGoHome, shareUrl, onExport }) {
+export default function TopBar({ category, onCategoryChange, onGoHome, shareUrl, onExport, appearance }) {
   const [openMenu, setOpenMenu] = useState(null);
   // Where the open menu's button is, in viewport coordinates. The menus are
   // positioned `fixed` rather than absolutely inside the tab strip, because
@@ -90,6 +91,17 @@ export default function TopBar({ category, onCategoryChange, onGoHome, shareUrl,
           {activeItem && <span className="topbar__now mono">{activeItem.label}</span>}
         </div>
 
+        {appearance && (
+          <ThemeMenu
+            theme={appearance.theme}
+            palette={appearance.palette}
+            contrast={appearance.contrast}
+            onTheme={appearance.setTheme}
+            onPalette={appearance.setPalette}
+            onToggleContrast={appearance.toggleContrast}
+          />
+        )}
+
         <button
           className={`btn icon ${navOpen ? "active" : ""}`}
           onClick={() => setNavOpen((o) => !o)}
@@ -166,6 +178,16 @@ export default function TopBar({ category, onCategoryChange, onGoHome, shareUrl,
         <span className="topbar__mark">&#9642;</span>
         <h1 className="mono">DSA://VISUALIZER</h1>
       </div>
+      {appearance && (
+        <ThemeMenu
+          theme={appearance.theme}
+          palette={appearance.palette}
+          contrast={appearance.contrast}
+          onTheme={appearance.setTheme}
+          onPalette={appearance.setPalette}
+          onToggleContrast={appearance.toggleContrast}
+        />
+      )}
       <div className="topbar__tabs" ref={tabsRef}>
         {CATEGORIES.map((cat) => {
           const isActiveCategory = activeCategory?.key === cat.key;

@@ -163,16 +163,16 @@ export default function MultiwayTreeCanvas({ step }) {
               let glow = null;
               if (isVisited(node.id)) {
                 stroke = "var(--green)";
-                fill = "rgba(95,214,160,0.14)";
+                fill = "rgb(var(--green-rgb) / 0.14)";
               }
               if (isOnPath(node.id)) {
                 stroke = "var(--blue)";
-                fill = "rgba(79,184,224,0.18)";
+                fill = "rgb(var(--blue-rgb) / 0.18)";
               }
               if (isCurrent(node.id) || isActive(node.id)) {
                 stroke = "var(--primary)";
-                fill = "rgba(255,138,61,0.2)";
-                glow = "rgba(255,138,61,0.55)";
+                fill = "rgb(var(--primary-rgb) / 0.2)";
+                glow = "rgb(var(--primary-rgb) / 0.55)";
               }
 
               return (

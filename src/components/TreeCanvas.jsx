@@ -163,7 +163,7 @@ export default function TreeCanvas({ step, treeType, threadMode }) {
                   style={{
                     stroke: color,
                     opacity: lit ? 1 : 0.5,
-                    filter: lit ? "drop-shadow(0 0 5px rgba(255,138,61,0.5))" : "none",
+                    filter: lit ? "drop-shadow(0 0 5px rgb(var(--primary-rgb) / 0.5))" : "none",
                   }}
                   strokeWidth={lit ? 2.2 : 1.4}
                   strokeDasharray="5 4"
@@ -180,16 +180,16 @@ export default function TreeCanvas({ step, treeType, threadMode }) {
 
               if (isVisited(node.id)) {
                 stroke = "var(--green)";
-                fill = "rgba(95,214,160,0.14)";
+                fill = "rgb(var(--green-rgb) / 0.14)";
               }
               if (isOnPath(node.id)) {
                 stroke = "var(--blue)";
-                fill = "rgba(79,184,224,0.18)";
+                fill = "rgb(var(--blue-rgb) / 0.18)";
               }
               if (isCurrent(node.id) || isActive(node.id)) {
                 stroke = "var(--primary)";
-                fill = "rgba(255,138,61,0.2)";
-                glow = "rgba(255,138,61,0.55)";
+                fill = "rgb(var(--primary-rgb) / 0.2)";
+                glow = "rgb(var(--primary-rgb) / 0.55)";
               }
 
               // A red-black node's colour IS its data — it decides every
@@ -199,10 +199,10 @@ export default function TreeCanvas({ step, treeType, threadMode }) {
               const rbColor = node.color;
               if (rbColor && !isCurrent(node.id) && !isActive(node.id) && !isOnPath(node.id)) {
                 if (rbColor === "R") {
-                  fill = "rgba(255,107,107,0.28)";
+                  fill = "rgb(var(--red-rgb) / 0.28)";
                   stroke = "var(--red)";
                 } else {
-                  fill = "rgba(255,255,255,0.06)";
+                  fill = "rgb(var(--ink-rgb) / 0.06)";
                   stroke = "var(--text-dim)";
                 }
               }

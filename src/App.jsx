@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import CategoryLanding from "./components/CategoryLanding.jsx";
 import TopBar from "./components/TopBar.jsx";
 import ExportDialog from "./components/ExportDialog.jsx";
+import { useTheme } from "./hooks/useTheme.js";
+import { useSonification } from "./hooks/useSonification.js";
 import StepTable from "./components/StepTable.jsx";
 import Workspace from "./components/Workspace.jsx";
 import Sidebar from "./components/Sidebar.jsx";
@@ -99,6 +101,8 @@ export default function App() {
   const [stage, setStage] = useState(shared ? "app" : "select");
   const [view, setView] = useState(shared?.view ?? "sorting");
   const [showHelp, setShowHelp] = useState(false);
+  const appearance = useTheme();
+  const sound = useSonification();
   const [exportOpen, setExportOpen] = useState(false);
   const [printing, setPrinting] = useState(false);
   const v = useVisualizer(initFor("sorting") || initFor("searching"));
@@ -157,6 +161,42 @@ export default function App() {
     else v.handleShuffle();
   };
 
+  /**
+   * Play, with a count-in. Starting a run from the top plays the array as it
+   * stands first — the unsorted scatter — and only then lets the algorithm
+   * go, so the sweep at the end has something to be compared against.
+   *
+   * The count-in only exists when sound is on, so nothing about the transport
+   * changes for anyone who hasn't asked to hear it.
+   */
+  // Pitch is the value, and only the bar views lay values out on a scale for
+  // that to mean anything.
+  const soundable = view === "sorting" || view === "searching";
+
+  const countIn = useRef(null);
+  useEffect(() => () => clearTimeout(countIn.current), []);
+
+  const togglePlayWithIntro = () => {
+    // A second press during the count-in cancels it, rather than queueing a
+    // second sweep on top of the first.
+    if (countIn.current) {
+      clearTimeout(countIn.current);
+      countIn.current = null;
+      return;
+    }
+    const wantsIntro =
+      sound.enabled && soundable && !active.playing && active.stepIdx === 0 && v.steps.length > 1;
+    if (!wantsIntro) {
+      active.togglePlay();
+      return;
+    }
+    const ms = sound.playSweep(v.step.array ?? v.displayArr, { scale: v.maxVal });
+    countIn.current = setTimeout(() => {
+      countIn.current = null;
+      active.togglePlay();
+    }, ms);
+  };
+
   // Transport props every Controls instance needs, wired to the active view.
   const transport = {
     stepIdx: active.stepIdx,
@@ -167,11 +207,39 @@ export default function App() {
     onReset: active.reset,
     onStepBack: active.stepBack,
     onStepForward: active.stepForward,
-    onTogglePlay: active.togglePlay,
+    onTogglePlay: togglePlayWithIntro,
     onSeek: active.seek,
     showHelp,
     onToggleHelp: () => setShowHelp((s) => !s),
   };
+
+  // Sound is a property of the bars: pitch is the value, and only the sorting
+  // and searching views have values laid out on a scale for it to mean
+  // anything. The export seeks through every frame in turn, which would fire
+  // hundreds of notes, so it stays quiet while the dialog is open.
+  const sounded = useRef(-1);
+  useEffect(() => {
+    if (!sound.enabled || exportOpen || !soundable) return;
+    if (sounded.current === v.stepIdx) return;
+    sounded.current = v.stepIdx;
+
+    const done = v.stepIdx > 0 && v.stepIdx === v.steps.length - 1;
+    // A finished sort is an array that has become a scale, and playing it is
+    // the whole argument the sound was making: the same data that went in as
+    // a scatter comes out as a run up the keyboard. A search ends on an
+    // answer instead, so it keeps its single note.
+    if (done && v.meta.category === "sorting") {
+      sound.playSweep(v.step.array, { scale: v.maxVal });
+      return;
+    }
+    sound.playStep(v.step, {
+      scale: v.maxVal,
+      // Kept just inside the gap between steps so a fast run is a run of
+      // notes rather than one continuous chord.
+      duration: Math.min(0.12, (delayForSpeed(v.speed) / 1000) * 0.85),
+      done,
+    });
+  }, [v.stepIdx, v.step, v.maxVal, v.speed, v.steps.length, v.meta.category, sound, exportOpen, soundable]);
 
   // The address bar tracks the data on screen, so the link is always ready to
   // copy. Only committed data is encoded — never half-typed sidebar text.
@@ -185,7 +253,7 @@ export default function App() {
     onExport: () => setExportOpen(true),
     onShuffle: shuffleActive,
     playing: active.playing,
-    onTogglePlay: active.togglePlay,
+    onTogglePlay: togglePlayWithIntro,
     canPlay: active.steps.length > 1,
     atEnd: active.stepIdx >= active.steps.length - 1,
   };
@@ -238,7 +306,7 @@ export default function App() {
 
   useKeyboardShortcuts({
     enabled: stage === "app",
-    onTogglePlay: active.togglePlay,
+    onTogglePlay: togglePlayWithIntro,
     onStepBack: active.stepBack,
     onStepForward: active.stepForward,
     onReset: active.reset,
@@ -270,7 +338,7 @@ export default function App() {
   };
 
   if (stage === "select") {
-    return <CategoryLanding onSelect={handleViewChange} />;
+    return <CategoryLanding onSelect={handleViewChange} appearance={appearance} />;
   }
 
   // Keep step animations shorter than the gap between steps, otherwise a fast
@@ -295,6 +363,7 @@ export default function App() {
         onGoHome={() => setStage("select")}
         shareUrl={shareUrl}
         onExport={() => setExportOpen(true)}
+        appearance={appearance}
       />
 
       {view === "linkedlist" ? (
@@ -940,9 +1009,12 @@ export default function App() {
             maxVal={v.maxVal}
             showTags={v.showTags}
             meta={v.meta}
+            baseArray={v.baseArray}
+            onEdit={v.editArray}
+            onEditBegin={v.reset}
           />
           <RecursionPanel step={v.step} size={v.displayArr.length} />
-          <Controls {...transport} step={v.step} meta={v.meta} />
+          <Controls {...transport} step={v.step} meta={v.meta} sound={sound} />
           <InfoPanel meta={v.meta} step={v.step} />
         </Workspace>
       )}

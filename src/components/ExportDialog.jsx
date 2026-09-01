@@ -30,9 +30,24 @@ export function planFrames(total, maxFrames = MAX_FRAMES) {
   return frames;
 }
 
-/** Two frames is enough to be sure React has committed and the page painted. */
+/**
+ * Waits for the browser to have laid out the step just seeked to. Two frames
+ * is enough to be sure React has committed and the page painted — but a
+ * backgrounded tab never fires an animation frame at all, so the wait falls
+ * back to a timeout. Without it, an export that gets tabbed away from hangs
+ * forever behind a progress bar that never moves.
+ */
 const painted = () =>
-  new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+    requestAnimationFrame(() => requestAnimationFrame(finish));
+    setTimeout(finish, 120);
+  });
 
 function download(blob, filename) {
   const url = URL.createObjectURL(blob);

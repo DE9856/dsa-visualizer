@@ -17,37 +17,37 @@ export default function ListNode({ node, index, allNodes, step, pointerMap, prev
 
   if (isMerged) {
     border = "var(--green)";
-    bg = "rgba(95,214,160,0.10)";
+    bg = "rgb(var(--green-rgb) / 0.10)";
   }
   if (isActive) {
     border = "var(--blue)";
-    bg = "rgba(79,184,224,0.16)";
-    glow = "rgba(79,184,224,0.4)";
+    bg = "rgb(var(--blue-rgb) / 0.16)";
+    glow = "rgb(var(--blue-rgb) / 0.4)";
   }
   if (isSwap) {
     border = "var(--purple)";
-    bg = "rgba(177,140,255,0.18)";
-    glow = "rgba(177,140,255,0.5)";
+    bg = "rgb(var(--purple-rgb) / 0.18)";
+    glow = "rgb(var(--purple-rgb) / 0.5)";
   }
   if (isPending) {
     border = "var(--primary)";
-    bg = "rgba(255,138,61,0.18)";
-    glow = "rgba(255,138,61,0.5)";
+    bg = "rgb(var(--primary-rgb) / 0.18)";
+    glow = "rgb(var(--primary-rgb) / 0.5)";
   }
   if (isUpdating) {
     border = "var(--primary)";
-    bg = "rgba(255,138,61,0.18)";
-    glow = "rgba(255,138,61,0.5)";
+    bg = "rgb(var(--primary-rgb) / 0.18)";
+    glow = "rgb(var(--primary-rgb) / 0.5)";
   }
   if (isRemoving) {
     border = "var(--red)";
-    bg = "rgba(255,107,107,0.22)";
-    glow = "rgba(255,107,107,0.5)";
+    bg = "rgb(var(--red-rgb) / 0.22)";
+    glow = "rgb(var(--red-rgb) / 0.5)";
   }
   if (isFound) {
     border = "var(--green)";
-    bg = "rgba(95,214,160,0.22)";
-    glow = "rgba(95,214,160,0.5)";
+    bg = "rgb(var(--green-rgb) / 0.22)";
+    glow = "rgb(var(--green-rgb) / 0.5)";
   }
 
   const next = allNodes[index + 1];

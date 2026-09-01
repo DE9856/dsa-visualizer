@@ -471,6 +471,113 @@ The DP, backtracking, greedy, string and Huffman views get the same panel; the
 data-structure operations do not, because "insert into a BST" is a sentence rather than an
 algorithm.
 
+### Editing the array by hand
+
+On the sorting and searching views the bars are the input, not just a picture
+of it:
+
+- **Click a bar** to set its value to the height you clicked at.
+- **Drag up or down** to scrub the value, with the number shown above the bar.
+- **Drag sideways** to move that element along the array.
+- **↑ / ↓** on a focused bar change its value by one, or by ten with Shift;
+  **Alt+← / →** move it. Bare arrows keep stepping the run, as everywhere else.
+
+A single press serves both edits, so the axis of the first few pixels of
+movement decides which one it is; a press that never travels four pixels is a
+click. The array is held as a draft for the length of the gesture and
+committed once on release — the run is recomputed and the undo stack gains one
+entry per gesture, not one per pointer move.
+
+Editing rewinds to the first step and applies to the array the run *starts*
+from, which is not always what is on screen: mid-run the canvas shows a partly
+sorted picture, and the searches that sort a copy show an order the base array
+never had. Reordering is therefore disabled on those searches — the sort would
+undo it before the first frame — while setting values still works. Any edit
+marks the input shape as custom, because it is no longer any of the named
+ones, and the shareable link updates with it.
+
+### Appearance
+
+The button beside the topic tabs opens three settings, kept apart because they
+answer different questions:
+
+- **Theme** — System, Light or Dark. System follows `prefers-color-scheme` and
+  keeps following it as the OS switches.
+- **High contrast** — a *modifier*, not a third theme, so there is a light
+  high-contrast mode as well as a dark one. It pushes the things contrast
+  actually lives in: hairlines, dimmed text, fill strength, stroke weight, and
+  it drops the glows entirely.
+- **State colours** — Default, or a colour-blind-safe palette.
+
+Appearance is stored locally and deliberately kept **out of the shareable
+link**: it describes the person reading, not the run, and a link that forced
+its author's theme on whoever opened it would be a bug. Exports do follow it —
+a light run exports light.
+
+### Hearing the run
+
+The speaker button in the transport bar plays the run: each element's value
+becomes a pitch, so a sort is a scatter that resolves into a rising scale, and
+a binary search is three or four probes closing on one note.
+
+A run is **bookended**. Pressing play from the top sweeps the array as it
+stands — one note per element, left to right, the unsorted scatter — and holds
+the algorithm back until that finishes. When a sort completes, the same sweep
+plays again, and because the array is now in order it comes out as a rising
+scale: the same notes, the same length, transformed. That contrast is the
+whole argument for having sound at all, and it is only audible because there
+is something to compare against. Pressing play a second time during the
+count-in cancels it rather than queueing another. Searches keep their single
+found note instead — a search ends on an answer, and sweeping the array at
+that point would bury it.
+
+Sweeps are scheduled against the audio clock rather than fired from a timer.
+A sequence driven by `setTimeout` drifts and stutters under any main-thread
+work, and evenness is the one thing a sweep cannot afford to lose. The whole
+sweep is held to about a second and a quarter however long the array is.
+
+Pitch is mapped **logarithmically** over 180Hz–1200Hz, about two and a half
+octaves. Ears hear ratios rather than differences — 200Hz to 400Hz is the same
+interval as 400Hz to 800Hz — so a linear map would squeeze the bottom half of
+the array into a semitone and spread the top half over an octave. The log map
+gives every equal step in value an equal musical step, which is what makes the
+shape of the data audible.
+
+The waveform carries the *state* while the pitch carries the value, so two
+events at the same pitch are still told apart: comparisons are a sine, swaps a
+triangle, a search's probes a square. A run ends on a cue of its own — three
+notes from across a sorted array, the pitch of the element a search found, or
+a single note below the whole range for a search that found nothing.
+
+It is off by default and remembered, and browsers refuse to start audio until
+the reader has interacted with the page, so the first note can only ever
+follow something they did. Exports stay silent: the capture seeks through
+every frame in turn, which would otherwise fire hundreds of notes at once.
+
+Sound is the third channel beside colour and the state glyphs, and the only
+one that carries the *value* rather than the state — which is what makes it
+useful with the screen off as well as classic to listen to.
+
+### Colour is not the only channel
+
+The app encodes what an algorithm is doing almost entirely in colour, which
+fails for red-green colour blindness, in greyscale, and in print. So every
+state carries a **glyph** as well: `↔` comparing, `⇄` swapping, `✓` in place,
+`◆` pivot, `◎` probing, `★` found — with a legend under the bars. Either
+channel alone is enough to read the picture.
+
+The safe palette is not a straight copy of Okabe-Ito. Six categories is past
+what hue alone separates under dichromacy, so the state colours were chosen by
+measurement: candidate sets were simulated for protanopia, deuteranopia and
+tritanopia and scored on their weakest pair, with a floor on contrast against
+the surface. Naive Okabe-Ito assignments scored ΔE 3.8 at worst — idle
+collapsing onto pivot under protanopia, *worse* than the palette they replace.
+The shipped set scores 19.4 on dark and 9.2 in the hardest case (light plus
+high contrast, where every colour must stay dark enough to hold contrast on
+white). Tritanopia is the binding constraint throughout and is left binding on
+purpose: it is vanishingly rare beside the red-green deficiencies, and the
+glyphs carry the meaning where hue cannot.
+
 ### Exporting a run
 
 Every view has an EXPORT button beside SHARE (in the phone's nav sheet
@@ -1597,6 +1704,10 @@ src/
 │                           copy button
 │
 ├── hooks/
+│   ├── useTheme.js              theme / contrast / palette, applied to <html>
+│   ├── useBarEditing.js         click/drag editing of the bars; the gesture
+│   │                            state machine is pure and exported
+│   ├── useSonification.js       on/off, volume, and frames → notes
 │   ├── useStepPlayer.js         shared playback engine (see below)
 │   ├── useKeyboardShortcuts.js  global transport shortcuts
 │   ├── useRace.js               2-4 sorts on one input, under one transport
@@ -1616,6 +1727,9 @@ src/
 │   ├── gifEncoder.js       GIF89a writer: median cut, LZW, frame differencing
 │   ├── videoRecorder.js    MediaRecorder wrapper, MP4 where the browser allows
 │   ├── stepTable.js        frames → printable rows
+│   ├── stateStyle.js       what compare/swap/sorted mean, in tokens, glyphs
+│   │                       and timbres
+│   ├── sonify.js           Web Audio: value → pitch, log-mapped
 │   └── urlState.js         encodes/decodes the shareable link
 ├── App.jsx                 stage + view routing, wires the active player
 ├── main.jsx

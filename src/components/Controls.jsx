@@ -1,4 +1,4 @@
-import { Play, Pause, SkipBack, SkipForward, RotateCcw, RefreshCw, Keyboard } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, RotateCcw, RefreshCw, Keyboard, Volume2, VolumeX } from "lucide-react";
 import { delayForSpeed } from "../hooks/useStepPlayer.js";
 import { SHORTCUTS } from "../hooks/useKeyboardShortcuts.js";
 
@@ -21,6 +21,7 @@ export default function Controls({
   onSeek,
   showHelp = false,
   onToggleHelp,
+  sound,
 }) {
   const total = steps.length;
   const lastIdx = Math.max(0, total - 1);
@@ -91,6 +92,33 @@ export default function Controls({
         </div>
 
         {step && meta && <Metrics step={step} meta={meta} />}
+
+        {sound && (
+          <div className="controls__sound">
+            <button
+              className={`btn icon ${sound.enabled ? "active" : ""}`}
+              onClick={sound.toggle}
+              aria-pressed={sound.enabled}
+              title={sound.enabled ? "Sound on — pitch follows each value" : "Play the run: pitch follows each value"}
+              aria-label={sound.enabled ? "Turn sound off" : "Turn sound on"}
+            >
+              {sound.enabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
+            </button>
+            {/* The slider appears only once there is something to hear, so
+                the transport isn't carrying a dead control most of the time. */}
+            {sound.enabled && (
+              <input
+                className="controls__volume"
+                type="range"
+                min={0}
+                max={100}
+                value={Math.round(sound.volume * 100)}
+                onChange={(e) => sound.setVolume(parseInt(e.target.value, 10) / 100)}
+                aria-label="Volume"
+              />
+            )}
+          </div>
+        )}
 
         {onToggleHelp && (
           <button

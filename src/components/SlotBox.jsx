@@ -13,23 +13,23 @@ export default function SlotBox({ node, step, tag, tagClass = "" }) {
 
   if (isActive) {
     border = "var(--blue)";
-    bg = "rgba(79,184,224,0.16)";
-    glow = "rgba(79,184,224,0.4)";
+    bg = "rgb(var(--blue-rgb) / 0.16)";
+    glow = "rgb(var(--blue-rgb) / 0.4)";
   }
   if (isPending) {
     border = "var(--primary)";
-    bg = "rgba(255,138,61,0.18)";
-    glow = "rgba(255,138,61,0.5)";
+    bg = "rgb(var(--primary-rgb) / 0.18)";
+    glow = "rgb(var(--primary-rgb) / 0.5)";
   }
   if (isRemoving) {
     border = "var(--red)";
-    bg = "rgba(255,107,107,0.22)";
-    glow = "rgba(255,107,107,0.5)";
+    bg = "rgb(var(--red-rgb) / 0.22)";
+    glow = "rgb(var(--red-rgb) / 0.5)";
   }
   if (isFound) {
     border = "var(--green)";
-    bg = "rgba(95,214,160,0.22)";
-    glow = "rgba(95,214,160,0.5)";
+    bg = "rgb(var(--green-rgb) / 0.22)";
+    glow = "rgb(var(--green-rgb) / 0.5)";
   }
 
   return (

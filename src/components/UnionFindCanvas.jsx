@@ -54,13 +54,13 @@ function stateOf(step, i) {
 }
 
 const STYLES = {
-  compressed: { stroke: "var(--primary)", fill: "rgba(255,138,61,0.26)", glow: "rgba(255,138,61,0.6)" },
-  linked: { stroke: "var(--primary)", fill: "rgba(255,138,61,0.2)", glow: "rgba(255,138,61,0.5)" },
-  root: { stroke: "var(--green)", fill: "rgba(95,214,160,0.2)", glow: "rgba(95,214,160,0.45)" },
-  current: { stroke: "var(--primary)", fill: "rgba(255,138,61,0.16)", glow: "rgba(255,138,61,0.35)" },
-  pair: { stroke: "var(--blue)", fill: "rgba(79,184,224,0.2)" },
-  path: { stroke: "var(--blue)", fill: "rgba(79,184,224,0.12)" },
-  active: { stroke: "var(--blue)", fill: "rgba(79,184,224,0.1)" },
+  compressed: { stroke: "var(--primary)", fill: "rgb(var(--primary-rgb) / 0.26)", glow: "rgb(var(--primary-rgb) / 0.6)" },
+  linked: { stroke: "var(--primary)", fill: "rgb(var(--primary-rgb) / 0.2)", glow: "rgb(var(--primary-rgb) / 0.5)" },
+  root: { stroke: "var(--green)", fill: "rgb(var(--green-rgb) / 0.2)", glow: "rgb(var(--green-rgb) / 0.45)" },
+  current: { stroke: "var(--primary)", fill: "rgb(var(--primary-rgb) / 0.16)", glow: "rgb(var(--primary-rgb) / 0.35)" },
+  pair: { stroke: "var(--blue)", fill: "rgb(var(--blue-rgb) / 0.2)" },
+  path: { stroke: "var(--blue)", fill: "rgb(var(--blue-rgb) / 0.12)" },
+  active: { stroke: "var(--blue)", fill: "rgb(var(--blue-rgb) / 0.1)" },
   idle: { stroke: "var(--border-strong)", fill: "var(--panel-alt)" },
 };
 

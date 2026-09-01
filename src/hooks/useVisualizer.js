@@ -190,6 +190,29 @@ export function useVisualizer(init) {
     setCustomInput("");
   }, [customInput, meta.category, history]);
 
+  /**
+   * The array as the run *starts* — what direct editing edits. Mid-run the
+   * canvas is showing a partly sorted picture, and for the searches that sort
+   * a copy it is showing an order the base array never had, so an edit has to
+   * be expressed against a frame both sides agree on.
+   */
+  const baseArray = steps[0]?.array || array;
+
+  /** Commit a hand-edited array: it is nobody's named shape any more. */
+  const editArray = useCallback(
+    (next) => {
+      history.record();
+      pause();
+      setStepIdx(0);
+      setArray(next);
+      setDistributionState(CUSTOM_DISTRIBUTION);
+      if (ALGO_MAP[algo].category === "searching" && !next.includes(target)) {
+        setTarget(next[Math.floor(Math.random() * next.length)]);
+      }
+    },
+    [algo, target, pause, setStepIdx, history]
+  );
+
   const setRandomTarget = useCallback(
     (inArray) => {
       const arr = steps[Math.min(player.stepIdx, steps.length - 1)]?.array || array;
@@ -222,7 +245,9 @@ export function useVisualizer(init) {
     steps,
     step,
     displayArr,
+    baseArray,
     maxVal,
+    editArray,
     switchCategory,
     switchAlgo,
     handleShuffle,

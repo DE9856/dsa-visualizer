@@ -141,9 +141,10 @@ export async function createCapturer(element, { includeCode = false, maxWidth = 
   // below the window's own a no-op.
   const scale = Math.min(2, Math.max(0.25, maxWidth / cssWidth));
 
-  const root = document.documentElement;
-  const vars = getComputedStyle(root);
-  const background = vars.getPropertyValue("--bg").trim() || "#0b0d12";
+  // Read live rather than cached: the theme can be changed between exports,
+  // and a stale background would letterbox a light capture in near-black.
+  const backgroundNow = () =>
+    getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#0b0d12";
 
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
@@ -163,7 +164,15 @@ export async function createCapturer(element, { includeCode = false, maxWidth = 
 
     const wrapper = document.createElement("div");
     wrapper.setAttribute("class", "dsa-capture-root");
-    const style = `width:${w}px;background:${background};padding:0;margin:0;--step-anim:0ms;`;
+    // The appearance axes live as attributes on <html>, and `:root` has been
+    // rewritten to this wrapper — so without copying them across, a light or
+    // high-contrast or colour-blind-safe run would export in the dark default
+    // palette instead of the one on screen.
+    for (const attribute of ["data-theme", "data-contrast", "data-palette"]) {
+      const value = document.documentElement.getAttribute(attribute);
+      if (value) wrapper.setAttribute(attribute, value);
+    }
+    const style = `width:${w}px;background:${backgroundNow()};padding:0;margin:0;--step-anim:0ms;`;
 
     // The height has to be measured on the clone, not on the live element.
     // Dropping a panel from the middle of the column lets everything below it
@@ -205,7 +214,7 @@ export async function createCapturer(element, { includeCode = false, maxWidth = 
       canvas.height = size.height;
     }
 
-    ctx.fillStyle = background;
+    ctx.fillStyle = backgroundNow();
     ctx.fillRect(0, 0, size.width, size.height);
     ctx.drawImage(image, 0, 0, outW, outH);
 

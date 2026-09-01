@@ -1,21 +1,304 @@
+/**
+ * Theming works on three independent axes, each a set of attributes on
+ * <html>, because they answer different questions and people need to combine
+ * the answers:
+ *
+ *   data-theme     light | dark        what surface am I reading on
+ *   data-contrast  high                how hard should the edges push
+ *   data-palette   safe                which hues encode algorithm state
+ *
+ * Only *primitives* are redefined per axis. Custom properties resolve where
+ * they are used, not where they are declared, so overriding `--ink-rgb` alone
+ * re-derives every border, panel fill and hairline in the app — which is why
+ * a light theme is a dozen lines rather than a second stylesheet.
+ *
+ * Colour carries the whole of the algorithm encoding here — compare, swap,
+ * sorted, pivot — so the state hues are named for what they *mean* rather
+ * than for what colour they are. A palette swap then re-points the meaning,
+ * and every view follows without knowing a palette exists. The glyphs in
+ * `stateStyle.js` ride alongside as a second, non-colour channel.
+ */
 :root {
+  color-scheme: dark;
+
+  /* ---- the hues, as bare channels so any alpha can be mixed from them ---- */
+  --primary-rgb: 255 138 61;
+  --blue-rgb: 79 184 224;
+  --green-rgb: 95 214 160;
+  --red-rgb: 255 107 107;
+  --purple-rgb: 177 140 255;
+  --yellow-rgb: 245 196 81;
+
+  /* Overlay ink: white over a dark surface, black over a light one. Every
+     hairline and translucent fill in the app is mixed from this, which is
+     what makes the light theme a change of one value rather than of two
+     hundred. */
+  --ink-rgb: 255 255 255;
+  --shadow-rgb: 0 0 0;
+
+  /* ---- surfaces ---- */
   --bg: #0b0d12;
-  --panel: rgba(23, 26, 34, 0.72);
-  --panel-alt: rgba(255, 255, 255, 0.035);
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.14);
+  --surface-rgb: 23 26 34;
+  --overlay-rgb: 17 20 27;
+  --scrim-rgb: 6 7 10;
+  --panel: rgb(var(--surface-rgb) / 0.72);
+  --panel-alt: rgb(var(--ink-rgb) / 0.035);
+  --border: rgb(var(--ink-rgb) / 0.08);
+  --border-strong: rgb(var(--ink-rgb) / 0.14);
   --text: #edebe6;
   --text-dim: #8b90a0;
-  --primary: #ff8a3d;
-  --primary-dim: rgba(255, 138, 61, 0.16);
-  --blue: #4fb8e0;
-  --red: #ff6b6b;
-  --green: #5fd6a0;
-  --purple: #b18cff;
-  --yellow: #f5c451;
+  /* Text that sits *on* a primary-filled button, which has to invert with
+     the theme or the label disappears into its own background. */
+  --on-primary: #14100b;
+
+  /* ---- derived hue colours (kept for everything that just wants a hue) -- */
+  --primary: rgb(var(--primary-rgb));
+  --primary-dim: rgb(var(--primary-rgb) / 0.16);
+  --blue: rgb(var(--blue-rgb));
+  --red: rgb(var(--red-rgb));
+  --green: rgb(var(--green-rgb));
+  --purple: rgb(var(--purple-rgb));
+  --yellow: rgb(var(--yellow-rgb));
+
+  /* ---- what the colours MEAN ------------------------------------------
+     These are the tokens the canvases read. A palette re-points them; it
+     never touches the components. */
+  --state-idle-rgb: var(--primary-rgb);
+  --state-compare-rgb: var(--blue-rgb);
+  --state-swap-rgb: var(--red-rgb);
+  --state-sorted-rgb: var(--green-rgb);
+  --state-pivot-rgb: var(--purple-rgb);
+  --state-probe-rgb: var(--primary-rgb);
+  --state-found-rgb: var(--green-rgb);
+  --state-muted-rgb: var(--ink-rgb);
+
+  /* Fill strengths, as bare numbers so high contrast can raise all of them
+     at once without every component knowing about contrast. */
+  --fill-soft: 0.14;
+  --fill-mid: 0.32;
+  --fill-strong: 0.5;
+  --glow-alpha: 0.35;
+  --stroke-width: 1.5px;
+
   /* Duration of step-driven animations. App.jsx overrides it from the current
      playback speed so fast runs snap instead of smearing into each other. */
   --step-anim: 240ms;
+}
+
+/* ---------- light ---------- */
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --ink-rgb: 0 0 0;
+  --shadow-rgb: 90 100 120;
+
+  --bg: #f2f3f6;
+  --surface-rgb: 255 255 255;
+  --overlay-rgb: 255 255 255;
+  --scrim-rgb: 22 26 34;
+  --panel: rgb(var(--surface-rgb) / 0.92);
+  --panel-alt: rgb(var(--ink-rgb) / 0.045);
+  --border: rgb(var(--ink-rgb) / 0.12);
+  --border-strong: rgb(var(--ink-rgb) / 0.24);
+  --text: #14171d;
+  --text-dim: #596070;
+  --on-primary: #ffffff;
+  /* A 16% tint of the accent reads as a gentle wash on near-black and as a
+     solid block on white — heavy enough that accent-coloured text sitting on
+     it drops under 4.5:1. The two move together because both are the accent,
+     so the tint is what has to give. */
+  --primary-dim: rgb(var(--primary-rgb) / 0.1);
+
+  /* The hues themselves are the palettes' business — see below. The dark
+     set is tuned to glow on near-black and washes out to pastel on white, so
+     each palette carries a darkened light variant rather than being dimmed.
+
+     Ink over a light surface is nearly black, which would make a dimmed
+     element the loudest thing on screen. */
+  --state-muted-rgb: 130 138 155;
+
+  --glow-alpha: 0.22;
+}
+
+/* ---------- palettes ---------- */
+
+/* The hues live in attribute-scoped blocks rather than only on :root so a
+   palette can be applied to a *subtree* — which is what lets the appearance
+   menu show real swatches of the palette you are not currently using. The
+   default block repeats the values in :root above for that reason: without
+   it, a "default" preview sitting inside a safe-palette page would inherit
+   the safe hues and show you the wrong thing. */
+
+[data-palette="default"] {
+  --primary-rgb: 255 138 61;
+  --blue-rgb: 79 184 224;
+  --green-rgb: 95 214 160;
+  --red-rgb: 255 107 107;
+  --purple-rgb: 177 140 255;
+  --yellow-rgb: 245 196 81;
+
+  --state-idle-rgb: var(--primary-rgb);
+  --state-probe-rgb: var(--primary-rgb);
+  --state-found-rgb: var(--green-rgb);
+}
+
+/* Okabe-Ito supplies the hues, but the *state* colours below are not simply
+   six entries taken off that list. Six categories is past what hue alone can
+   separate under dichromacy, so these were chosen by measurement: each
+   candidate set was simulated for protanopia, deuteranopia and tritanopia and
+   scored on its weakest pair, with a floor on contrast against the surface.
+   Straight Okabe-Ito assignments scored 3.8 at worst — idle collapsing onto
+   pivot under protanopia, which is worse than the palette it replaces. These
+   score 19.4 here and 9.2 in the hardest combination (light, high contrast),
+   where every colour must be dark enough to hold contrast on white and the
+   lightness range there is nearly spent.
+
+   Tritanopia is the binding constraint throughout and is left binding on
+   purpose: it is vanishingly rare next to the red-green deficiencies, and the
+   glyphs carry the meaning when the hue cannot. */
+[data-palette="safe"] {
+  --primary-rgb: 230 159 0;
+  --blue-rgb: 86 180 233;
+  --green-rgb: 0 158 115;
+  --red-rgb: 213 94 0;
+  --purple-rgb: 204 121 167;
+  --yellow-rgb: 240 228 66;
+
+  --state-idle-rgb: 118 128 150;
+  --state-compare-rgb: 86 180 233;
+  --state-swap-rgb: 213 94 0;
+  --state-sorted-rgb: 0 140 102;
+  --state-pivot-rgb: 240 168 208;
+  --state-probe-rgb: 230 159 0;
+  --state-found-rgb: 0 114 178;
+}
+
+/* On a light surface the same hues have to darken to keep their contrast.
+   The descendant form is what makes the menu's swatches correct inside a
+   light page; the compound form is the page itself. */
+:root[data-theme="light"] [data-palette="default"],
+:root[data-theme="light"][data-palette="default"] {
+  --primary-rgb: 176 72 4;
+  --blue-rgb: 20 110 152;
+  --green-rgb: 12 126 85;
+  --red-rgb: 193 42 42;
+  --purple-rgb: 106 62 190;
+  --yellow-rgb: 140 98 6;
+}
+
+:root[data-theme="light"] [data-palette="safe"],
+:root[data-theme="light"][data-palette="safe"] {
+  --primary-rgb: 168 116 0;
+  --blue-rgb: 21 105 143;
+  --green-rgb: 0 110 80;
+  --red-rgb: 170 75 0;
+  --purple-rgb: 150 68 114;
+  --yellow-rgb: 133 112 0;
+
+  --state-idle-rgb: 130 140 160;
+  --state-compare-rgb: 30 120 160;
+  --state-swap-rgb: 170 75 0;
+  --state-sorted-rgb: 0 92 66;
+  --state-pivot-rgb: 150 68 114;
+  --state-probe-rgb: 168 116 0;
+  --state-found-rgb: 0 87 136;
+}
+
+/* ---------- high contrast ---------- */
+
+/* A modifier rather than a third theme, so there is a light high-contrast as
+   well as a dark one. It pushes the things contrast actually lives in —
+   hairlines, dimmed text, fill strength and stroke weight — instead of only
+   swapping the background. */
+:root[data-contrast="high"] {
+  --panel-alt: rgb(var(--ink-rgb) / 0.1);
+  --border: rgb(var(--ink-rgb) / 0.45);
+  --border-strong: rgb(var(--ink-rgb) / 0.8);
+  --fill-soft: 0.26;
+  --fill-mid: 0.5;
+  --fill-strong: 0.72;
+  --glow-alpha: 0;
+  --stroke-width: 2px;
+}
+
+/* The hue overrides are scoped per palette. An unscoped block here would set
+   the default hues on top of whatever palette was chosen, so turning high
+   contrast on while using the colour-blind-safe palette silently threw that
+   palette away — the two settings are meant to compose, not to fight. Each
+   variant below raises luminance against its surface while keeping the hue
+   angle the palette picked. */
+
+:root[data-contrast="high"]:not([data-theme="light"]) {
+  --bg: #000000;
+  --surface-rgb: 12 14 19;
+  --text: #ffffff;
+  --text-dim: #c6cbd8;
+}
+
+:root[data-contrast="high"]:not([data-theme="light"])[data-palette="default"] {
+  --primary-rgb: 255 166 92;
+  --blue-rgb: 122 205 240;
+  --green-rgb: 116 232 176;
+  --red-rgb: 255 140 140;
+  --purple-rgb: 198 170 255;
+  --yellow-rgb: 255 214 105;
+}
+
+:root[data-contrast="high"]:not([data-theme="light"])[data-palette="safe"] {
+  --primary-rgb: 255 188 41;
+  --blue-rgb: 130 209 247;
+  --green-rgb: 26 205 154;
+  --red-rgb: 255 122 36;
+  --purple-rgb: 240 158 202;
+  --yellow-rgb: 245 236 120;
+
+  --state-idle-rgb: 150 160 182;
+  --state-compare-rgb: 130 209 247;
+  --state-swap-rgb: 255 122 36;
+  --state-sorted-rgb: 0 186 138;
+  --state-pivot-rgb: 247 186 222;
+  --state-probe-rgb: 255 188 41;
+  --state-found-rgb: 90 170 226;
+}
+
+:root[data-contrast="high"][data-theme="light"] {
+  --bg: #ffffff;
+  --surface-rgb: 255 255 255;
+  --text: #000000;
+  --text-dim: #2c313c;
+}
+
+:root[data-contrast="high"][data-theme="light"][data-palette="default"] {
+  --primary-rgb: 160 62 0;
+  --blue-rgb: 12 84 120;
+  --green-rgb: 0 94 62;
+  --red-rgb: 160 20 20;
+  --purple-rgb: 82 40 160;
+  --yellow-rgb: 110 76 0;
+}
+
+:root[data-contrast="high"][data-theme="light"][data-palette="safe"] {
+  --primary-rgb: 132 90 0;
+  --blue-rgb: 13 79 110;
+  --green-rgb: 0 86 62;
+  --red-rgb: 138 58 0;
+  --purple-rgb: 120 48 90;
+  --yellow-rgb: 104 88 0;
+
+  --state-idle-rgb: 96 106 128;
+  --state-compare-rgb: 20 100 140;
+  --state-swap-rgb: 138 58 0;
+  --state-sorted-rgb: 0 70 50;
+  --state-pivot-rgb: 132 54 100;
+  --state-probe-rgb: 132 90 0;
+  --state-found-rgb: 0 68 108;
+}
+
+/* Glows are decoration that costs contrast; high contrast drops them
+   outright rather than trying to make them work. */
+:root[data-contrast="high"] .panel {
+  border-color: var(--border);
 }
 
 * {
@@ -86,9 +369,9 @@ summary {
   min-height: 100dvh;
   padding: 18px 24px 24px;
   background:
-    radial-gradient(circle at 15% -10%, rgba(255, 138, 61, 0.10), transparent 45%),
-    radial-gradient(circle at 85% 0%, rgba(79, 184, 224, 0.08), transparent 40%),
-    radial-gradient(circle at 50% 110%, rgba(177, 140, 255, 0.06), transparent 45%),
+    radial-gradient(circle at 15% -10%, rgb(var(--primary-rgb) / 0.10), transparent 45%),
+    radial-gradient(circle at 85% 0%, rgb(var(--blue-rgb) / 0.08), transparent 40%),
+    radial-gradient(circle at 50% 110%, rgb(var(--purple-rgb) / 0.06), transparent 45%),
     var(--bg);
 }
 
@@ -128,7 +411,7 @@ summary {
 .topbar__mark {
   color: var(--primary);
   font-size: 17px;
-  filter: drop-shadow(0 0 8px rgba(255, 138, 61, 0.6));
+  filter: drop-shadow(0 0 8px rgb(var(--primary-rgb) / 0.6));
 }
 
 /* No container of its own. A bubble drawn around the categories has to be as
@@ -167,9 +450,9 @@ summary {
 /* The one that is open keeps the filled treatment, so it reads as the current
    place rather than as one more button. */
 .topbar__tabs .topbar__category.active {
-  color: #14100b;
+  color: var(--on-primary);
   background: var(--primary);
-  box-shadow: 0 0 14px rgba(255, 138, 61, 0.28);
+  box-shadow: 0 0 14px rgb(var(--primary-rgb) / 0.28);
 }
 
 .topbar__category-sub {
@@ -199,7 +482,7 @@ summary {
   border: 1px solid var(--border-strong);
   border-radius: 12px;
   backdrop-filter: blur(14px);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 14px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 0 rgb(var(--ink-rgb) / 0.03) inset, 0 14px 32px rgb(var(--shadow-rgb) / 0.4);
   padding: 6px;
   z-index: 40;
   display: flex;
@@ -224,11 +507,11 @@ summary {
 
 .topbar__menu-item:hover {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgb(var(--ink-rgb) / 0.06);
 }
 
 .topbar__menu-item.active {
-  color: #14100b;
+  color: var(--on-primary);
   background: var(--primary);
 }
 
@@ -309,7 +592,7 @@ summary {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 14px;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 10px 30px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 1px 0 rgb(var(--ink-rgb) / 0.03) inset, 0 10px 30px rgb(var(--shadow-rgb) / 0.25);
 }
 
 .btn {
@@ -330,7 +613,7 @@ summary {
 
 .btn:hover:not(:disabled) {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgb(var(--ink-rgb) / 0.06);
 }
 
 .btn:active:not(:disabled) {
@@ -343,9 +626,9 @@ summary {
 }
 
 .btn.active {
-  color: #14100b;
+  color: var(--on-primary);
   background: var(--primary);
-  box-shadow: 0 0 16px rgba(255, 138, 61, 0.4);
+  box-shadow: 0 0 16px rgb(var(--primary-rgb) / 0.4);
 }
 
 .btn.icon {
@@ -355,7 +638,7 @@ summary {
 }
 
 .btn.accent {
-  border: 1px solid rgba(255, 138, 61, 0.4);
+  border: 1px solid rgb(var(--primary-rgb) / 0.4);
   color: var(--primary);
   border-radius: 10px;
 }
@@ -497,7 +780,7 @@ input[type="range"] {
 }
 
 .algo-group__header:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgb(var(--ink-rgb) / 0.04);
 }
 
 .algo-group__header:hover .algo-group__label {
@@ -546,7 +829,7 @@ input[type="range"] {
 
 .algo-row:hover {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgb(var(--ink-rgb) / 0.05);
 }
 
 .algo-row.active {
@@ -608,6 +891,11 @@ input[type="range"] {
   align-items: flex-end;
   gap: 3px;
   position: relative;
+  /* Room above the bars for the state glyph and, stacked over it, the value
+     label. Both hang outside the bar because a short bar has no room inside
+     it, and the marker on a two-pixel bar is exactly the one you need to
+     see. */
+  padding-top: 38px;
   padding-bottom: 4px;
   border-bottom: 1px solid var(--border);
 }
@@ -675,35 +963,35 @@ input[type="range"] {
 .band--lt,
 .band--runA,
 .band--desc {
-  background: rgba(79, 184, 224, 0.22);
+  background: rgb(var(--blue-rgb) / 0.22);
 }
 
 .band--eq,
 .band--ins {
-  background: rgba(95, 214, 160, 0.24);
+  background: rgb(var(--green-rgb) / 0.24);
 }
 
 .band--gt,
 .band--runB,
 .band--heap {
-  background: rgba(177, 140, 255, 0.24);
+  background: rgb(var(--purple-rgb) / 0.24);
 }
 
 .band--asc,
 .band--merge,
 .band--quick {
-  background: rgba(255, 138, 61, 0.22);
+  background: rgb(var(--primary-rgb) / 0.22);
 }
 
 .band--bucket,
 .band--extend {
-  background: rgba(245, 196, 81, 0.2);
+  background: rgb(var(--yellow-rgb) / 0.2);
 }
 
 /* The unexamined middle of a Dutch-flag partition — deliberately the quietest
    band, since it is the one that is about to disappear. */
 .band--unseen {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgb(var(--ink-rgb) / 0.05);
 }
 
 .aux {
@@ -747,7 +1035,7 @@ input[type="range"] {
 
 .aux__cell--active {
   border-color: var(--primary);
-  background: rgba(255, 138, 61, 0.18);
+  background: rgb(var(--primary-rgb) / 0.18);
 }
 
 .aux__cell-key {
@@ -771,6 +1059,29 @@ input[type="range"] {
   transform: translateX(-50%);
 }
 
+/* The non-colour half of the state encoding. Sized and weighted to stay a
+   readable silhouette at the width of a single bar. */
+.bar__state {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 700;
+  position: absolute;
+  top: -19px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* The value label steps up to make room rather than overlapping the glyph. */
+.bar--marked .bar__value {
+  top: -34px;
+}
+
+.bar--outside .bar__state {
+  opacity: 0;
+}
+
 .bar__pointer {
   font-family: "JetBrains Mono", monospace;
   font-size: 9px;
@@ -779,6 +1090,42 @@ input[type="range"] {
   bottom: -20px;
   left: 50%;
   transform: translateX(-50%);
+}
+
+/* Without this the glyphs are decoration: a second channel is only a channel
+   if it is documented on screen. */
+.canvas__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 10px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.canvas__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.canvas__legend-glyph {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Solid rather than outlined: the chip is here to show the fill a bar of
+   this state actually gets, and a hairline outline of the same colour reads
+   as an empty box at this size. */
+.canvas__legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: currentColor;
 }
 
 .not-found {
@@ -836,7 +1183,7 @@ input[type="range"] {
   overflow: hidden;
   border-radius: 4px;
   border: 1px solid var(--border-strong);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgb(var(--ink-rgb) / 0.04);
   transition: background-color var(--step-anim) ease, border-color var(--step-anim) ease,
     opacity var(--step-anim) ease;
 }
@@ -844,13 +1191,13 @@ input[type="range"] {
 /* The call whose frame is on screen. */
 .recursion__call.is-active {
   border-color: var(--primary);
-  background: rgba(255, 138, 61, 0.28);
-  box-shadow: 0 0 10px rgba(255, 138, 61, 0.35);
+  background: rgb(var(--primary-rgb) / 0.28);
+  box-shadow: 0 0 10px rgb(var(--primary-rgb) / 0.35);
 }
 
 /* Its ancestors — the rest of the live call stack. */
 .recursion__call.is-ancestor {
-  border-color: rgba(255, 138, 61, 0.45);
+  border-color: rgb(var(--primary-rgb) / 0.45);
   background: var(--primary-dim);
 }
 
@@ -946,15 +1293,15 @@ input[type="range"] {
     to right,
     var(--primary) 0%,
     var(--primary) var(--progress, 0%),
-    rgba(255, 255, 255, 0.08) var(--progress, 0%),
-    rgba(255, 255, 255, 0.08) 100%
+    rgb(var(--ink-rgb) / 0.08) var(--progress, 0%),
+    rgb(var(--ink-rgb) / 0.08) 100%
   );
 }
 
 .timeline__range::-moz-range-track {
   height: 6px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgb(var(--ink-rgb) / 0.08);
 }
 
 .timeline__range::-moz-range-progress {
@@ -972,7 +1319,7 @@ input[type="range"] {
   border-radius: 999px;
   background: var(--text);
   border: 2px solid var(--primary);
-  box-shadow: 0 0 10px rgba(255, 138, 61, 0.5);
+  box-shadow: 0 0 10px rgb(var(--primary-rgb) / 0.5);
   transition: transform 0.12s ease;
 }
 
@@ -982,7 +1329,7 @@ input[type="range"] {
   border-radius: 999px;
   background: var(--text);
   border: 2px solid var(--primary);
-  box-shadow: 0 0 10px rgba(255, 138, 61, 0.5);
+  box-shadow: 0 0 10px rgb(var(--primary-rgb) / 0.5);
 }
 
 .timeline__range:hover::-webkit-slider-thumb,
@@ -1157,7 +1504,7 @@ input[type="range"] {
 
 .source__tab.is-active {
   color: var(--primary);
-  border-color: rgba(255, 138, 61, 0.4);
+  border-color: rgb(var(--primary-rgb) / 0.4);
   background: var(--primary-dim);
 }
 
@@ -1365,7 +1712,7 @@ input[type="range"] {
   letter-spacing: 0.05em;
   color: var(--primary);
   background: var(--primary-dim);
-  border: 1px solid rgba(255, 138, 61, 0.4);
+  border: 1px solid rgb(var(--primary-rgb) / 0.4);
   border-radius: 4px;
   padding: 1px 5px;
 }
@@ -1390,7 +1737,7 @@ input[type="range"] {
 
 .ll-pointer-prev {
   color: var(--purple);
-  background: rgba(177, 140, 255, 0.14);
+  background: rgb(var(--purple-rgb) / 0.14);
 }
 
 .ll-pointer-curr {
@@ -1400,7 +1747,7 @@ input[type="range"] {
 
 .ll-pointer-next {
   color: var(--blue);
-  background: rgba(79, 184, 224, 0.14);
+  background: rgb(var(--blue-rgb) / 0.14);
 }
 
 .ll-arrow {
@@ -1440,7 +1787,7 @@ input[type="range"] {
   font-weight: 700;
   letter-spacing: 0.03em;
   color: var(--purple);
-  background: rgba(177, 140, 255, 0.14);
+  background: rgb(var(--purple-rgb) / 0.14);
   border: 1px dashed var(--purple);
   border-radius: 6px;
   padding: 4px 8px;
@@ -1562,25 +1909,25 @@ input[type="range"] {
   border-radius: 4px;
   color: var(--primary);
   background: var(--primary-dim);
-  border: 1px solid rgba(255, 138, 61, 0.4);
+  border: 1px solid rgb(var(--primary-rgb) / 0.4);
 }
 
 .sq-tag--top {
   color: var(--primary);
   background: var(--primary-dim);
-  border-color: rgba(255, 138, 61, 0.4);
+  border-color: rgb(var(--primary-rgb) / 0.4);
 }
 
 .sq-tag--front {
   color: var(--blue);
-  background: rgba(79, 184, 224, 0.14);
-  border-color: rgba(79, 184, 224, 0.4);
+  background: rgb(var(--blue-rgb) / 0.14);
+  border-color: rgb(var(--blue-rgb) / 0.4);
 }
 
 .sq-tag--rear {
   color: var(--purple);
-  background: rgba(177, 140, 255, 0.14);
-  border-color: rgba(177, 140, 255, 0.4);
+  background: rgb(var(--purple-rgb) / 0.14);
+  border-color: rgb(var(--purple-rgb) / 0.4);
 }
 
 .sq-stack-wrap {
@@ -1790,8 +2137,8 @@ input[type="range"] {
   color: var(--green);
   padding: 3px 9px;
   border-radius: 999px;
-  background: rgba(95, 214, 160, 0.12);
-  border: 1px solid rgba(95, 214, 160, 0.35);
+  background: rgb(var(--green-rgb) / 0.12);
+  border: 1px solid rgb(var(--green-rgb) / 0.35);
   animation: fade-in-up 0.25s ease both;
 }
 
@@ -1816,8 +2163,8 @@ input[type="range"] {
   color: var(--green);
   padding: 2px 7px;
   border-radius: 5px;
-  background: rgba(95, 214, 160, 0.12);
-  border: 1px solid rgba(95, 214, 160, 0.35);
+  background: rgb(var(--green-rgb) / 0.12);
+  border: 1px solid rgb(var(--green-rgb) / 0.35);
 }
 
 .hp-head__rule {
@@ -1945,8 +2292,8 @@ input[type="range"] {
   color: var(--yellow);
   padding: 2px 7px;
   border-radius: 5px;
-  background: rgba(245, 196, 81, 0.13);
-  border: 1px solid rgba(245, 196, 81, 0.35);
+  background: rgb(var(--yellow-rgb) / 0.13);
+  border: 1px solid rgb(var(--yellow-rgb) / 0.35);
   white-space: nowrap;
 }
 
@@ -1965,7 +2312,7 @@ input[type="range"] {
   min-width: 40px;
   height: 6px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgb(var(--ink-rgb) / 0.06);
 }
 
 .ht-load__fill {
@@ -2027,8 +2374,8 @@ input[type="range"] {
   color: var(--yellow);
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(245, 196, 81, 0.13);
-  border: 1px solid rgba(245, 196, 81, 0.4);
+  background: rgb(var(--yellow-rgb) / 0.13);
+  border: 1px solid rgb(var(--yellow-rgb) / 0.4);
   animation: ll-pulse 0.9s ease-in-out infinite;
 }
 
@@ -2059,7 +2406,7 @@ input[type="range"] {
 }
 
 .ht-row--probed {
-  background: rgba(255, 255, 255, 0.035);
+  background: rgb(var(--ink-rgb) / 0.035);
 }
 
 .ht-row--probe {
@@ -2069,7 +2416,7 @@ input[type="range"] {
 
 .ht-row--collision {
   border-color: var(--red);
-  background: rgba(255, 107, 107, 0.1);
+  background: rgb(var(--red-rgb) / 0.1);
 }
 
 .ht-row__marker {
@@ -2133,8 +2480,8 @@ input[type="range"] {
 /* A deleted slot in an open-addressed table. It still blocks the bucket, and
    it still has to be walked past, so it stays on screen. */
 .ht-slot--tomb {
-  border: 1.5px dashed rgba(255, 107, 107, 0.5);
-  background: rgba(255, 107, 107, 0.06);
+  border: 1.5px dashed rgb(var(--red-rgb) / 0.5);
+  background: rgb(var(--red-rgb) / 0.06);
 }
 
 .ht-slot--fresh-tomb {
@@ -2168,15 +2515,15 @@ input[type="range"] {
 .ht-tag--home {
   color: var(--primary);
   background: var(--primary-dim);
-  border: 1px solid rgba(255, 138, 61, 0.4);
+  border: 1px solid rgb(var(--primary-rgb) / 0.4);
 }
 
 /* Robin Hood's probe distance, shown per slot because the invariant it keeps
    is a comparison between two of these numbers. */
 .ht-tag--dist {
   color: var(--blue);
-  background: rgba(79, 184, 224, 0.12);
-  border: 1px solid rgba(79, 184, 224, 0.35);
+  background: rgb(var(--blue-rgb) / 0.12);
+  border: 1px solid rgb(var(--blue-rgb) / 0.35);
 }
 
 /* Cuckoo hashing's two tables sit side by side — a key is in one or the
@@ -2310,7 +2657,7 @@ input[type="range"] {
 
 .dh-row--full {
   border-color: var(--red);
-  background: rgba(255, 107, 107, 0.1);
+  background: rgb(var(--red-rgb) / 0.1);
 }
 
 .dh-row__marker {
@@ -2335,8 +2682,8 @@ input[type="range"] {
   font-weight: 700;
   letter-spacing: 0.04em;
   color: var(--blue);
-  background: rgba(79, 184, 224, 0.1);
-  border: 1px solid rgba(79, 184, 224, 0.3);
+  background: rgb(var(--blue-rgb) / 0.1);
+  border: 1px solid rgb(var(--blue-rgb) / 0.3);
   border-radius: 4px;
   padding: 1px 5px;
   text-align: center;
@@ -2354,12 +2701,12 @@ input[type="range"] {
 
 .dh-bucket--split-from {
   border-color: var(--yellow);
-  box-shadow: 0 0 0 1px rgba(245, 196, 81, 0.25);
+  box-shadow: 0 0 0 1px rgb(var(--yellow-rgb) / 0.25);
 }
 
 .dh-bucket--split-to {
   border-color: var(--green);
-  box-shadow: 0 0 0 1px rgba(95, 214, 160, 0.25);
+  box-shadow: 0 0 0 1px rgb(var(--green-rgb) / 0.25);
 }
 
 .dh-slot {
@@ -2385,8 +2732,8 @@ input[type="range"] {
    off a bucket that had none left, so it is drawn as one. */
 .dh-slot--overflow {
   border-style: dashed;
-  border-color: rgba(245, 196, 81, 0.55);
-  background: rgba(245, 196, 81, 0.08);
+  border-color: rgb(var(--yellow-rgb) / 0.55);
+  background: rgb(var(--yellow-rgb) / 0.08);
 }
 
 .dh-slot--active {
@@ -2604,7 +2951,7 @@ input[type="range"] {
 }
 
 .graph-matrix .gm-cell:hover {
-  background: rgba(255, 255, 255, 0.07);
+  background: rgb(var(--ink-rgb) / 0.07);
 }
 
 .graph-matrix .gm-cell:focus-visible {
@@ -2624,12 +2971,12 @@ input[type="range"] {
 
 .graph-matrix th.gm-active {
   color: var(--blue);
-  background: rgba(79, 184, 224, 0.14);
+  background: rgb(var(--blue-rgb) / 0.14);
 }
 
 .graph-matrix th.gm-visited {
   color: var(--green);
-  background: rgba(95, 214, 160, 0.14);
+  background: rgb(var(--green-rgb) / 0.14);
 }
 
 .graph-list {
@@ -2652,14 +2999,14 @@ input[type="range"] {
 
 .graph-list__row.gl-active {
   color: var(--blue);
-  background: rgba(79, 184, 224, 0.1);
-  border-color: rgba(79, 184, 224, 0.3);
+  background: rgb(var(--blue-rgb) / 0.1);
+  border-color: rgb(var(--blue-rgb) / 0.3);
 }
 
 .graph-list__row.gl-visited {
   color: var(--green);
-  background: rgba(95, 214, 160, 0.1);
-  border-color: rgba(95, 214, 160, 0.3);
+  background: rgb(var(--green-rgb) / 0.1);
+  border-color: rgb(var(--green-rgb) / 0.3);
 }
 
 .graph-list__head {
@@ -2707,7 +3054,7 @@ input[type="range"] {
   border: 1px solid var(--border-strong);
   border-radius: 12px;
   backdrop-filter: blur(14px);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 14px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 0 rgb(var(--ink-rgb) / 0.03) inset, 0 14px 32px rgb(var(--shadow-rgb) / 0.4);
 }
 
 .share__manual .text-input {
@@ -2717,7 +3064,7 @@ input[type="range"] {
 .topbar__nav-share {
   height: 44px;
   margin-bottom: 14px;
-  border: 1px solid rgba(255, 138, 61, 0.4);
+  border: 1px solid rgb(var(--primary-rgb) / 0.4);
   border-radius: 12px;
   color: var(--primary);
   background: var(--primary-dim);
@@ -2756,9 +3103,9 @@ input[type="range"] {
   flex-direction: column;
   align-items: center;
   background:
-    radial-gradient(circle at 15% -10%, rgba(255, 138, 61, 0.10), transparent 45%),
-    radial-gradient(circle at 85% 0%, rgba(79, 184, 224, 0.08), transparent 40%),
-    radial-gradient(circle at 50% 110%, rgba(177, 140, 255, 0.06), transparent 45%),
+    radial-gradient(circle at 15% -10%, rgb(var(--primary-rgb) / 0.10), transparent 45%),
+    radial-gradient(circle at 85% 0%, rgb(var(--blue-rgb) / 0.08), transparent 40%),
+    radial-gradient(circle at 50% 110%, rgb(var(--purple-rgb) / 0.06), transparent 45%),
     var(--bg);
   animation: fade-in-up 0.4s ease both;
 }
@@ -2782,7 +3129,7 @@ input[type="range"] {
 .landing__mark {
   color: var(--primary);
   font-size: 22px;
-  filter: drop-shadow(0 0 8px rgba(255, 138, 61, 0.6));
+  filter: drop-shadow(0 0 8px rgb(var(--primary-rgb) / 0.6));
 }
 
 .landing__title {
@@ -2821,7 +3168,7 @@ input[type="range"] {
 .landing__card--active {
   border-color: var(--accent);
   transform: translateY(-3px);
-  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 14px 32px rgb(var(--shadow-rgb) / 0.35);
 }
 
 .landing__card-top {
@@ -2964,7 +3311,7 @@ input[type="range"] {
   z-index: 55;
   padding: 0;
   border: none;
-  background: rgba(6, 7, 10, 0.62);
+  background: rgb(var(--scrim-rgb) / 0.62);
   backdrop-filter: blur(2px);
   animation: sheet-fade 0.2s ease both;
 }
@@ -2980,11 +3327,11 @@ input[type="range"] {
   /* Capped so a slice of the canvas stays visible: picking an algorithm
      updates the visualization behind the sheet, and you can see it. */
   max-height: 74dvh;
-  background: rgba(17, 20, 27, 0.97);
+  background: rgb(var(--overlay-rgb) / 0.97);
   border-top: 1px solid var(--border-strong);
   border-radius: 20px 20px 0 0;
   backdrop-filter: blur(18px);
-  box-shadow: 0 -16px 44px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 -16px 44px rgb(var(--shadow-rgb) / 0.55);
   padding-bottom: env(safe-area-inset-bottom);
   animation: sheet-up 0.24s cubic-bezier(0.2, 0.8, 0.3, 1) both;
 }
@@ -3057,7 +3404,7 @@ input[type="range"] {
   align-items: center;
   gap: 8px;
   padding: 9px 12px calc(9px + env(safe-area-inset-bottom));
-  background: rgba(13, 15, 21, 0.94);
+  background: rgb(var(--overlay-rgb) / 0.94);
   border-top: 1px solid var(--border);
   backdrop-filter: blur(16px);
 }
@@ -3084,7 +3431,7 @@ input[type="range"] {
   letter-spacing: 0.08em;
   color: var(--primary);
   background: var(--primary-dim);
-  border: 1px solid rgba(255, 138, 61, 0.4);
+  border: 1px solid rgb(var(--primary-rgb) / 0.4);
 }
 
 /* ---------- mobile top bar ---------- */
@@ -3106,7 +3453,7 @@ input[type="range"] {
   gap: 8px;
   margin: -12px -12px 12px;
   padding: calc(10px + env(safe-area-inset-top)) 12px 10px;
-  background: rgba(11, 13, 18, 0.88);
+  background: rgb(var(--overlay-rgb) / 0.88);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
 }
@@ -3141,7 +3488,7 @@ input[type="range"] {
   letter-spacing: 0.04em;
   color: var(--primary);
   background: var(--primary-dim);
-  border: 1px solid rgba(255, 138, 61, 0.35);
+  border: 1px solid rgb(var(--primary-rgb) / 0.35);
   border-radius: 999px;
   padding: 3px 9px;
   white-space: nowrap;
@@ -3160,11 +3507,11 @@ input[type="range"] {
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   padding: 14px;
-  background: rgba(17, 20, 27, 0.97);
+  background: rgb(var(--overlay-rgb) / 0.97);
   backdrop-filter: blur(18px);
   border-bottom: 1px solid var(--border-strong);
   border-radius: 0 0 18px 18px;
-  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 20px 44px rgb(var(--shadow-rgb) / 0.55);
   animation: nav-down 0.22s cubic-bezier(0.2, 0.8, 0.3, 1) both;
 }
 
@@ -3855,11 +4202,11 @@ select.text-input option {
 }
 
 .lane--leader {
-  border-color: rgba(255, 138, 61, 0.45);
+  border-color: rgb(var(--primary-rgb) / 0.45);
 }
 
 .lane--done {
-  background: rgba(95, 214, 160, 0.05);
+  background: rgb(var(--green-rgb) / 0.05);
 }
 
 .lane__head {
@@ -4161,14 +4508,14 @@ select.text-input option {
 
 /* Leaves are the symbols; internal nodes are only sums of what is below. */
 .hf-node.is-leaf {
-  fill: rgba(79, 184, 224, 0.18);
+  fill: rgb(var(--blue-rgb) / 0.18);
   stroke: var(--blue);
 }
 
 .hf-node.is-active {
   fill: var(--primary-dim);
   stroke: var(--primary);
-  filter: drop-shadow(0 0 6px rgba(255, 138, 61, 0.5));
+  filter: drop-shadow(0 0 6px rgb(var(--primary-rgb) / 0.5));
 }
 
 .hf-node__label {
@@ -4272,7 +4619,7 @@ select.text-input option {
   font-size: 11px;
   border-radius: 5px;
   border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgb(var(--ink-rgb) / 0.04);
   color: var(--text-dim);
   overflow: hidden;
   transition: background-color var(--step-anim) ease, border-color var(--step-anim) ease,
@@ -4289,7 +4636,7 @@ select.text-input option {
 /* The range the query asked about, marked on the array itself. */
 .rq-cell.is-range {
   border-color: var(--blue);
-  background: rgba(79, 184, 224, 0.14);
+  background: rgb(var(--blue-rgb) / 0.14);
   color: var(--blue);
 }
 
@@ -4297,7 +4644,7 @@ select.text-input option {
 .rq-span.is-take,
 .rq-cell.is-take {
   border-color: var(--green);
-  background: rgba(95, 214, 160, 0.22);
+  background: rgb(var(--green-rgb) / 0.22);
   color: var(--green);
   font-weight: 700;
 }
@@ -4305,14 +4652,14 @@ select.text-input option {
 /* Fenwick subtracts a prefix it never wanted; worth a colour of its own. */
 .rq-span.is-subtract {
   border-color: var(--red);
-  background: rgba(255, 107, 107, 0.18);
+  background: rgb(var(--red-rgb) / 0.18);
   color: var(--red);
 }
 
 /* Overlaps the range but is not contained by it, so it had to be split. */
 .rq-span.is-partial {
   border-color: var(--yellow);
-  background: rgba(245, 196, 81, 0.14);
+  background: rgb(var(--yellow-rgb) / 0.14);
   color: var(--yellow);
 }
 
@@ -4322,14 +4669,14 @@ select.text-input option {
 
 .rq-span.is-read {
   border-color: var(--border-strong);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgb(var(--ink-rgb) / 0.08);
   color: var(--text);
 }
 
 /* Where a Fenwick build hands its running total. */
 .rq-span.is-target {
   border-color: var(--purple);
-  background: rgba(177, 140, 255, 0.16);
+  background: rgb(var(--purple-rgb) / 0.16);
   color: var(--purple);
 }
 
@@ -4435,13 +4782,13 @@ select.text-input option {
 
 .grid-cell.is-match {
   border-color: var(--green);
-  background: rgba(95, 214, 160, 0.16);
+  background: rgb(var(--green-rgb) / 0.16);
   color: var(--green);
 }
 
 .grid-cell.is-mismatch {
   border-color: var(--red);
-  background: rgba(255, 107, 107, 0.18);
+  background: rgb(var(--red-rgb) / 0.18);
   color: var(--red);
 }
 
@@ -4483,7 +4830,7 @@ select.text-input option {
 
 .grid-cell.is-found {
   border-color: var(--green);
-  background: rgba(95, 214, 160, 0.3);
+  background: rgb(var(--green-rgb) / 0.3);
   color: var(--green);
   font-weight: 700;
 }
@@ -4492,14 +4839,14 @@ select.text-input option {
    mirror, Manacher's reflected radius. The blue is the whole idea. */
 .grid-cell.is-border {
   border-color: var(--blue);
-  background: rgba(79, 184, 224, 0.18);
+  background: rgb(var(--blue-rgb) / 0.18);
   color: var(--blue);
 }
 
 /* The current [l, r] window or the sliding window under inspection. */
 .grid-cell.is-window {
   border-color: var(--border-strong);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgb(var(--ink-rgb) / 0.08);
 }
 
 /* Z's separator and Manacher's interleaved padding — structural, not content. */
@@ -4608,7 +4955,7 @@ select.text-input option {
 .bt-cell.is-given {
   color: var(--text);
   font-weight: 700;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgb(var(--ink-rgb) / 0.07);
 }
 
 .bt-cell.is-placed {
@@ -4619,13 +4966,13 @@ select.text-input option {
 /* What the constraint has already ruled out. Shaded rather than outlined,
    because it is the absence of a choice rather than a choice. */
 .bt-cell.is-attacked {
-  background: rgba(255, 107, 107, 0.08);
-  border-color: rgba(255, 107, 107, 0.18);
+  background: rgb(var(--red-rgb) / 0.08);
+  border-color: rgb(var(--red-rgb) / 0.18);
 }
 
 .bt-cell.is-conflict {
   border-color: var(--red);
-  background: rgba(255, 107, 107, 0.2);
+  background: rgb(var(--red-rgb) / 0.2);
   color: var(--red);
 }
 
@@ -4640,19 +4987,19 @@ select.text-input option {
    it, it just didn't lead anywhere. */
 .bt-cell.is-undo {
   border-color: var(--yellow);
-  background: rgba(245, 196, 81, 0.16);
+  background: rgb(var(--yellow-rgb) / 0.16);
   color: var(--yellow);
 }
 
 .bt-cell.is-solution {
   border-color: var(--green);
-  background: rgba(95, 214, 160, 0.18);
+  background: rgb(var(--green-rgb) / 0.18);
   color: var(--green);
 }
 
 .bt-cell.is-in {
   border-color: var(--green);
-  background: rgba(95, 214, 160, 0.14);
+  background: rgb(var(--green-rgb) / 0.14);
   color: var(--green);
 }
 
@@ -4759,7 +5106,7 @@ select.text-input option {
 
 .tree-edge {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.14);
+  stroke: rgb(var(--ink-rgb) / 0.14);
   stroke-width: 1;
 }
 
@@ -4777,29 +5124,29 @@ select.text-input option {
 
 /* Generated but not yet reached by the walk. */
 .tree-rect--open {
-  fill: rgba(255, 255, 255, 0.1);
+  fill: rgb(var(--ink-rgb) / 0.1);
   stroke: none;
 }
 
 .tree-rect--live {
   fill: var(--primary-dim);
-  stroke: rgba(255, 138, 61, 0.5);
+  stroke: rgb(var(--primary-rgb) / 0.5);
 }
 
 /* Rejected before its children were ever generated. On most searches this is
    the bulk of the picture, which is the argument for backtracking. */
 .tree-rect--pruned {
-  fill: rgba(255, 107, 107, 0.4);
+  fill: rgb(var(--red-rgb) / 0.4);
   stroke: none;
 }
 
 .tree-rect--dead {
-  fill: rgba(245, 196, 81, 0.45);
+  fill: rgb(var(--yellow-rgb) / 0.45);
   stroke: none;
 }
 
 .tree-rect--solution {
-  fill: rgba(95, 214, 160, 0.55);
+  fill: rgb(var(--green-rgb) / 0.55);
   stroke: none;
 }
 
@@ -4884,20 +5231,20 @@ select.text-input option {
 }
 
 .tree-key__dot.is-live {
-  background: rgba(255, 138, 61, 0.4);
-  border: 1px solid rgba(255, 138, 61, 0.6);
+  background: rgb(var(--primary-rgb) / 0.4);
+  border: 1px solid rgb(var(--primary-rgb) / 0.6);
 }
 
 .tree-key__dot.is-pruned {
-  background: rgba(255, 107, 107, 0.5);
+  background: rgb(var(--red-rgb) / 0.5);
 }
 
 .tree-key__dot.is-dead {
-  background: rgba(245, 196, 81, 0.5);
+  background: rgb(var(--yellow-rgb) / 0.5);
 }
 
 .tree-key__dot.is-solution {
-  background: rgba(95, 214, 160, 0.6);
+  background: rgb(var(--green-rgb) / 0.6);
 }
 
 /* ---------- dynamic programming ---------- */
@@ -4986,20 +5333,20 @@ select.text-input option {
 
 .dp-cell.is-read {
   border-color: var(--border-strong);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgb(var(--ink-rgb) / 0.06);
 }
 
 /* The cell this step's answer actually came from. This is the recurrence made
    visible, so it is the loudest thing on the table after the cursor. */
 .dp-cell.is-chosen {
   border-color: var(--blue);
-  background: rgba(79, 184, 224, 0.16);
+  background: rgb(var(--blue-rgb) / 0.16);
   color: var(--blue);
 }
 
 .dp-cell.is-path {
   border-color: var(--green);
-  background: rgba(95, 214, 160, 0.16);
+  background: rgb(var(--green-rgb) / 0.16);
   color: var(--green);
 }
 
@@ -5211,7 +5558,7 @@ select.text-input option {
 }
 
 .chart__grid {
-  stroke: rgba(255, 255, 255, 0.07);
+  stroke: rgb(var(--ink-rgb) / 0.07);
   stroke-width: 1;
 }
 
@@ -5262,7 +5609,7 @@ select.text-input option {
 }
 
 .complexity__legend-row:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgb(var(--ink-rgb) / 0.04);
 }
 
 .complexity__legend-row.active {
@@ -5459,12 +5806,12 @@ select.text-input option {
 
 .treecmp__key.done {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.07);
+  background: rgb(var(--ink-rgb) / 0.07);
 }
 
 .treecmp__key.next {
   color: var(--primary);
-  border-color: rgba(255, 138, 61, 0.45);
+  border-color: rgb(var(--primary-rgb) / 0.45);
   background: var(--primary-dim);
 }
 
@@ -5496,7 +5843,7 @@ select.text-input option {
 }
 
 .treelane--best {
-  border-color: rgba(255, 138, 61, 0.45);
+  border-color: rgb(var(--primary-rgb) / 0.45);
 }
 
 .treelane__head {
@@ -5548,7 +5895,7 @@ select.text-input option {
   z-index: 60;
   border: none;
   padding: 0;
-  background: rgba(6, 8, 12, 0.66);
+  background: rgb(var(--scrim-rgb) / 0.66);
   backdrop-filter: blur(3px);
   cursor: pointer;
 }
@@ -5784,5 +6131,234 @@ select.text-input option {
   .step-table__n {
     text-align: right;
     color: #666;
+  }
+}
+
+
+/* ---------- appearance menu ---------- */
+
+.thememenu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.landing__appearance {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+}
+
+.thememenu__panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: 260px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* The bar it hangs from can be scrolled sideways on a narrow window, so the
+     panel is opaque rather than translucent: a menu you can read the tabs
+     through is a menu you cannot read. */
+  background: rgb(var(--overlay-rgb) / 0.99);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 18px 40px rgb(var(--shadow-rgb) / 0.45);
+}
+
+.thememenu__row {
+  display: flex;
+  gap: 4px;
+}
+
+.thememenu__choice {
+  flex: 1;
+  font-size: 11px;
+  padding: 6px 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.thememenu__toggle {
+  font-size: 11px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-top: 2px;
+}
+
+.thememenu__section {
+  margin-top: 6px;
+}
+
+.thememenu__palette {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  text-align: left;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.thememenu__palette:hover {
+  background: var(--panel-alt);
+}
+
+.thememenu__palette.is-active {
+  border-color: var(--primary);
+  background: var(--primary-dim);
+}
+
+.thememenu__palette-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--text);
+}
+
+.thememenu__palette-name {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11.5px;
+}
+
+.thememenu__palette-desc {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+
+.thememenu__swatches {
+  display: flex;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+/* Each swatch shows both channels at once — the colour it would use and the
+   glyph that survives when the colour doesn't. */
+.thememenu__swatch {
+  width: 30px;
+  height: 22px;
+  border-radius: 5px;
+  border: 1.5px solid;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: "JetBrains Mono", monospace;
+}
+
+.thememenu__note {
+  margin: 4px 0 0;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+
+/* ---------- editable bars ---------- */
+
+.bars--editable {
+  /* The whole strip is the target: a click lands on whichever column it is
+     over, at whatever height, so there is nothing to aim at precisely. */
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.bar--editable {
+  cursor: grab;
+}
+
+/* Heights follow the pointer during a drag, so the easing that makes a step
+   look smooth would make a drag feel like it is on elastic. */
+.bars--editing .bar {
+  transition: none;
+}
+
+.bar--dragging {
+  z-index: 3;
+  cursor: grabbing;
+}
+
+.bar--drag-reorder {
+  /* Lifted out of the row so it reads as being carried rather than as having
+     already landed somewhere. */
+  transform: translateY(-4px) scale(1.04);
+  box-shadow: 0 6px 18px rgb(var(--shadow-rgb) / 0.5) !important;
+}
+
+/* The scrub badge replaces the ordinary label rather than stacking above it:
+   the same number twice, one boxed and one not, reads as two numbers. */
+.bar--drag-value .bar__value {
+  opacity: 0;
+}
+
+.bar__scrub {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  padding: 1px 5px;
+  position: absolute;
+  top: -26px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.bar--editable:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.canvas__hint {
+  margin-top: 8px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+@media (max-width: 760px) {
+  /* Two of the three gestures are worth spelling out on a phone; the third is
+     the same drag with a different axis and does not need its own sentence. */
+  .canvas__hint {
+    font-size: 9.5px;
+    line-height: 1.5;
+  }
+}
+
+
+/* ---------- sound ---------- */
+
+.controls__sound {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.controls__volume {
+  width: 64px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 760px) {
+  /* The transport is already tight on a phone; the toggle stays, the slider
+     goes — the system volume is right there. */
+  .controls__volume {
+    display: none;
   }
 }

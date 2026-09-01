@@ -30,17 +30,17 @@ function stateOf(step, i) {
 }
 
 const STYLES = {
-  swap: { stroke: "var(--primary)", fill: "rgba(255,138,61,0.24)", glow: "rgba(255,138,61,0.6)" },
-  pending: { stroke: "var(--primary)", fill: "rgba(255,138,61,0.18)", glow: "rgba(255,138,61,0.5)" },
-  current: { stroke: "var(--primary)", fill: "rgba(255,138,61,0.12)" },
-  compare: { stroke: "var(--blue)", fill: "rgba(79,184,224,0.18)", glow: "rgba(79,184,224,0.35)" },
-  removing: { stroke: "var(--red)", fill: "rgba(255,107,107,0.22)", glow: "rgba(255,107,107,0.5)" },
-  found: { stroke: "var(--green)", fill: "rgba(95,214,160,0.22)", glow: "rgba(95,214,160,0.5)" },
-  heapified: { stroke: "var(--green)", fill: "rgba(95,214,160,0.1)" },
-  active: { stroke: "var(--blue)", fill: "rgba(79,184,224,0.12)" },
-  visited: { stroke: "var(--border-strong)", fill: "rgba(79,184,224,0.07)" },
-  pruned: { stroke: "rgba(255,107,107,0.4)", fill: "var(--panel-alt)", opacity: 0.4 },
-  path: { stroke: "rgba(79,184,224,0.5)", fill: "var(--panel-alt)" },
+  swap: { stroke: "var(--primary)", fill: "rgb(var(--primary-rgb) / 0.24)", glow: "rgb(var(--primary-rgb) / 0.6)" },
+  pending: { stroke: "var(--primary)", fill: "rgb(var(--primary-rgb) / 0.18)", glow: "rgb(var(--primary-rgb) / 0.5)" },
+  current: { stroke: "var(--primary)", fill: "rgb(var(--primary-rgb) / 0.12)" },
+  compare: { stroke: "var(--blue)", fill: "rgb(var(--blue-rgb) / 0.18)", glow: "rgb(var(--blue-rgb) / 0.35)" },
+  removing: { stroke: "var(--red)", fill: "rgb(var(--red-rgb) / 0.22)", glow: "rgb(var(--red-rgb) / 0.5)" },
+  found: { stroke: "var(--green)", fill: "rgb(var(--green-rgb) / 0.22)", glow: "rgb(var(--green-rgb) / 0.5)" },
+  heapified: { stroke: "var(--green)", fill: "rgb(var(--green-rgb) / 0.1)" },
+  active: { stroke: "var(--blue)", fill: "rgb(var(--blue-rgb) / 0.12)" },
+  visited: { stroke: "var(--border-strong)", fill: "rgb(var(--blue-rgb) / 0.07)" },
+  pruned: { stroke: "rgb(var(--red-rgb) / 0.4)", fill: "var(--panel-alt)", opacity: 0.4 },
+  path: { stroke: "rgb(var(--blue-rgb) / 0.5)", fill: "var(--panel-alt)" },
   idle: { stroke: "var(--border-strong)", fill: "var(--panel-alt)" },
 };
 

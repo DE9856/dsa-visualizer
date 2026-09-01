@@ -497,27 +497,27 @@ export default function GraphCanvas({
 
             if (isVisited(node.id)) {
               stroke = "var(--green)";
-              fill = "rgba(95,214,160,0.14)";
+              fill = "rgb(var(--green-rgb) / 0.14)";
             }
             if (isActive(node.id)) {
               stroke = "var(--blue)";
-              fill = "rgba(79,184,224,0.18)";
-              glow = "rgba(79,184,224,0.5)";
+              fill = "rgb(var(--blue-rgb) / 0.18)";
+              glow = "rgb(var(--blue-rgb) / 0.5)";
             }
             if (isCurrent(node.id) || isPending(node.id)) {
               stroke = "var(--primary)";
-              fill = "rgba(255,138,61,0.2)";
-              glow = "rgba(255,138,61,0.55)";
+              fill = "rgb(var(--primary-rgb) / 0.2)";
+              glow = "rgb(var(--primary-rgb) / 0.55)";
             }
             if (isRemoving(node.id)) {
               stroke = "var(--red)";
-              fill = "rgba(255,107,107,0.22)";
-              glow = "rgba(255,107,107,0.5)";
+              fill = "rgb(var(--red-rgb) / 0.22)";
+              glow = "rgb(var(--red-rgb) / 0.5)";
             }
             const armed = pendingLink === node.id;
             if (armed) {
               stroke = "var(--primary)";
-              glow = "rgba(255,138,61,0.55)";
+              glow = "rgb(var(--primary-rgb) / 0.55)";
             }
             const isMoving = moving?.id === node.id;
 
