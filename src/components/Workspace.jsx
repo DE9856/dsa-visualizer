@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { SlidersHorizontal, X, Shuffle, Play, Pause, RefreshCw } from "lucide-react";
+import { SlidersHorizontal, X, Shuffle, Play, Pause, RefreshCw, Download } from "lucide-react";
 import { useIsMobile } from "../hooks/useMediaQuery.js";
 import ShareButton from "./ShareButton.jsx";
 
@@ -22,6 +22,7 @@ export default function Workspace({
   canPlay = false,
   atEnd = false,
   shareUrl,
+  onExport,
   children,
 }) {
   const isMobile = useIsMobile();
@@ -45,14 +46,21 @@ export default function Workspace({
     return (
       <div className="layout">
         {sidebar}
-        <div className="main-col">
+        {/* The export capture reads this subtree, so it gets exactly the
+            visualization and its transport — not the sidebar or the chrome. */}
+        <div className="main-col" data-export-target>
           {/* Tucked into the canvas's top-right corner rather than given a row
-              of its own: it is a thing you reach for occasionally, and the
-              header has better uses for the height. On a phone it lives in the
-              nav sheet instead, where there is room to label it. */}
-          {shareUrl && (
-            <div className="main-col__share">
-              <ShareButton url={shareUrl} />
+              of its own: these are things you reach for occasionally, and the
+              header has better uses for the height. On a phone they live in
+              the nav sheet instead, where there is room to label them. */}
+          {(shareUrl || onExport) && (
+            <div className="main-col__share" data-export-drop>
+              {onExport && (
+                <button className="btn" onClick={onExport} title="Export this run as a GIF, video or printable table">
+                  <Download size={13} /> EXPORT
+                </button>
+              )}
+              {shareUrl && <ShareButton url={shareUrl} />}
             </div>
           )}
           {children}
@@ -80,7 +88,7 @@ export default function Workspace({
 
   return (
     <div className="layout layout--mobile">
-      <div className="main-col">{children}</div>
+      <div className="main-col" data-export-target>{children}</div>
 
       <div className="actionbar">
         <button

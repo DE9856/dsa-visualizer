@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Menu, X, Home } from "lucide-react";
+import { ChevronDown, Menu, X, Home, Download } from "lucide-react";
 import { CATEGORIES } from "../data/categories.js";
 import { useIsMobile } from "../hooks/useMediaQuery.js";
 import ShareButton from "./ShareButton.jsx";
 
-export default function TopBar({ category, onCategoryChange, onGoHome, shareUrl }) {
+export default function TopBar({ category, onCategoryChange, onGoHome, shareUrl, onExport }) {
   const [openMenu, setOpenMenu] = useState(null);
   // Where the open menu's button is, in viewport coordinates. The menus are
   // positioned `fixed` rather than absolutely inside the tab strip, because
@@ -107,6 +107,17 @@ export default function TopBar({ category, onCategoryChange, onGoHome, shareUrl 
                   anything that sits under it. */}
               {shareUrl && (
                 <ShareButton url={shareUrl} label="SHARE THIS SETUP" className="btn--block-flat topbar__nav-share" />
+              )}
+              {onExport && (
+                <button
+                  className="btn btn--block-flat topbar__nav-share"
+                  onClick={() => {
+                    setNavOpen(false);
+                    onExport();
+                  }}
+                >
+                  <Download size={13} /> EXPORT THIS RUN
+                </button>
               )}
 
               {CATEGORIES.map((cat) => (

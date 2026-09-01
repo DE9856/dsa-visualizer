@@ -183,6 +183,48 @@ should a tree be shaped by", none of them the same as balance.
 
 ### Added
 
+- **Export a run as a GIF, a video, or a printable step table.** Every view
+  gets an EXPORT button next to SHARE, and all three formats are produced in
+  the page with no new dependencies and nothing uploaded anywhere.
+
+  One capture path serves all twenty-odd views rather than a hand-written
+  painter per view: the visualization is cloned into an SVG `<foreignObject>`
+  and rendered through an `<img>`, so the export is drawn by the same engine
+  that drew the screen. Two things do not come along for free and are handled
+  once per export — the stylesheet is inlined (with `:root` rewritten to a
+  class, since inside the SVG the custom properties have no `<html>` to hang
+  off), and the webfonts are fetched and embedded as data URLs, because an
+  image-rendered SVG may not fetch anything and would otherwise silently fall
+  back to a system face and shift every glyph. The frame is measured on the
+  *clone*, not the live column: dropping the code panel lets everything below
+  it move up, and measuring the original left a band of empty background as
+  tall as the panel that wasn't in the picture.
+
+  The GIF encoder is written here — palette by median cut sampled across the
+  whole run rather than from the first frame, since a sort's bars all turn
+  green by the end; LZW with the code width growing on the code being
+  assigned, because the decoder adds no entry for the first code it reads and
+  its table trails the encoder's by exactly one; and per-frame differencing
+  that writes only the changed rectangle with the rest transparent. That last
+  part is the difference between a few hundred kilobytes and many megabytes
+  for a run that moves two bars a step.
+
+  Video uses the browser's own `MediaRecorder`, offering MP4 where the browser
+  can write one and WebM otherwise. Recording is real-time by nature, so the
+  export takes as long as the video runs.
+
+  The step table is one row per frame — the pseudocode line executing, what
+  happened, the state left behind, the running counters — and prints through
+  the browser's own dialog, where Save as PDF produces the file. The header
+  carries the shareable link to the run, so a printout is not a dead end. The
+  table is only built and mounted while a print is actually happening; a
+  thousand permanently hidden rows would cost every view a layout it never
+  shows.
+
+  Runs longer than 240 steps are thinned evenly, always keeping the first and
+  last frame, and the player is restored to the step it was on when the export
+  finishes.
+
 - **Real source code beside the pseudocode, in five languages.** The code panel on every
   algorithm view now carries tabs for C, C++, Java, Python and JavaScript alongside the
   pseudocode, each a real implementation rather than the pseudocode retyped, and each with

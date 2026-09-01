@@ -471,6 +471,29 @@ The DP, backtracking, greedy, string and Huffman views get the same panel; the
 data-structure operations do not, because "insert into a BST" is a sentence rather than an
 algorithm.
 
+### Exporting a run
+
+Every view has an EXPORT button beside SHARE (in the phone's nav sheet
+instead), offering the same run three ways:
+
+- **GIF** — an animated file, encoded in the page. Frames are differenced
+  against each other and only the changed rectangle is written, so a sorting
+  run that moves two bars a step costs a few hundred kilobytes rather than
+  many megabytes.
+- **Video** — MP4 where the browser can write one and WebM otherwise; both are
+  offered under whichever name the browser will actually produce. Recording
+  happens in real time, so a ten-second video takes ten seconds to make.
+- **Step table** — every frame as a printable row: the line of code it ran,
+  what it did, the state it left behind, and the running counters. It opens
+  the browser's own print dialog, where **Save as PDF** is the destination
+  that produces a file.
+
+Width and frame rate are adjustable, and the code panel can be included or
+left out. A run longer than 240 steps is thinned evenly to fit, always keeping
+the first and last frame. The player is put back on the step it was on when
+the export finishes, and the printed table carries the shareable link to the
+run so the paper is not a dead end.
+
 ### The sidebar
 
 Contents differ per topic, but the shape is consistent:
@@ -1588,6 +1611,11 @@ src/
 ├── utils/
 │   ├── distributions.js    the eight named input shapes, each pure in (n, seed)
 │   ├── rng.js              the seeded PRNG everything random draws from
+│   ├── domCapture.js       rasterises a live view to a canvas, via an SVG
+│   │                       <foreignObject> — one path for every view
+│   ├── gifEncoder.js       GIF89a writer: median cut, LZW, frame differencing
+│   ├── videoRecorder.js    MediaRecorder wrapper, MP4 where the browser allows
+│   ├── stepTable.js        frames → printable rows
 │   └── urlState.js         encodes/decodes the shareable link
 ├── App.jsx                 stage + view routing, wires the active player
 ├── main.jsx

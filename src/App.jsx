@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import CategoryLanding from "./components/CategoryLanding.jsx";
 import TopBar from "./components/TopBar.jsx";
+import ExportDialog from "./components/ExportDialog.jsx";
+import StepTable from "./components/StepTable.jsx";
 import Workspace from "./components/Workspace.jsx";
 import Sidebar from "./components/Sidebar.jsx";
 import Canvas from "./components/Canvas.jsx";
@@ -84,6 +86,7 @@ import { useHuffman } from "./hooks/useHuffman.js";
 import { useBTree } from "./hooks/useBTree.js";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts.js";
 import { delayForSpeed } from "./hooks/useStepPlayer.js";
+import { buildStepTable } from "./utils/stepTable.js";
 import { readSharedState, shareHashFor, replaceHash, buildShareUrl } from "./utils/urlState.js";
 
 export default function App() {
@@ -95,6 +98,8 @@ export default function App() {
   const [stage, setStage] = useState(shared ? "app" : "select");
   const [view, setView] = useState(shared?.view ?? "sorting");
   const [showHelp, setShowHelp] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [printing, setPrinting] = useState(false);
   const v = useVisualizer(initFor("sorting") || initFor("searching"));
   const race = useRace(initFor("race"));
   const tcmp = useTreeCompare(initFor("treecompare"));
@@ -176,6 +181,7 @@ export default function App() {
   // that only make sense in the full transport panel.
   const shell = {
     shareUrl,
+    onExport: () => setExportOpen(true),
     onShuffle: shuffleActive,
     playing: active.playing,
     onTogglePlay: active.togglePlay,
@@ -186,6 +192,44 @@ export default function App() {
   useEffect(() => {
     if (stage === "app") replaceHash(shareHash);
   }, [stage, shareHash]);
+
+  // Every view exposes the thing it is currently explaining under one of two
+  // names: an algorithm's `meta` or a structure operation's `opMeta`.
+  const codeMeta = active.meta ?? active.opMeta ?? null;
+
+  // A thousand rows is real work, so the table is only built once something
+  // is actually going to read it.
+  const exportTable = useMemo(() => {
+    if (!exportOpen && !printing) return null;
+    const time = codeMeta?.time;
+    const complexity = !time
+      ? ""
+      : typeof time === "string"
+        ? `Time ${time} · Space ${codeMeta.space}`
+        : `Best ${time.best} · Avg ${time.avg} · Worst ${time.worst} · Space ${codeMeta.space}`;
+    return buildStepTable({
+      steps: active.steps,
+      pseudocode: codeMeta?.pseudocode ?? [],
+      title: codeMeta?.label ?? "Run",
+      // The link that rebuilds this exact run is the most useful thing a
+      // printout can carry: the paper stops being a dead end.
+      subtitle: shareUrl,
+      complexity,
+    });
+  }, [exportOpen, printing, active.steps, codeMeta, shareUrl]);
+
+  // Printing needs the table in the document first, so it waits for a paint
+  // rather than calling print() in the same tick that mounts it.
+  useEffect(() => {
+    if (!printing) return undefined;
+    const done = () => setPrinting(false);
+    window.addEventListener("afterprint", done);
+    const raf = requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
+    return () => {
+      window.removeEventListener("afterprint", done);
+      cancelAnimationFrame(raf);
+    };
+  }, [printing]);
 
   useKeyboardShortcuts({
     enabled: stage === "app",
@@ -245,6 +289,7 @@ export default function App() {
         onCategoryChange={handleViewChange}
         onGoHome={() => setStage("select")}
         shareUrl={shareUrl}
+        onExport={() => setExportOpen(true)}
       />
 
       {view === "linkedlist" ? (
@@ -896,6 +941,23 @@ export default function App() {
           <InfoPanel meta={v.meta} step={v.step} />
         </Workspace>
       )}
+
+      {exportOpen && exportTable && (
+        <ExportDialog
+          steps={active.steps}
+          stepIdx={active.stepIdx}
+          seek={active.seek}
+          slug={`dsa-${view}-${codeMeta?.key ?? "run"}`}
+          table={exportTable}
+          onPrint={() => {
+            setExportOpen(false);
+            setPrinting(true);
+          }}
+          onClose={() => setExportOpen(false)}
+        />
+      )}
+
+      {printing && exportTable && <StepTable table={exportTable} />}
     </div>
   );
 }

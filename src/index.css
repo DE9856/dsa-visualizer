@@ -283,6 +283,8 @@ summary {
   top: 10px;
   right: 12px;
   z-index: 5;
+  display: flex;
+  gap: 6px;
 }
 
 .main-col__share .btn {
@@ -5525,4 +5527,254 @@ select.text-input option {
 .treelane__canvas .ll-empty {
   min-height: 120px;
   font-size: 10px;
+}
+
+
+/* ---------- export ---------- */
+
+/* Held for the length of a capture. A transition still running when a frame
+   is rasterised smears one step's colours into the next one's picture, and
+   the exported run comes out looking like a double exposure. */
+.is-exporting *,
+.is-exporting *::before,
+.is-exporting *::after {
+  transition: none !important;
+  animation: none !important;
+}
+
+.export-dialog__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  border: none;
+  padding: 0;
+  background: rgba(6, 8, 12, 0.66);
+  backdrop-filter: blur(3px);
+  cursor: pointer;
+}
+
+.export-dialog {
+  position: fixed;
+  z-index: 61;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(420px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.export-dialog__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.export-dialog__head .label {
+  margin-bottom: 0;
+}
+
+.export-dialog__formats {
+  display: flex;
+  gap: 6px;
+}
+
+.export-dialog__format {
+  flex: 1;
+  font-size: 11px;
+  padding: 8px 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.export-dialog__options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.export-dialog__field {
+  display: block;
+}
+
+.export-dialog__field .text-input {
+  width: 100%;
+}
+
+.export-dialog__check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.export-dialog__note,
+.export-dialog__hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-dim);
+}
+
+.export-dialog__hint:empty {
+  display: none;
+}
+
+.export-dialog__estimate {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.export-dialog__warn {
+  color: var(--yellow);
+}
+
+.export-dialog__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.export-dialog__bar {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--panel-alt);
+  overflow: hidden;
+}
+
+.export-dialog__bar > div {
+  height: 100%;
+  background: var(--primary);
+  transition: width 0.15s linear;
+}
+
+.export-dialog__error {
+  font-size: 12px;
+  color: var(--red);
+}
+
+.export-dialog__result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-alt);
+}
+
+/* ---------- printable step table ---------- */
+
+/* Off screen rather than `display: none`: a hidden table has no layout, and
+   some browsers will not paginate what they never laid out. */
+.step-table {
+  position: absolute;
+  left: -10000px;
+  top: 0;
+  width: 190mm;
+}
+
+@media print {
+  /* The app is hidden rather than unmounted so a cancelled print leaves the
+     user exactly where they were, mid-run. */
+  .app {
+    display: none !important;
+  }
+
+  .step-table {
+    position: static;
+    left: auto;
+    width: auto;
+    color: #000;
+    background: #fff;
+    font-family: "IBM Plex Sans", sans-serif;
+  }
+
+  @page {
+    margin: 14mm;
+  }
+
+  .step-table__title {
+    font-size: 18pt;
+    margin: 0 0 4px;
+  }
+
+  .step-table__subtitle {
+    margin: 0;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 7.5pt;
+    color: #555;
+    word-break: break-all;
+  }
+
+  .step-table__meta {
+    margin: 4px 0 0;
+    font-size: 9pt;
+    color: #333;
+  }
+
+  .step-table__section {
+    font-size: 11pt;
+    margin: 14px 0 6px;
+    border-bottom: 1px solid #999;
+    padding-bottom: 3px;
+  }
+
+  .step-table__lines {
+    margin: 0;
+    padding-left: 22px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 8.5pt;
+    line-height: 1.5;
+  }
+
+  .step-table__lines code {
+    white-space: pre-wrap;
+  }
+
+  .step-table__grid {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8pt;
+    font-family: "JetBrains Mono", monospace;
+  }
+
+  /* Repeats the header at the top of every page — the only thing that keeps a
+     hundred-page table readable. */
+  .step-table__grid thead {
+    display: table-header-group;
+  }
+
+  .step-table__grid tr {
+    break-inside: avoid;
+  }
+
+  .step-table__grid th,
+  .step-table__grid td {
+    border: 1px solid #bbb;
+    padding: 2px 4px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .step-table__grid th {
+    background: #eee;
+    font-size: 7.5pt;
+    letter-spacing: 0.04em;
+  }
+
+  .step-table__n {
+    text-align: right;
+    color: #666;
+  }
 }

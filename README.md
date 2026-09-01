@@ -258,6 +258,7 @@ sideways. See
 - Colour-by-origin, which turns stability into something you can see
 - Complexity information
 - Pseudocode display, plus a real implementation in five languages
+- Export the run as an animated GIF, a video, or a printable step table
 
 ### Balance & Height (trees)
 
