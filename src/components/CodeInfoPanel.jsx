@@ -1,3 +1,5 @@
+import SourcePanel from "./SourcePanel.jsx";
+
 /**
  * A problem's description, its costs, and its code with the line the current
  * step is executing lit up. Shared by the dynamic programming and backtracking
@@ -30,18 +32,12 @@ export default function CodeInfoPanel({ meta, step, codeLabel = "PSEUDOCODE" }) 
         </div>
       </div>
 
-      <div className="info__code">
-        <div className="label">{codeLabel}</div>
-        {meta.pseudocode.map((line, i) => (
-          <div
-            key={i}
-            className={`info__code-line ${i === activeLine ? "is-active" : ""}`}
-            aria-current={i === activeLine ? "step" : undefined}
-          >
-            {line}
-          </div>
-        ))}
-      </div>
+      <SourcePanel
+        algoKey={meta.key}
+        pseudocode={meta.pseudocode}
+        activeLine={activeLine}
+        codeLabel={codeLabel}
+      />
     </div>
   );
 }

@@ -183,6 +183,24 @@ should a tree be shaped by", none of them the same as balance.
 
 ### Added
 
+- **Real source code beside the pseudocode, in five languages.** The code panel on every
+  algorithm view now carries tabs for C, C++, Java, Python and JavaScript alongside the
+  pseudocode, each a real implementation rather than the pseudocode retyped, and each with
+  a copy button. The step highlight works the same in every tab: a listing's lines are
+  tagged with the pseudocode line they implement, so one step lights the `if` in the C and
+  the tuple swap in the Python at the same time, and one pseudocode line often lights
+  several source lines. The tab is remembered across algorithms, so reading the Java for
+  one means reading the Java for the next. All 42 algorithms are covered — the sorts, the
+  searches, the six DP problems, the four backtracking searches, the greedy and
+  number-theory five, the four string algorithms and Huffman coding.
+
+  Tagging is inline: `@@n` at the end of a source line, stripped before the code is shown
+  or copied, so the mapping lives next to the line it describes instead of in a table of
+  line numbers that would drift the first time anyone edited the listing. The listings are
+  ~200 kB of text and most visits never leave the pseudocode tab, so they are not in the
+  initial bundle — they load in per-category chunks the first time a language is picked,
+  the same way the long-form topic write-ups do.
+
 - **Greedy algorithms and number theory, as a section of their own.** Activity selection
   and fractional knapsack are greedy in the technical sense — a locally best choice that is
   provably globally optimal — and both are drawn beside the reason they work. Activity

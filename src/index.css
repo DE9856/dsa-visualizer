@@ -1118,6 +1118,73 @@ input[type="range"] {
   border-left-color: var(--primary);
 }
 
+/* ---------- source panel (pseudocode + real implementations) ---------- */
+
+.source__bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.source__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+.source__tab {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  padding: 4px 9px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.source__tab:hover {
+  color: var(--text);
+  background: var(--panel-alt);
+}
+
+.source__tab.is-active {
+  color: var(--primary);
+  border-color: rgba(255, 138, 61, 0.4);
+  background: var(--primary-dim);
+}
+
+.source__copy {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  font-size: 10.5px;
+}
+
+/* Real code is wider than pseudocode, so the listing scrolls sideways inside
+   the panel rather than pushing the page about. The rows are sized to the
+   widest line so the active row's band still runs the full width of what has
+   been scrolled to, instead of stopping at the fold. */
+.source__code {
+  overflow-x: auto;
+  margin: 0 -8px;
+}
+
+.source__code .info__code-line {
+  margin: 0;
+  width: max-content;
+  min-width: 100%;
+}
+
+.source__note {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
 /* ---------- topic panel (detailed explanations) ---------- */
 
 .topic-panel {

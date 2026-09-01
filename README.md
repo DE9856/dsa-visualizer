@@ -245,6 +245,8 @@ sideways. See
 - Speed controls with a live steps-per-second read-out
 - Step-by-step execution and a draggable timeline to scrub anywhere in a run
 - Live pseudocode — the line the current step is executing is highlighted
+- Real source code beside it, in C, C++, Java, Python and JavaScript, highlighted from
+  the same step, with a copy button
 - A recursion tree under the bars for merge and quick sort, with everything outside the
   active partition dimmed
 - Pause, Resume, Reset and Replay
@@ -255,7 +257,7 @@ sideways. See
 - Pivot and gap-sequence variants for quick and shell sort
 - Colour-by-origin, which turns stability into something you can see
 - Complexity information
-- Pseudocode display
+- Pseudocode display, plus a real implementation in five languages
 
 ### Balance & Height (trees)
 

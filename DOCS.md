@@ -453,6 +453,24 @@ step is executing, and follows along as you play, step or scrub. When a run fini
 nothing is highlighted — the algorithm has returned. Lines that never produce a frame of
 their own (loop headers, recursive calls) stay dim throughout.
 
+### Real source code
+
+The same panel carries tabs for C, C++, Java, Python and JavaScript beside the
+pseudocode, and a copy button for whichever is showing. The highlight is the same step in
+every tab: each line of a listing is tagged with the pseudocode line it implements, so the
+C and the Python light up together at whatever number of lines each needs to say it. One
+pseudocode line often lights several source lines, which is exactly the point — the
+listings are real implementations, not the pseudocode retyped.
+
+The chosen tab is remembered, so reading the Java for one algorithm means reading the Java
+for the next one you click. The listings are ~200 kB of text across all the algorithms and
+most visits never leave the pseudocode, so they are not in the initial bundle: they load
+in per-category chunks the first time a language is picked.
+
+The DP, backtracking, greedy, string and Huffman views get the same panel; the
+data-structure operations do not, because "insert into a BST" is a sentence rather than an
+algorithm.
+
 ### The sidebar
 
 Contents differ per topic, but the shape is consistent:
@@ -1549,8 +1567,11 @@ src/
 │   │                       own scale (merge and quick sort)
 │   ├── SearchTreePanel.jsx backtracking's search tree — same frame vocabulary,
 │   │                       laid out by depth because a choice owns no range
-│   └── CodeInfoPanel.jsx   description + costs + code, with the executing line
-│                           lit up (shared by the DP and backtracking views)
+│   ├── CodeInfoPanel.jsx   description + costs + code, with the executing line
+│   │                       lit up (shared by the DP and backtracking views)
+│   └── SourcePanel.jsx     the code block itself: pseudocode plus a real
+│                           implementation per language, one highlight, one
+│                           copy button
 │
 ├── hooks/
 │   ├── useStepPlayer.js         shared playback engine (see below)
@@ -1562,6 +1583,8 @@ src/
 │       useHashTable.js, useHeap.js, useTrie.js, useUnionFind.js
 │
 ├── data/                   category metadata and long-form topic write-ups
+│   └── sourceCode/         real implementations in five languages, tagged with
+│                           the pseudocode line each source line implements
 ├── utils/
 │   ├── distributions.js    the eight named input shapes, each pure in (n, seed)
 │   ├── rng.js              the seeded PRNG everything random draws from
@@ -1806,6 +1829,14 @@ transport bar and the keyboard shortcuts, so both always drive whatever is on sc
    the pseudocode is too coarse for the frames you push — a whole helper collapsed onto
    one line, say — spell that helper out as extra lines rather than pointing several
    different frames at the same one.
+
+   Optionally add real listings in `src/data/sourceCode/<category>.js` under the same key,
+   one string per language, and register the key in `CATEGORY_OF` in
+   `src/data/sourceCode/index.js`. Tag each source line with the pseudocode index it
+   implements by putting `@@n` at the end of it; the marker is stripped before the code is
+   shown or copied, so the mapping lives next to the line it describes and cannot drift
+   the way a separate table of line numbers would. Several source lines may carry the same
+   tag. Leaving the listings out is fine — the panel then shows the pseudocode alone.
 
 2. To make the algorithm configurable, declare `variants` and read the choice off
    `ctx.options`:

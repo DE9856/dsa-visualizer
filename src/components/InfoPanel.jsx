@@ -1,3 +1,5 @@
+import SourcePanel from "./SourcePanel.jsx";
+
 export default function InfoPanel({ meta, step }) {
   const hasDetails = meta.overview || meta.howItWorks || meta.useCases || meta.advantages || meta.disadvantages;
   // Every step frame carries the pseudocode line it is executing. A finished
@@ -16,18 +18,7 @@ export default function InfoPanel({ meta, step }) {
           <div><span>SPACE </span>{meta.space}</div>
         </div>
       </div>
-      <div className="info__code">
-        <div className="label">PSEUDOCODE</div>
-        {meta.pseudocode.map((line, i) => (
-          <div
-            key={i}
-            className={`info__code-line ${i === activeLine ? "is-active" : ""}`}
-            aria-current={i === activeLine ? "step" : undefined}
-          >
-            {line}
-          </div>
-        ))}
-      </div>
+      <SourcePanel algoKey={meta.key} pseudocode={meta.pseudocode} activeLine={activeLine} />
 
       {hasDetails && (
         <details className="topic-panel topic-panel--inline">
