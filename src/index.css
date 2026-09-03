@@ -3276,6 +3276,10 @@ input[type="range"] {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 16px;
+  /* Cards keep their own height instead of stretching to the tallest in the
+     row. Without this, opening one card pads out the two beside it with empty
+     space to match — which reads as three cards having opened, not one. */
+  align-items: start;
 }
 
 .landing__card {
@@ -3301,7 +3305,49 @@ input[type="range"] {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
+  width: 100%;
   margin-bottom: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.landing__card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* How many topics are behind a closed card. The one thing the label and the
+   blurb don't say, and the thing that decides whether opening it is worth it. */
+.landing__card-count {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-dim);
+  opacity: 0.65;
+}
+
+.landing__card-chevron {
+  display: flex;
+  color: var(--text-dim);
+  transition: color 0.2s ease;
+}
+
+.landing__card--open .landing__card-chevron,
+.landing__card--active .landing__card-chevron {
+  color: var(--accent);
+}
+
+.landing__card-top:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+  border-radius: 6px;
 }
 
 .landing__card-label {
@@ -3323,8 +3369,16 @@ input[type="range"] {
   font-size: 12.5px;
   color: var(--text-dim);
   line-height: 1.5;
-  margin: 0 0 16px;
+  margin: 0;
+  /* Two lines' worth, so a one-line blurb doesn't make its card shorter than
+     the rest of the row when they are all closed. */
   min-height: 38px;
+}
+
+/* The gap belongs to the list, not to the blurb: a closed card ends at the
+   blurb and shouldn't carry 16px of nothing under it. */
+.landing__card--open .landing__card-blurb {
+  margin-bottom: 16px;
 }
 
 .landing__card-items {

@@ -198,8 +198,14 @@ the page, or with the cursor in a sidebar field, is left alone as an ordinary te
 
 ### Flow
 
-1. **Category picker** — nine families (Arrays, Linked Lists, Stacks & Queues, Trees,
-   Hashing, Dynamic Programming, Strings, Backtracking, Graphs). Pick a topic to enter.
+1. **Category picker** — ten families (Arrays, Linked Lists, Stacks & Queues, Trees,
+   Hashing, Dynamic Programming, Strings, Backtracking, Greedy & Math, Graphs). Each is a
+   card showing its name, a one-line blurb and how many topics it holds; the card
+   **opens to list them**, and starts closed so the whole map of the app is one screen
+   rather than a page and a half of scrolling. Any number can be open at once — an
+   accordion that closes the last card for you makes comparing two families harder than
+   it needs to be. The head is the button, so on a closed card almost the whole card is
+   the target. Pick a topic to enter.
 2. **Visualizer** — sidebar on the left, canvas + transport + explanation on the right.
    The top bar switches topics at any time; clicking the `DSA://VISUALIZER` title
    returns to the category picker.

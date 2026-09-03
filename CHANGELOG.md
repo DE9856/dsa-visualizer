@@ -251,6 +251,15 @@ should a tree be shaped by", none of them the same as balance.
   the woff2 in `public/fonts/`, served rather than merely committed, alongside a
   `README.txt` naming each file, its copyright line and its upstream project.
 
+- **The category cards on the home page collapse.** Ten families each listing
+  every topic under them ran to a page and a half, so the one screen whose job
+  is to show what the app contains was the one screen you couldn't see at once.
+  A card now shows its name, its blurb and a count, and opens to list its
+  topics. Any number can be open together, because closing the last one for you
+  makes comparing two families harder than it needs to be, and the card head is
+  the button so there is almost nothing to aim at. Same shape as the collapsible
+  operation groups in the sidebars, down to the chevrons.
+
 - **Terms of use**, at `/terms.html`, sharing the privacy notice's design and
   linked from it and from the category page's footer. Short, because the site
   is: with no accounts, no payments and nothing stored on a server, most of what
