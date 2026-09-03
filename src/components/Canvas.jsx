@@ -2,6 +2,7 @@ import Bar from "./Bar.jsx";
 import { checkStability } from "../algorithms/stability.js";
 import { PIVOT, STATES } from "../utils/stateStyle.js";
 import { useBarEditing } from "../hooks/useBarEditing.js";
+import { useIsTouch } from "../hooks/useMediaQuery.js";
 
 const SORTED_SEARCH_ALGOS = ["binary", "interpolation", "exponential", "jump"];
 
@@ -100,6 +101,9 @@ function AuxRow({ aux }) {
 
 export default function Canvas({ step, algo, displayArr, maxVal, showTags, meta, baseArray, onEdit, onEditBegin }) {
   const isSortedSearch = SORTED_SEARCH_ALGOS.includes(algo);
+  // The hint names gestures, not layouts, so it follows the input device
+  // rather than the breakpoint — a touchscreen laptop gets the finger's rules.
+  const isTouch = useIsTouch();
 
   const editable = Boolean(onEdit);
   const edit = useBarEditing({
@@ -138,6 +142,7 @@ export default function Canvas({ step, algo, displayArr, maxVal, showTags, meta,
         <div className="canvas__note">COLOUR = THE INDEX EACH ELEMENT STARTED AT</div>
       )}
       <div
+        ref={edit.ref}
         className={`bars ${editable ? "bars--editable" : ""} ${edit.draft ? "bars--editing" : ""}`}
         {...edit.handlers}
       >
@@ -165,8 +170,17 @@ export default function Canvas({ step, algo, displayArr, maxVal, showTags, meta,
       <Legend algo={algo} category={meta?.category} />
       {editable && (
         <div className="canvas__hint">
-          Click a bar to set its value · drag up and down to scrub
-          {isSortedSearch ? "" : " · drag sideways to move it"}
+          {isTouch ? (
+            <>
+              Tap a bar to set its value · hold it, then drag up and down to scrub
+              {isSortedSearch ? "" : " · or sideways to move it"}
+            </>
+          ) : (
+            <>
+              Click a bar to set its value · drag up and down to scrub
+              {isSortedSearch ? "" : " · drag sideways to move it"}
+            </>
+          )}
         </div>
       )}
       {step.found === -2 && <div className="not-found">TARGET NOT FOUND</div>}

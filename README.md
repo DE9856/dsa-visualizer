@@ -229,7 +229,8 @@ The app is built for small screens too, not just scaled down for them. Below 760
 visualization takes the whole screen, the sidebar becomes a bottom sheet, and a fixed
 action bar keeps play/pause, the controls sheet and shuffle within thumb reach. Graphs
 lay out in a portrait ring, connect by tapping two vertices, and rearrange or grow by
-holding one and dragging it or holding empty canvas; trees stay readable and scroll
+holding one and dragging it or holding empty canvas; the sorting bars take the same hold
+to pick up, so a plain swipe still scrolls the page; trees stay readable and scroll
 sideways. See
 [DOCS.md](DOCS.md#on-a-phone) for the details.
 
@@ -255,7 +256,7 @@ sideways. See
 - Eight input shapes (random, nearly sorted, sorted, reversed, few unique, all equal,
   sawtooth, organ pipe)
 - Editable bars — click one to set its value, drag it up and down to scrub, drag it
-  sideways to move it along the array
+  sideways to move it along the array; on a phone, tap to set and hold to pick up
 - Sound — each value becomes a pitch. Pressing play sweeps the unsorted array first,
   the run itself sounds every comparison and swap, and a finished sort plays back as
   a rising scale

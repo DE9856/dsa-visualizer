@@ -6271,7 +6271,17 @@ select.text-input option {
   /* The whole strip is the target: a click lands on whichever column it is
      over, at whatever height, so there is nothing to aim at precisely. */
   cursor: crosshair;
-  touch-action: none;
+  /* The canvas is a third of a phone screen tall, so refusing the scroll here
+     outright would leave a dead band the page cannot be swiped past. A finger
+     picks a bar up by holding it instead, and the hook refuses the scroll from
+     that moment on. Sideways is refused throughout: nothing in the app scrolls
+     that way, and a reorder drag is exactly sideways. */
+  touch-action: pan-y;
+  /* A long press on a phone otherwise raises the selection handles and the
+     callout, both of which cancel the pointer mid-hold. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .bar--editable {
@@ -6289,6 +6299,14 @@ select.text-input option {
   cursor: grabbing;
 }
 
+/* Picked up, but not yet moved anywhere. Invisible on a cursor, which passes
+   through this state in a frame; on a finger it is the whole confirmation that
+   the hold landed, alongside the buzz. */
+.bar--drag-hold {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgb(var(--shadow-rgb) / 0.45) !important;
+}
+
 .bar--drag-reorder {
   /* Lifted out of the row so it reads as being carried rather than as having
      already landed somewhere. */
@@ -6298,7 +6316,8 @@ select.text-input option {
 
 /* The scrub badge replaces the ordinary label rather than stacking above it:
    the same number twice, one boxed and one not, reads as two numbers. */
-.bar--drag-value .bar__value {
+.bar--drag-value .bar__value,
+.bar--drag-hold .bar__value {
   opacity: 0;
 }
 

@@ -488,6 +488,18 @@ click. The array is held as a draft for the length of the gesture and
 committed once on release — the run is recomputed and the undo stack gains one
 entry per gesture, not one per pointer move.
 
+On a touchscreen the same three gestures begin differently. **Tap** a bar to set
+its value; **hold** one to pick it up — it buzzes and lifts, and its value
+appears above it — and then drag to scrub or to move it. A finger that travels
+before the hold fires is scrolling the page, and gives the press up. The hold is
+necessary because the canvas is a third of a phone screen tall: a finger drag on
+it is indistinguishable from a page scroll, and the browser cancels the pointer
+the moment it decides that is what the gesture was. `touch-action: pan-y` keeps
+the page scrollable up to the hold, and from the hold on the scroll is refused
+directly, for as long as the gesture lasts. The axis threshold is wider for a
+finger (12px, against 4px for a cursor), because deciding an axis from a tremor
+would reorder the array when the reader meant to scrub it.
+
 Editing rewinds to the first step and applies to the array the run *starts*
 from, which is not always what is on screen: mid-run the canvas shows a partly
 sorted picture, and the searches that sort a copy show an order the base array
@@ -629,6 +641,9 @@ Below 760px wide the app rearranges itself rather than shrinking:
   difference is that a move has to begin with a hold, because a finger that simply
   drags is scrolling the page; once a vertex is loose the drag refuses that scroll
   outright, for as long as it lasts.
+- **Editable bars** work the same way, and for the same reason: tap a bar to set its
+  value, hold one to pick it up and then drag to scrub or move it — see [editing the
+  array by hand](#editing-the-array-by-hand).
 - **Trees** keep their nodes at a readable size and scroll sideways inside the canvas
   instead of shrinking to fit.
 
@@ -1705,8 +1720,9 @@ src/
 │
 ├── hooks/
 │   ├── useTheme.js              theme / contrast / palette, applied to <html>
-│   ├── useBarEditing.js         click/drag editing of the bars; the gesture
-│   │                            state machine is pure and exported
+│   ├── useBarEditing.js         click/drag editing of the bars, hold-then-drag
+│   │                            on a finger; the gesture state machine is pure
+│   │                            and exported
 │   ├── useSonification.js       on/off, volume, and frames → notes
 │   ├── useStepPlayer.js         shared playback engine (see below)
 │   ├── useKeyboardShortcuts.js  global transport shortcuts

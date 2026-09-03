@@ -249,6 +249,17 @@ should a tree be shaped by", none of them the same as balance.
   physically landed on made the empty space above a short bar dead, and that
   space is exactly where you press to raise it.
 
+  A finger reaches the same three gestures by a different route: tap to set a
+  value, **hold** a bar to pick it up and then drag it to scrub or to move it.
+  Treating a finger like a cursor did not work at all on a phone — the canvas
+  is a third of the screen tall, so the browser read the drag as the page
+  scroll it looks like and cancelled the pointer partway through, and refusing
+  the scroll outright would have left a band the page could not be swiped past.
+  The hold is the same one that picks a vertex up on the graph canvas, buzzes
+  and lifts the bar the moment it lands, and refuses the scroll only from there
+  on. The axis threshold is wider for a finger than for a cursor, so a tremor
+  during a scrub no longer reorders the array.
+
 - **A theme system, and a second channel for algorithm state.** Light, dark and
   system themes; high contrast as a *modifier* on top of either, so a light
   high-contrast mode exists at all; and a colour-blind-safe palette for the

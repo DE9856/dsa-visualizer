@@ -112,8 +112,11 @@ export default function Bar({
     >
       {/* While a value is being scrubbed the number matters more than
           anything else on the bar, and the ordinary label is hidden on wide
-          arrays — so this one is always shown, and only to the bar in hand. */}
-      {dragging && editMode === "value" && <span className="bar__scrub">{val}</span>}
+          arrays — so this one is always shown, and only to the bar in hand.
+          It appears the moment the bar is picked up rather than once it moves,
+          because a finger held on a bar covers the very number it is about to
+          change. A reorder is the one gesture that leaves the value alone. */}
+      {dragging && editMode !== "reorder" && <span className="bar__scrub">{val}</span>}
       {/* The second channel. Hidden from screen readers because the bar's
           title already says the state in words, and a lone "↔" read aloud is
           noise. */}
