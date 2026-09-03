@@ -656,6 +656,36 @@ export function shareHashFor(view, sources) {
  * Points the address bar at the current data without touching history, so the
  * link is always there to copy and the back button still leaves the app.
  */
+/**
+ * The hash this visit arrived with, if it was meant to open something and
+ * can't — otherwise null.
+ *
+ * A visit with no hash at all is an ordinary one and belongs on the landing
+ * page. A hash that names a view this build has never heard of is a link that
+ * has gone wrong somewhere: truncated in a chat window, hand-edited, or made
+ * by a version of the app that had a view this one doesn't. Those two used to
+ * be indistinguishable — both quietly showed the home page — and the second
+ * deserves to be told what happened rather than left to wonder what it
+ * clicked. Returned as the raw text so the screen can show it back.
+ */
+export function unopenableHash() {
+  if (typeof window === "undefined") return null;
+  const raw = window.location.hash.replace(/^#/, "");
+  if (!raw) return null;
+  return readSharedState() === null ? raw : null;
+}
+
+/**
+ * Drops the hash, without a history entry. Leaving a dead link in the address
+ * bar would put the reader back on the not-found screen the moment they
+ * reloaded or came back to the tab.
+ */
+export function clearHash() {
+  if (typeof window === "undefined" || !window.location.hash) return;
+  const { pathname, search } = window.location;
+  window.history.replaceState(null, "", `${pathname}${search}`);
+}
+
 export function replaceHash(hash) {
   const next = `#${hash}`;
   if (next === window.location.hash) return;

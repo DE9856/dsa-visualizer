@@ -224,6 +224,117 @@ should a tree be shaped by", none of them the same as balance.
   capture seeks through every frame in turn and would otherwise fire hundreds
   of notes at once.
 
+- **An MIT licence** for the project's own code, in `LICENSE`, with `license`
+  declared in `package.json` to match. It closes with a third-party section
+  naming the two bundled typefaces and their SIL Open Font License terms,
+  because a bare MIT file at the root of a repo that ships someone else's fonts
+  reads as a claim over them too.
+
+- **The fonts are self-hosted**, and the app now makes no third-party request
+  of any kind. Writing the privacy notice made the cost of the Google Fonts
+  links explicit — a webfont request hands its host the reader's IP address,
+  browser and the page that asked, on every visit, for two typefaces that are
+  77 kB. They are served from `public/fonts/` instead, which also makes the site
+  work offline and behind a blocked CDN.
+
+  One file per family rather than one per weight: both are variable fonts, so a
+  single woff2 covers the whole 400-700 range the app uses — the seven files
+  Google's stylesheet names turned out to be the same two files listed seven
+  times. Only the `latin` subset ships, which is what an English page pulled
+  from Google before, so nothing renders differently. Exports pick the fonts up
+  through `domCapture.js`, which now rewrites every `url(….woff2)` in the
+  collected CSS into a `data:` URL rather than fetching a known stylesheet — so
+  it keeps working when a face is added or renamed.
+
+  Both are under the SIL Open Font License, which asks that the copyright
+  notice and licence accompany the files wherever they go — so they sit next to
+  the woff2 in `public/fonts/`, served rather than merely committed, alongside a
+  `README.txt` naming each file, its copyright line and its upstream project.
+
+- **Terms of use**, at `/terms.html`, sharing the privacy notice's design and
+  linked from it and from the category page's footer. Short, because the site
+  is: with no accounts, no payments and nothing stored on a server, most of what
+  a terms page usually carries has nothing here to attach to. What is left is
+  specific — the MIT grant over the code and the writing and the fonts'
+  exclusion from it, an explicit warning that the animations and complexity
+  claims are teaching simplifications to be checked before they are relied on,
+  no uptime promise, and the as-is disclaimer that mirrors the licence.
+
+  It also says where the material came from. The algorithms are the field's,
+  not the site's, and no claim is made over them — only over the particular way
+  they are explained and drawn here, which was written for this project. Since
+  good faith isn't certainty in a subject everyone learns from the same
+  textbooks, there is a plain route for anyone who thinks otherwise: one email,
+  no legal notice needed, and it gets corrected, credited or removed — the
+  whole site if that is what it takes.
+
+- **A privacy notice**, at `/privacy.html` and linked from the footer of the
+  category page. It is a description of what the code actually does rather than
+  boilerplate: the three `localStorage` keys named individually, the fact that
+  there are no cookies and no analytics at all, and the one third party the app
+  contacts — Google Fonts, which the export path re-fetches to embed the
+  typefaces in an exported image. It also states the thing that makes this app
+  unusually private without trying to be: a shared setup lives after the `#` in
+  the address, and browsers never transmit that to a server, so the arrays and
+  graphs you build cannot appear in anyone's logs even when you share the link.
+  Standalone, like the 404, so it renders even if the build doesn't.
+
+- **A not-found screen.** A shared link carries its whole setup in the address,
+  so one truncated in a chat window arrives naming a topic that doesn't exist —
+  and every such link used to land silently on the category page, leaving the
+  reader to wonder what they had clicked. It now gets a 404 screen that says the
+  link points at nothing and shows the address back so it can be compared with
+  the original. A visit with no hash at all is still an ordinary one and goes
+  straight to the categories; leaving the screen clears the dead hash so a
+  reload doesn't return to it.
+
+  A bad *path* is a different failure — the host's, not the app's — and
+  `public/404.html` is now the page served for it. It is deliberately
+  standalone: no bundle, no stylesheet, and its few colours copied from `:root`
+  instead of shared with it, because a 404 that depends on the build it is
+  apologising for renders as unstyled text exactly when it is needed. It replays
+  the reader's stored theme so it doesn't arrive in the wrong one.
+
+- **The graph canvas uses the whole panel.** Its `viewBox` was a fixed 640x300
+  laid inside an element as wide as the panel, which the browser scaled to fit
+  and centred — so on any normal window the graph sat in a column down the
+  middle with a few hundred pixels of drawn-but-unreachable canvas either side.
+  The `viewBox` is now measured from the element itself, so one unit is one
+  pixel and nothing is letterboxed, and the canvas is taller as well. The ring
+  the vertices start on is an ellipse inscribed in that box rather than a fixed
+  104-pixel circle, which is what spreads them out; it is capped at 3.5:1 so a
+  very wide, short canvas doesn't flatten it into a line. Dragging is unchanged
+  and still lands exactly under the cursor — it was already mapped through the
+  SVG's own transform rather than an aspect-ratio guess.
+
+- **Linked-list nodes are drawn as the struct.** One rectangle divided into the
+  fields the node actually holds: `data | next` for a singly linked list,
+  `prev | data | next` for a doubly linked one — the payload in the middle, so
+  each pointer sits on the side it points to — and, for a circular list, the
+  same two fields with the tail's `next` holding the head instead of null. A
+  pointer field carries a dot when it points somewhere and is struck through
+  when it is null, in the node's own state colour, so a list's shape can be read
+  off the boxes without following an arrow. Reverse is what this was for: each
+  node's `next` field empties and refills as its pointer is flipped, which a row
+  of arrows between featureless boxes could only ever show indirectly.
+
+  A circular list's wrap-around is now **drawn rather than captioned**. The tail
+  used to carry a `↺ HEAD` badge with a note under the row explaining it, which
+  is a label for the pointer and not the pointer; it is now a real dashed link
+  curving out of the tail's `next` field, under the row and back up into the
+  head. It is measured off the laid-out nodes, so it follows an insert or a
+  delete that moves the head — and when the row has wrapped onto several lines
+  it routes down into a lane and up a gutter beside the block, rather than
+  cutting a diagonal across every line of nodes in between.
+
+  A node now draws the arrow **arriving** at it rather than the one leaving,
+  which looks identical on a single line and fixes a wrapped one: the arrow sits
+  at the front of the item the row breaks between, so a line ends on a node
+  instead of on an arrow pointing at nothing, and picks up again at the start of
+  the next line. The HEAD and prev/curr/next tags hang off the node itself now
+  rather than off the node-and-its-arrow, so they are centred on the box they
+  name instead of half an arrow's width to one side of it.
+
 - **The bars are editable.** Click one to set its value to the height you
   clicked at, drag it up and down to scrub with the number shown above it, or
   drag it sideways to move it along the array. Keyboard equivalents throughout:

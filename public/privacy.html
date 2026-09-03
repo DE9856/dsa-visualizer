@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b0d12" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="description" content="What the DSA Visualizer stores, what leaves your browser, and what it doesn't do." />
+    <title>Privacy &middot; DSA Visualizer</title>
+
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <!--
+      Standalone for the same reason public/404.html is: a notice describing
+      what the site does should not stop rendering because the site's build
+      did. The tokens below are copied from `:root` in `src/index.css`.
+    -->
+    <style>
+      /* Self-hosted, like the app's — so this page contacts nothing either.
+         One variable file per family covers the whole weight range. */
+      @font-face {
+        font-family: "JetBrains Mono";
+        src: url("/fonts/jetbrains-mono-latin.woff2") format("woff2");
+        font-weight: 400 700;
+        font-display: swap;
+      }
+
+      @font-face {
+        font-family: "IBM Plex Sans";
+        src: url("/fonts/ibm-plex-sans-latin.woff2") format("woff2");
+        font-weight: 400 700;
+        font-display: swap;
+      }
+
+      :root {
+        --bg: #0b0d12;
+        --text: #edebe6;
+        --text-dim: #8b90a0;
+        --border: rgb(255 255 255 / 0.08);
+        --panel: rgb(255 255 255 / 0.035);
+        --primary: rgb(255 138 61);
+        --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        --sans: "IBM Plex Sans", system-ui, -apple-system, Segoe UI, sans-serif;
+      }
+
+      :root[data-theme="light"] {
+        --bg: #f2f3f6;
+        --text: #14171d;
+        --text-dim: #596070;
+        --border: rgb(0 0 0 / 0.12);
+        --panel: rgb(0 0 0 / 0.045);
+      }
+
+      @media (prefers-color-scheme: light) {
+        :root:not([data-theme="dark"]) {
+          --bg: #f2f3f6;
+          --text: #14171d;
+          --text-dim: #596070;
+          --border: rgb(0 0 0 / 0.12);
+          --panel: rgb(0 0 0 / 0.045);
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 56px 24px 96px;
+        font-family: var(--sans);
+        font-size: 15px;
+        line-height: 1.7;
+        color: var(--text);
+        background: var(--bg);
+      }
+
+      main {
+        max-width: 680px;
+        margin: 0 auto;
+      }
+
+      .back {
+        display: inline-block;
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-decoration: none;
+        color: var(--text-dim);
+        margin-bottom: 36px;
+      }
+
+      .back:hover {
+        color: var(--primary);
+      }
+
+      h1 {
+        font-family: var(--mono);
+        font-size: 24px;
+        letter-spacing: 0.02em;
+        margin: 0 0 6px;
+      }
+
+      .updated {
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        color: var(--text-dim);
+        margin: 0 0 34px;
+      }
+
+      h2 {
+        font-family: var(--mono);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text);
+        margin: 40px 0 12px;
+        padding-top: 22px;
+        border-top: 1px solid var(--border);
+      }
+
+      p,
+      li {
+        color: var(--text-dim);
+      }
+
+      p {
+        margin: 0 0 14px;
+      }
+
+      ul {
+        margin: 0 0 14px;
+        padding-left: 20px;
+      }
+
+      li {
+        margin-bottom: 8px;
+      }
+
+      strong {
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      code {
+        font-family: var(--mono);
+        font-size: 0.87em;
+        color: var(--text);
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 1px 5px;
+        overflow-wrap: anywhere;
+      }
+
+      a {
+        color: var(--primary);
+        text-decoration: none;
+        border-bottom: 1px solid rgb(255 138 61 / 0.35);
+      }
+
+      a:hover {
+        border-bottom-color: var(--primary);
+      }
+
+      .lede {
+        font-size: 16px;
+        color: var(--text);
+        border-left: 2px solid var(--primary);
+        padding-left: 16px;
+        margin-bottom: 8px;
+      }
+
+      /* The two documents are a pair, and each is the other's only sensible
+         next click. */
+      .siblings {
+        margin-top: 52px;
+        padding-top: 22px;
+        border-top: 1px solid var(--border);
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.06em;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="back" href="/">&larr; DSA://VISUALIZER</a>
+
+      <h1>Privacy</h1>
+      <p class="updated">LAST UPDATED 3 SEPTEMBER 2026</p>
+
+      <p class="lede">
+        The DSA Visualizer has no accounts, no database, no analytics and no third parties. It
+        doesn&rsquo;t ask who you are, and it has nowhere to put an answer. Everything you build in it
+        stays in your browser.
+      </p>
+
+      <h2>What is stored on your device</h2>
+      <p>
+        The site saves three settings in your browser&rsquo;s <strong>local storage</strong>, so it can
+        remember how you like it between visits:
+      </p>
+      <ul>
+        <li><code>dsa-viz:appearance</code> &mdash; your theme, contrast and colour-palette choice.</li>
+        <li><code>dsa-viz:sound</code> &mdash; whether sound is on, and its volume.</li>
+        <li><code>dsa-viz:code-tab</code> &mdash; which language tab you last read source code in.</li>
+      </ul>
+      <p>
+        That is the complete list. These sit on your own device, are never transmitted anywhere, and
+        cannot be read by anyone but your browser. The site sets <strong>no cookies at all</strong>.
+      </p>
+
+      <h2>What you build is never sent anywhere</h2>
+      <p>
+        Arrays, graphs, trees and every other structure you create exist only in the page you have
+        open. When you share a setup, the whole thing is encoded into the part of the address after
+        the <code>#</code> &mdash; and browsers, by design, <strong>never send that part of a URL to
+        the server</strong>. So your data does not reach this site&rsquo;s host and cannot appear in
+        anyone&rsquo;s server logs, even when you share the link.
+      </p>
+      <p>
+        Exports are the same: GIFs, videos and printable tables are rendered in your browser, using
+        the fonts already loaded from this site, and the file is only ever handed to you. Nothing is
+        uploaded.
+      </p>
+
+      <h2>What does leave your browser</h2>
+      <p>
+        <strong>Nothing goes to a third party.</strong> Your browser makes no request to any domain
+        other than this one &mdash; no font CDN, no script host, no image host, nothing. The two
+        typefaces are served from this site, so loading a page tells nobody but the server you asked.
+      </p>
+      <p>
+        That leaves the server itself. The site is hosted by <strong>Vercel</strong>, and like any web
+        server Vercel receives the requests your browser makes and may log them &mdash; typically your
+        IP address, user agent, the file requested and the time. That is ordinary infrastructure
+        logging rather than something this site asks for, and it is the only record of your visit that
+        exists anywhere. See
+        <a href="https://vercel.com/legal/privacy-notice" rel="noopener noreferrer" target="_blank">Vercel&rsquo;s privacy notice</a>.
+      </p>
+
+      <h2>What the site does not do</h2>
+      <ul>
+        <li>No analytics, telemetry, tracking pixels, fingerprinting or session recording.</li>
+        <li>No advertising, and no data sold, shared or handed to anyone.</li>
+        <li>No accounts, sign-ins, forms or newsletters &mdash; there is nothing to submit.</li>
+        <li>No access to your camera, microphone, location or files.</li>
+        <li>
+          Copy buttons write to your clipboard; the site never reads it. On a phone, some gestures ask
+          the device for a short vibration.
+        </li>
+      </ul>
+
+      <h2>Removing what is stored</h2>
+      <p>
+        Clearing site data for this domain in your browser&rsquo;s settings removes all three keys
+        above and returns the site to its defaults. Nothing else of yours exists to delete, because
+        nothing else was ever collected.
+      </p>
+
+      <h2>Changes</h2>
+      <p>
+        If the site starts doing something this notice doesn&rsquo;t describe, the notice changes with
+        it and the date at the top moves. There is no mailing list to notify, so the date is the thing
+        to check.
+      </p>
+
+      <h2>Contact</h2>
+      <p>
+        Questions about this notice, or about anything the site does with your data, can go to
+        <a href="mailto:deepeshkumar9134@gmail.com">deepeshkumar9134@gmail.com</a>.
+      </p>
+
+      <p class="siblings"><a href="/terms.html">TERMS &rarr;</a></p>
+    </main>
+
+    <script>
+      // Replay the appearance chosen in the app, from the same storage key and
+      // onto the same attribute `useTheme` uses, so this page doesn't arrive in
+      // the wrong theme. Wrapped because storage throws outright in some
+      // privacy modes — where defaulting to the OS setting is the right answer.
+      try {
+        var saved = JSON.parse(localStorage.getItem("dsa-viz:appearance") || "{}");
+        var theme = saved.theme;
+        if (theme === "system" || !theme) {
+          theme = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+        }
+        if (theme === "light" || theme === "dark") {
+          document.documentElement.setAttribute("data-theme", theme);
+          document.querySelector('meta[name="theme-color"]').content =
+            theme === "light" ? "#f2f3f6" : "#0b0d12";
+        }
+      } catch (e) {}
+    </script>
+  </body>
+</html>

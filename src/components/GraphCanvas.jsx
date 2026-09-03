@@ -1,13 +1,25 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useIsMobile } from "../hooks/useMediaQuery.js";
 
-// A phone is portrait, so the ring of vertices is laid out tall-and-narrow
-// there — the landscape viewBox would otherwise scale down to letterbox-sized
-// nodes on a 360px screen. rx/ry are given rather than derived so the phone's
-// ring can stretch into an ellipse that fills a portrait canvas, while the
-// desktop one stays circular.
-const DESKTOP_VIEW = { width: 640, height: 300, radius: 22, rx: 104, ry: 104 };
-const MOBILE_VIEW = { width: 330, height: 370, radius: 21, rx: 118, ry: 138 };
+// Stand-ins for one render, until the canvas has been measured. A phone is
+// portrait and a desktop panel is wide, so the two are the right shape to guess
+// with — but the real numbers come off the element itself.
+const DESKTOP_FALLBACK = { width: 640, height: 360 };
+const MOBILE_FALLBACK = { width: 330, height: 370 };
+
+const DESKTOP_RADIUS = 22;
+const MOBILE_RADIUS = 21;
+
+// What the ring keeps clear inside the edge of the canvas, so a vertex's label
+// and the arrowheads around it never run into the border.
+const RING_PAD = 26;
+
+// How far the ring may be stretched from a circle. Filling the box outright is
+// what spreads the vertices out, but on a very wide, short canvas — an
+// ultrawide monitor — an unbounded ellipse flattens into a line, and every edge
+// between neighbouring vertices with it. Only the default layout is capped: the
+// whole canvas is still there to drag a vertex into.
+const MAX_RING_RATIO = 3.5;
 
 // How long a finger has to rest before the press becomes a gesture of its own
 // — picking a vertex up, or dropping a new one on empty canvas.
@@ -126,7 +138,28 @@ export default function GraphCanvas({
   onDeleteVertex,
 }) {
   const isMobile = useIsMobile();
-  const view = isMobile ? MOBILE_VIEW : DESKTOP_VIEW;
+
+  // The canvas's own pixel box, remeasured whenever it changes size. The
+  // viewBox is set from it so that one user unit is one CSS pixel and nothing
+  // is letterboxed: a fixed viewBox inside a wider panel gets scaled to fit and
+  // strands the graph in a column down the middle, with the rest of the canvas
+  // drawn but unreachable. It can't be assumed, because the width depends on
+  // the window and on whether the sidebar is a column or a sheet.
+  const [box, setBox] = useState(null);
+
+  const view = useMemo(() => {
+    const fallback = isMobile ? MOBILE_FALLBACK : DESKTOP_FALLBACK;
+    const width = box?.width ?? fallback.width;
+    const height = box?.height ?? fallback.height;
+    const radius = isMobile ? MOBILE_RADIUS : DESKTOP_RADIUS;
+    // An ellipse inscribed in the box rather than a circle sized to its shorter
+    // side: on a wide panel a circle leaves both ends of the canvas empty,
+    // which is exactly the space the ring is being spread out to use.
+    const ry = Math.max(radius, height / 2 - radius - RING_PAD);
+    const rx = Math.max(radius, Math.min(width / 2 - radius - RING_PAD, ry * MAX_RING_RATIO));
+    return { width, height, radius, rx, ry };
+  }, [box, isMobile]);
+
   const { width: WIDTH, height: HEIGHT, radius: RADIUS } = view;
 
   const nodes = step.nodes || [];
@@ -180,6 +213,27 @@ export default function GraphCanvas({
     },
     [WIDTH, HEIGHT]
   );
+
+  // Layout effect, so the corrected viewBox is in place before the first paint
+  // rather than one frame after it. The element's size comes from CSS and never
+  // from the viewBox, so measuring it here cannot feed back into itself.
+  useLayoutEffect(() => {
+    const svg = svgRef.current;
+    if (!svg || typeof ResizeObserver === "undefined") return undefined;
+    const measure = () => {
+      const rect = svg.getBoundingClientRect();
+      if (rect.width < 1 || rect.height < 1) return;
+      setBox((prev) =>
+        prev && Math.abs(prev.width - rect.width) < 1 && Math.abs(prev.height - rect.height) < 1
+          ? prev
+          : { width: rect.width, height: rect.height }
+      );
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(svg);
+    return () => observer.disconnect();
+  }, []);
 
   // A finger dragging a vertex would otherwise scroll the page, and the
   // browser cancels the pointer the moment it decides the gesture is a scroll.

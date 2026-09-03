@@ -17,9 +17,12 @@
  *   to hang off the wrapper rather than off an `<html>` that isn't there.
  * - **Fonts.** An image-rendered SVG is not allowed to fetch anything, so a
  *   webfont referenced by URL silently falls back to a system face and every
- *   glyph shifts. The font files are fetched once and inlined as data URLs.
- *   If that fails — offline, blocked — the capture still works, in whatever
- *   the fallback stack gives; nothing here is allowed to fail the export.
+ *   glyph shifts. Every `url(….woff2)` the collected CSS mentions is therefore
+ *   fetched once and swapped for a data URL. Rewriting whatever the stylesheet
+ *   declares, rather than naming the files here, is what keeps this working
+ *   when a face is added or renamed. If it fails — offline, blocked — the
+ *   capture still works in whatever the fallback stack gives; nothing here is
+ *   allowed to fail the export.
  *
  * The SVG is always sized to the element's real CSS pixels and scaled up on
  * the way into the canvas. Sizing the SVG to the output width instead would
@@ -34,8 +37,6 @@ const ALWAYS_DROP = [".main-col__share", ".sheet", ".actionbar", ".export-dialog
 
 const CODE_PANELS = [".panel.info", ".topic-panel"];
 
-const FONT_CSS_HOST = "https://fonts.googleapis.com";
-
 let stylesPromise = null;
 
 /** Every same-origin rule in the document, as one string. */
@@ -46,8 +47,8 @@ function collectCss() {
     try {
       rules = sheet.cssRules;
     } catch {
-      // Cross-origin (the webfont stylesheet). Its @font-face rules are
-      // fetched and inlined separately below, so skipping it loses nothing.
+      // A cross-origin stylesheet won't expose its rules. The app's own fonts
+      // and styles are all same-origin, so there is nothing here to lose.
       continue;
     }
     for (const rule of rules) chunks.push(rule.cssText);
@@ -65,37 +66,38 @@ async function asDataUrl(url) {
   return `data:font/woff2;base64,${btoa(binary)}`;
 }
 
+// Matches the font files an @font-face rule points at, however it quotes them.
+const FONT_FILE_RE = /url\(\s*['"]?([^)'"]+\.woff2)['"]?\s*\)/g;
+
 /**
- * The document's webfaces with their files inlined. Only the faces covering
- * basic Latin are taken: Google serves one `@font-face` per unicode-range
- * subset, and fetching all of them for every weight would be most of a
- * megabyte to render text that is entirely ASCII.
+ * The collected CSS with every webfont file it references embedded in it.
+ *
+ * A face whose file cannot be fetched is left pointing at its original URL
+ * rather than dropped: inside the SVG that URL simply doesn't load and the
+ * text falls back, which is the same outcome, and it keeps one failed font
+ * from taking the others down with it.
  */
-async function inlineFonts() {
-  const link = [...document.querySelectorAll('link[rel="stylesheet"]')].find((l) =>
-    l.href.startsWith(FONT_CSS_HOST)
-  );
-  if (!link) return "";
+async function inlineFontFiles(css) {
+  const urls = [...new Set([...css.matchAll(FONT_FILE_RE)].map((match) => match[1]))];
+  if (!urls.length) return css;
 
-  const css = await fetch(link.href).then((r) => r.text());
-  const faces = css.split("@font-face").slice(1);
-
-  const wanted = faces
-    .map((face) => `@font-face${face.slice(0, face.indexOf("}") + 1)}`)
-    .filter((face) => /U\+0000-00FF/.test(face));
-
-  const inlined = await Promise.all(
-    wanted.map(async (face) => {
-      const url = face.match(/url\((https:\/\/[^)]+)\)/)?.[1];
-      if (!url) return "";
+  const embedded = await Promise.all(
+    urls.map(async (url) => {
       try {
-        return face.replace(url, await asDataUrl(url));
+        return [url, await asDataUrl(url)];
       } catch {
-        return "";
+        return [url, null];
       }
     })
   );
-  return inlined.join("\n");
+
+  let out = css;
+  for (const [url, data] of embedded) {
+    // split/join rather than a RegExp: a font URL is a path, and escaping one
+    // to be safe as a pattern is work this doesn't need to do.
+    if (data) out = out.split(url).join(data);
+  }
+  return out;
 }
 
 /**
@@ -107,13 +109,12 @@ export function prepareStyles() {
   if (!stylesPromise) {
     stylesPromise = (async () => {
       const css = collectCss();
-      let fonts = "";
       try {
-        fonts = await inlineFonts();
+        return await inlineFontFiles(css);
       } catch {
-        // Offline, or the font host is blocked. Carry on without.
+        // Carry on with the styles alone; the text falls back to a system face.
+        return css;
       }
-      return `${fonts}\n${css}`;
     })().catch(() => "");
   }
   return stylesPromise;

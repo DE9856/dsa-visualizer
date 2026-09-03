@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import CategoryLanding from "./components/CategoryLanding.jsx";
+import NotFound from "./components/NotFound.jsx";
 import TopBar from "./components/TopBar.jsx";
 import ExportDialog from "./components/ExportDialog.jsx";
 import { useTheme } from "./hooks/useTheme.js";
@@ -90,7 +91,7 @@ import { useBTree } from "./hooks/useBTree.js";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts.js";
 import { delayForSpeed } from "./hooks/useStepPlayer.js";
 import { buildStepTable } from "./utils/stepTable.js";
-import { readSharedState, shareHashFor, replaceHash, buildShareUrl } from "./utils/urlState.js";
+import { readSharedState, unopenableHash, clearHash, shareHashFor, replaceHash, buildShareUrl } from "./utils/urlState.js";
 
 export default function App() {
   // A shared link carries a topic and its data. Read once, on mount: it seeds
@@ -98,7 +99,13 @@ export default function App() {
   const shared = useMemo(() => readSharedState(), []);
   const initFor = (name) => (shared?.view === name ? shared : null);
 
-  const [stage, setStage] = useState(shared ? "app" : "select");
+  // Read on mount for the same reason `shared` is: navigating rewrites the
+  // hash, so the link that failed has to be captured before anything else runs.
+  // Mutually exclusive with `shared` by construction — a hash either opens
+  // something or it doesn't.
+  const badHash = useMemo(() => unopenableHash(), []);
+
+  const [stage, setStage] = useState(shared ? "app" : badHash ? "notfound" : "select");
   const [view, setView] = useState(shared?.view ?? "sorting");
   const [showHelp, setShowHelp] = useState(false);
   const appearance = useTheme();
@@ -336,6 +343,21 @@ export default function App() {
     if (name === "sorting" || name === "searching") v.switchCategory(name);
     setStage("app");
   };
+
+  if (stage === "notfound") {
+    return (
+      <NotFound
+        requested={badHash}
+        appearance={appearance}
+        onHome={() => {
+          // The dead link goes with it: left in the address bar, a reload or a
+          // return to the tab would land straight back here.
+          clearHash();
+          setStage("select");
+        }}
+      />
+    );
+  }
 
   if (stage === "select") {
     return <CategoryLanding onSelect={handleViewChange} appearance={appearance} />;

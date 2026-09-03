@@ -203,10 +203,46 @@ Shortcuts are ignored while you're typing in a field. Full details in [DOCS.md](
 
 ---
 
+## 📄 Licence
+
+[MIT](LICENSE) — do what you like with the code, keep the copyright notice.
+
+The two bundled typefaces are **not** covered by it: they are under the SIL Open Font
+License 1.1 and carry their own notices, which ship beside them in
+[`public/fonts/`](public/fonts/README.txt).
+
+---
+
+## 🔤 Fonts
+
+[JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) and
+[IBM Plex Sans](https://github.com/IBM/plex), both under the
+[SIL Open Font License 1.1](public/fonts/LICENSE-JetBrainsMono.txt) and self-hosted from
+`public/fonts/` — so the app makes no third-party request. Licences and attribution ship
+with them, in [`public/fonts/README.txt`](public/fonts/README.txt).
+
+---
+
+## 🔒 Privacy
+
+No accounts, no database, no analytics, no cookies. Three `localStorage` keys hold your
+theme, your sound setting and your last-read code tab, and nothing else is kept. What you
+build travels in the part of the URL after the `#`, which browsers never send to a server
+— so it stays on your machine even when you share the link. There are **no third-party
+requests at all**: the fonts are self-hosted, so your browser never talks to anyone but the
+server you asked for. The full notice is at [`/privacy.html`](public/privacy.html), and the
+[terms](public/terms.html) at `/terms.html` — both linked from the footer of the category
+page.
+
+---
+
 ## 🔗 Sharing
 
 The address bar always holds a link to what's on screen, and **SHARE** in the top bar
-copies it. Open a link and you land straight in the visualizer with the data loaded:
+copies it. Open a link and you land straight in the visualizer with the data loaded.
+A link that names no topic — truncated on the way, or hand-edited — gets a not-found
+screen that says so and shows the address back, rather than silently landing you on the
+home page:
 
 ```
 #v=race&algos=insertion,merge,quick&sh=nearly&n=24&sd=7&sy=op
@@ -359,6 +395,12 @@ Interactive visualizations for:
   - Search, Size, isEmpty, isFull, Clear
 
 - Linked List — singly, doubly, circular
+  - Nodes are drawn as the struct: `data | next`, or `prev | data | next` when doubly
+    linked. A pointer field holds a dot when it points somewhere and is struck through
+    when it is null
+  - A circular list's wrap-around is a drawn link, curving from the tail's `next` field
+    back into the head — and routed around the block rather than across it when the row
+    has wrapped onto several lines
   - Insert at head / tail / position
   - Delete by value / position, Update node
   - Search & traverse, Reverse, Sort, Count length

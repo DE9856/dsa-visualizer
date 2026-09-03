@@ -53,7 +53,47 @@ npm run dev -- --port 5177
 ### Deploying
 
 `npm run build` produces a fully static `dist/` folder. Drop it on any static host
-(GitHub Pages, Netlify, Vercel, S3, nginx). There is nothing to configure server-side.
+(GitHub Pages, Netlify, Vercel, S3, nginx). There is nothing to configure server-side —
+including for the [not-found page](#when-a-link-names-nothing): `public/404.html` is
+copied to the root of `dist/`, which is where a static host looks for it. Don't add an
+SPA catch-all rewrite to `index.html`; this app routes entirely in the hash, and the
+rewrite would turn every wrong address into a 200.
+
+### Fonts
+
+Both typefaces are **self-hosted** from `public/fonts/`, and the app makes no third-party
+request of any kind. They were Google Fonts links until the privacy notice made the cost
+of that explicit: a webfont request hands its host the reader's IP address, browser and the
+page that asked, on every visit. Self-hosting also makes the site work offline and behind a
+blocked CDN, and removes two DNS lookups and a connection from the critical path.
+
+There is **one file per family, not one per weight** — both are variable fonts, so a single
+woff2 covers the whole 400–700 range the app uses. Only the `latin` subset is shipped,
+which is the one an English page pulled from Google before, so nothing renders differently;
+the handful of glyphs outside it (the arrows in the linked-list canvas) fell through to a
+system face then and still do. The two files are 77 kB together, preloaded from
+`index.html` because the `@font-face` rules live in the CSS bundle and would otherwise not
+be discovered until it had been parsed.
+
+Exports need the fonts as bytes, because an image-rendered SVG may not fetch anything.
+`domCapture.js` therefore rewrites every `url(….woff2)` in the collected CSS into a
+`data:` URL. It rewrites whatever the stylesheet declares rather than naming the files, so
+adding or renaming a face needs no change there.
+
+Both are under the **SIL Open Font License 1.1**, which permits redistribution and web
+embedding but requires the copyright notice and licence to travel with the files. They do:
+`public/fonts/` holds `LICENSE-JetBrainsMono.txt`, `LICENSE-IBMPlexSans.txt` and a
+`README.txt` naming each file, its copyright line and its upstream project. Being under
+`public/` they are served alongside the fonts rather than only living in the repo, which is
+what "accompanying the font" means for a website. Note that `Plex` is a Reserved Font Name:
+a *modified* build may not be distributed under it. The files here are unmodified.
+
+To replace a face: drop the woff2 in `public/fonts/`, add its licence and an entry in
+`public/fonts/README.txt`, update the `@font-face` block at the top of `src/index.css` and
+the copies inlined in `public/404.html` and `public/privacy.html`, and update the preloads
+in `index.html`.
+
+### Deploying under a sub-path
 
 If you deploy under a sub-path (e.g. `user.github.io/dsa-visualizer/`), set the base
 in `vite.config.js`:
@@ -446,6 +486,67 @@ Anything unrecognised in a link is ignored and falls back to the default: an unk
 algorithm, a bad tree type, non-numeric values, or an edge naming a vertex that doesn't
 exist. A link can only ever produce a setup the app could have built itself.
 
+### When a link names nothing
+
+One thing can't fall back to a default: the topic itself. A hash whose `v` names no view
+— a link truncated in a chat window, hand-edited into nonsense, or made by a version that
+had a topic this one doesn't — lands on a **not-found screen** that says so and shows the
+address it was given back, rather than quietly dropping the reader on the category page to
+wonder what they clicked. A visit with no hash at all is an ordinary one and still goes
+straight to the categories; the two are told apart by `unopenableHash()` in
+`src/utils/urlState.js`. Leaving that screen clears the dead hash, so a reload doesn't
+land back on it.
+
+### The privacy notice and the terms
+
+`public/privacy.html` and `public/terms.html` are the two documents, linked from the footer
+of the category page and from each other. Both are standalone for the same reason the 404
+is — a page setting out what the site does and what it is offered under should not stop
+rendering because the site's build did — and both replay the stored theme the same way.
+They share one design: `terms.html` was written from the notice's own head and style block,
+so a change to one should be carried to the other.
+
+The **terms** are short because the site is: no accounts, no payments, nothing stored
+server-side, so the clauses those things need have nothing to attach to. What is left is
+worth stating plainly — the MIT grant over the code and writing (and the fonts' exclusion
+from it), the fact that the animations and complexity claims are teaching simplifications
+that should be checked before being relied on, no uptime promise, and the as-is disclaimer
+that mirrors the MIT licence. Two fields are left as bracketed placeholders because only
+the operator can fill them: the contact address and the governing jurisdiction.
+
+Its content is a description of the code, not boilerplate, so **it has to be re-checked
+whenever any of these change**:
+
+- The three `localStorage` keys it lists by name: `dsa-viz:appearance` (`useTheme.js`),
+  `dsa-viz:sound` (`useSonification.js`) and `dsa-viz:code-tab` (`SourcePanel.jsx`).
+  There are no others, no cookies and no `sessionStorage`; the notice says so outright.
+- The claim that the app contacts **no third party at all**. The two typefaces are
+  self-hosted from `public/fonts/`; adding a CDN link, an embed or a remote script makes
+  that sentence false.
+- The claim that nothing is uploaded: `fetch` appears twice in `src/`, both in
+  `domCapture.js`, and both are same-origin GETs for the font files.
+- The claim that shared data never reaches the server, which holds because the setup
+  lives after the `#` and browsers do not transmit fragments.
+
+Adding an analytics script, a backend call, a cookie or a fourth storage key makes the
+notice wrong, which is worse than not having one.
+
+That covers a bad *hash*. A bad *path* — anything deeper than the site root, which this
+app never serves — is the host's own 404, and `public/404.html` is the page it shows.
+It is standalone by design: no bundle, no stylesheet, its handful of colours copied from
+`:root` rather than shared with it, because a 404 that depends on the build it is
+apologising for renders as unstyled text exactly when it is needed. It replays the
+appearance from the same `localStorage` key `useTheme` writes, so it doesn't flip theme
+under the reader.
+
+The site is deployed on **Vercel**, which serves a `404.html` at the root of the output
+directory for any unmatched path automatically — with a real 404 status, and with no
+`vercel.json` needed. Vite copies `public/404.html` to `dist/`, so it is already where
+Vercel looks. The one change that would silently break it is adding the SPA catch-all
+rewrite that Vite projects often carry (`/(.*)` → `/index.html`): every unmatched path
+would then return the app with a 200 instead. This app doesn't need that rewrite, because
+its routing lives entirely in the hash and every topic really is served from `/`.
+
 ### Live pseudocode
 
 On the sorting and searching views the pseudocode panel highlights the line the current
@@ -759,6 +860,36 @@ says so — and draw `lo` / `mid` / `hi` pointers under the bars.
 | **Union-Find** | union by size + path compression | union, find, connected?, components, add element, reset |
 | **Graph** | directed/undirected, weighted/unweighted | add & remove vertex/edge, neighbours, degree, is-adjacent, BFS, DFS, topological sort, cycle detection, bipartite check, bridges & articulation points, Tarjan's and Kosaraju's SCC, Prim's and Kruskal's MST, Dijkstra, Bellman-Ford, Floyd–Warshall, A*, max flow (Edmonds–Karp) |
 
+A **linked-list node is drawn as the struct it is**: one rectangle divided into the fields
+the node actually holds. A singly linked node is `data | next`; a doubly linked one is
+`prev | data | next`, with the payload in the middle so each pointer sits on the side it
+points to; a circular list is a singly linked one whose last `next` holds the head rather
+than null. A pointer field carries a **dot** when it points at something and is **struck
+through** when it is null, so the shape of a list is readable from the boxes alone before
+following a single arrow — the tail's crossed-out `next` beside a `NULL` tag, or a dot
+there when the list is circular. The fields take the node's state colour along with its
+border, so a highlighted node's pointer is highlighted too. Reverse is the operation this
+pays off on: each node's `next` box empties and refills as the pointer is flipped, which
+the arrows between nodes could only show indirectly.
+
+A **circular list's wrap-around is drawn, not captioned**: the link leaves the bottom of
+the tail's own `next` field, swings through a lane under the row and comes back up into
+the head, dashed and arrowheaded like the pointer it is. It is measured off the laid-out
+DOM rather than positioned by hand, because the row wraps onto several lines at narrow
+widths — and when it has, the link takes a different route, dropping into the lane below
+the tail and running up a gutter beside the block instead of cutting diagonally across
+every line of nodes between the two ends. The measuring uses `offsetTop`/`offsetLeft`
+rather than `getBoundingClientRect`, so the pulse animation on a pending node (a CSS
+`scale`, which a rect includes and an offset does not) can't make the link twitch.
+
+Each node draws the arrow **arriving** at it rather than the one leaving. The two say the
+same thing about the same pair of nodes and look identical on one line — but the arrow is
+then at the front of the flex item the row wraps between, so a line can only break after a
+node. Drawing the outgoing arrow instead left every wrapped line ending in an arrow that
+pointed at nothing; now the arrow reappears at the head of the next line, where it reads
+as the chain continuing. Nothing measures this, so there is no feedback loop between
+hiding an arrow and the wrap position that hiding it would change.
+
 The graph canvas is editable directly: **click two vertices** to connect them, **drag**
 one to move it and **double-click empty space** to add one — see [building and
 arranging](#building-and-arranging-the-graph). The panel below switches between
@@ -769,6 +900,18 @@ A vertex may be joined to **itself**: an edge with both endpoints on one vertex 
 **self-loop**, drawn as a loop leaving the vertex's rim and coming back to it, pointing
 away from the middle of the canvas where there is room for it. See
 [self-loops](#self-loops).
+
+**The graph canvas is sized to the panel it is in.** Its `viewBox` is measured from the
+element rather than fixed, so one user unit is one CSS pixel and nothing is letterboxed —
+a fixed `viewBox` inside a wider panel is scaled to fit and strands the graph in a column
+down the middle, with the rest of the canvas drawn but out of reach. The measuring runs in
+a layout effect and a `ResizeObserver`, so the corrected box is in place before the first
+paint and follows the window afterwards; the element's size comes from CSS and never from
+the `viewBox`, so it cannot feed back into itself. The default ring is an ellipse
+inscribed in that box, capped at `MAX_RING_RATIO` from a circle so a very wide, short
+canvas doesn't flatten it into a line — the cap is on the layout only, and the whole
+canvas is still there to drag a vertex into. On a phone the portrait rule sets its own
+shape and this height is deliberately left alone.
 
 ### The string algorithms view
 
@@ -1746,7 +1889,8 @@ src/
 │   ├── stateStyle.js       what compare/swap/sorted mean, in tokens, glyphs
 │   │                       and timbres
 │   ├── sonify.js           Web Audio: value → pitch, log-mapped
-│   └── urlState.js         encodes/decodes the shareable link
+│   └── urlState.js         encodes/decodes the shareable link, and tells a
+│                           link that names nothing from a plain visit
 ├── App.jsx                 stage + view routing, wires the active player
 ├── main.jsx
 └── index.css               the whole stylesheet

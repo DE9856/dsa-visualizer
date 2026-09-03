@@ -59,6 +59,15 @@ export default function CategoryLanding({ onSelect, appearance }) {
           </div>
         ))}
       </div>
+
+      {/* A plain anchor, not a view: the notice is a standalone page under
+          public/, so it survives the app failing to load — which is exactly
+          when someone might want to read what the site does. */}
+      <footer className="landing__footer mono">
+        <a href="/privacy.html">PRIVACY</a>
+        <span aria-hidden="true">&middot;</span>
+        <a href="/terms.html">TERMS</a>
+      </footer>
     </div>
   );
 }

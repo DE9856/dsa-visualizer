@@ -1,4 +1,35 @@
 /**
+ * The two typefaces, served from this origin rather than from Google Fonts.
+ * Self-hosting removes the only third party the app contacted — a webfont
+ * request tells its host the reader's IP address, browser and the page that
+ * asked — and makes the site work offline and behind a blocked font CDN.
+ *
+ * One file per family, not one per weight: both are *variable* fonts, so the
+ * whole 400-700 range the app uses comes out of a single woff2. Google serves
+ * exactly these files; the download is the same bytes, from here instead.
+ *
+ * The `latin` subset only, which is the one an English page pulls from Google
+ * today — so nothing that rendered before renders differently now. The few
+ * glyphs outside it (the arrows in the linked-list canvas) fell through to a
+ * system face before this change and still do.
+ */
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/fonts/jetbrains-mono-latin.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/fonts/ibm-plex-sans-latin.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/**
  * Theming works on three independent axes, each a set of attributes on
  * <html>, because they answer different questions and people need to combine
  * the answers:
@@ -1656,6 +1687,9 @@ input[type="range"] {
   margin-bottom: 8px;
 }
 
+/* The flex item the row wraps between. It holds the link *arriving* at its
+   node, not the one leaving, so a line can only break after a node — an arrow
+   pointing off the end of a line at nothing was the alternative. */
 .ll-node-wrap {
   display: flex;
   align-items: center;
@@ -1663,15 +1697,26 @@ input[type="range"] {
   padding-top: 22px;
 }
 
+/* The positioning context for the HEAD and prev/curr/next tags. They name the
+   node, so they hang off the node rather than off the wrap — centring on the
+   wrap would offset every tag by half the width of the arrow beside it. */
+.ll-node-box {
+  position: relative;
+  display: flex;
+}
+
+/* The struct, not a bubble: one rectangle divided into the fields the node
+   actually has — `data | next`, or `prev | data | next` when the list is
+   doubly linked. `overflow: hidden` is what lets the dividers run edge to edge
+   and still be cut by the rounded corners. */
 .ll-node {
-  width: 56px;
-  height: 56px;
+  height: 52px;
   border-radius: 10px;
   border: 1.5px solid var(--border-strong);
   background: var(--panel-alt);
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
+  overflow: hidden;
   transition:
     background-color var(--step-anim) ease,
     border-color var(--step-anim) ease,
@@ -1679,6 +1724,55 @@ input[type="range"] {
     box-shadow var(--step-anim) ease,
     opacity var(--step-anim) ease,
     transform var(--step-anim) ease;
+}
+
+.ll-node__cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color var(--step-anim) ease;
+}
+
+.ll-node__cell + .ll-node__cell {
+  border-left: 1.5px solid var(--ll-node-border, var(--border-strong));
+}
+
+/* A minimum rather than a width: the same node draws a two-digit list value
+   and a polynomial term like `-5x^10`, and a fixed field would crop the one to
+   fit the other. The node grows sideways instead. */
+.ll-node__cell--data {
+  min-width: 46px;
+  padding: 0 8px;
+}
+
+/* Narrower than the payload: a pointer field holds a mark, not a number, and
+   giving it equal width would make the node read as two values. */
+.ll-node__cell--ptr {
+  width: 26px;
+}
+
+/* A pointer that points somewhere. Takes the node's state colour, so following
+   a highlighted node's link doesn't mean first finding a grey dot inside it. */
+.ll-node__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ll-node-border, var(--border-strong));
+  transition: background-color var(--step-anim) ease;
+}
+
+/* Struck through rather than left empty: an empty box is indistinguishable
+   from one whose mark hasn't been drawn yet, and the whole point of showing
+   the field is that null is a value. */
+.ll-node__cell--null {
+  background-image: linear-gradient(
+    to top right,
+    transparent calc(50% - 0.75px),
+    var(--ll-node-border, var(--border-strong)) calc(50% - 0.75px),
+    var(--ll-node-border, var(--border-strong)) calc(50% + 0.75px),
+    transparent calc(50% + 0.75px)
+  );
+  opacity: 0.55;
 }
 
 .ll-node--removing {
@@ -1700,11 +1794,12 @@ input[type="range"] {
   font-size: 15px;
   font-weight: 600;
   color: var(--text);
+  white-space: nowrap;
 }
 
 .ll-head-tag {
   position: absolute;
-  top: -4px;
+  top: -26px;
   left: 8px;
   font-family: "JetBrains Mono", monospace;
   font-size: 9px;
@@ -1724,7 +1819,7 @@ input[type="range"] {
 
 .ll-pointer-tag {
   position: absolute;
-  top: -20px;
+  top: -42px;
   left: 50%;
   transform: translateX(-50%);
   font-family: "JetBrains Mono", monospace;
@@ -1781,24 +1876,35 @@ input[type="range"] {
   opacity: 0.75;
 }
 
-.ll-wrap-tag {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  color: var(--purple);
-  background: rgb(var(--purple-rgb) / 0.14);
-  border: 1px dashed var(--purple);
-  border-radius: 6px;
-  padding: 4px 8px;
+/* The lane the wrap-around link swings through. Only a circular list reserves
+   it — an empty 44px band under every other list would push the message away
+   from the row it belongs to. */
+.ll-row-wrap {
+  position: relative;
 }
 
-.ll-circular-note {
-  text-align: center;
-  font-size: 10px;
-  color: var(--text-dim);
-  opacity: 0.7;
-  margin-top: 6px;
+.ll-row-wrap--looped {
+  padding-bottom: 44px;
+}
+
+/* Sized and positioned from the measured path, and never a hit target: the
+   canvas underneath it stays clickable. */
+.ll-loop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  pointer-events: none;
+  color: var(--purple);
+}
+
+.ll-loop path {
+  stroke: var(--purple);
+  stroke-width: 1.5;
+  /* Dashed, because this one link runs backwards under the row rather than
+     between two adjacent nodes, and reading it as an ordinary forward arrow
+     would put the head after the tail. */
+  stroke-dasharray: 5 4;
 }
 
 .result-badge {
@@ -2768,11 +2874,25 @@ input[type="range"] {
   width: 100%;
   height: 300px;
   flex-shrink: 0;
+  /* Shared with the tree, trie, heap and union-find canvases, which lay their
+     own contents out at a fixed size — only the graph view below claims the
+     full box. */
   /* Dragging a vertex must not sweep a text selection across the page. The
      canvas can't do this with preventDefault on the press, because the click
      that follows one is what connects two vertices. */
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* The graph draws itself into whatever box it is given — its viewBox is
+   measured from this element — so it is given a tall one, and the vertices
+   spread across the whole panel instead of sitting in a 640px column with the
+   rest of the canvas letterboxed away either side. Scoped to the graph view,
+   and standing aside for the phone's portrait rule, which sets its own shape.
+   `dvh` rather than `vh` so a phone's collapsing address bar doesn't leave the
+   canvas taller than the screen. */
+.graph-canvas .graph-svg:not(.graph-svg--portrait) {
+  height: clamp(300px, 46dvh, 480px);
 }
 
 /* Wraps the canvas so the empty-state message can sit over it rather than
@@ -3119,6 +3239,12 @@ input[type="range"] {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* The landing shell carrying one message rather than a grid of cards — the
+   not-found screen. Centred, because there is nothing below it to scroll to. */
+.landing--message {
+  justify-content: center;
 }
 
 .landing__header {
@@ -3724,8 +3850,16 @@ input[type="range"] {
   }
 
   .ll-node {
-    width: 48px;
-    height: 48px;
+    height: 46px;
+  }
+
+  .ll-node__cell--data {
+    min-width: 34px;
+    padding: 0 6px;
+  }
+
+  .ll-node__cell--ptr {
+    width: 22px;
   }
 
   .ll-node__value,
@@ -6140,6 +6274,101 @@ select.text-input option {
 .thememenu {
   position: relative;
   flex-shrink: 0;
+}
+
+.landing__footer {
+  display: flex;
+  gap: 10px;
+  margin-top: 48px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  opacity: 0.75;
+}
+
+.landing__footer a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid var(--border-strong);
+  padding-bottom: 2px;
+}
+
+.landing__footer a:hover {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+/* ---------- not found ---------- */
+
+.notfound {
+  max-width: 560px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Big enough to be the first thing read, and dimmed rather than coloured: the
+   error is the sentence under it, not the number. */
+.notfound__code {
+  font-size: clamp(64px, 14vw, 104px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  opacity: 0.13;
+}
+
+.notfound__title {
+  font-size: clamp(15px, 3.4vw, 19px);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text);
+  margin: 2px 0 14px;
+}
+
+.notfound__blurb {
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text-dim);
+  margin: 0 0 22px;
+}
+
+.notfound__asked {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 26px;
+  max-width: 100%;
+}
+
+.notfound__asked-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  opacity: 0.7;
+}
+
+/* The one place a hand-written hash is shown back. It wraps rather than
+   scrolls the page sideways, and breaks anywhere — a hash has no spaces in it
+   to break at. */
+.notfound__asked-value {
+  font-size: 11px;
+  color: var(--text-dim);
+  background: rgb(var(--ink-rgb) / 0.05);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 9px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.notfound__home {
+  gap: 8px;
 }
 
 .landing__appearance {
