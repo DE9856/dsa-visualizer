@@ -3284,6 +3284,9 @@ input[type="range"] {
 
 .landing__card {
   position: relative;
+  /* The whole card toggles, so the whole card looks like it does. The topic
+     buttons inside set their own cursor back. */
+  cursor: pointer;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 16px;

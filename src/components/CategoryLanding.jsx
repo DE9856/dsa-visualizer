@@ -23,6 +23,25 @@ export default function CategoryLanding({ onSelect, appearance }) {
     });
   };
 
+  /**
+   * Anywhere on the card toggles it — the blurb, the padding, the gap between
+   * topics. The head stays a real button underneath this, because that is what
+   * carries the keyboard and the `aria-expanded` state; this only widens what a
+   * mouse may hit, and so deliberately adds no tab stop of its own.
+   */
+  const handleCardClick = (event, key) => {
+    // A topic inside an open card is the way *out* of this screen, not a
+    // toggle. Without this, choosing one would collapse the card and navigate
+    // at the same time.
+    if (event.target.closest(".landing__item-btn")) return;
+    // The head fires its own onClick and then bubbles to here; handling it
+    // twice would toggle it straight back.
+    if (event.target.closest(".landing__card-top")) return;
+    // A click that ends a text selection is the end of a drag, not a press.
+    if (window.getSelection()?.toString()) return;
+    toggleCategory(key);
+  };
+
   return (
     <div className="landing">
       {appearance && (
@@ -55,6 +74,7 @@ export default function CategoryLanding({ onSelect, appearance }) {
               style={{ "--accent": cat.accent }}
               onMouseEnter={() => setHovered(cat.key)}
               onMouseLeave={() => setHovered((h) => (h === cat.key ? null : h))}
+              onClick={(event) => handleCardClick(event, cat.key)}
             >
               {/* The whole head is the control, not a chevron off to one side:
                   on a closed card the head is nearly all of it, and a target

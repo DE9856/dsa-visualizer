@@ -204,8 +204,13 @@ the page, or with the cursor in a sidebar field, is left alone as an ordinary te
    **opens to list them**, and starts closed so the whole map of the app is one screen
    rather than a page and a half of scrolling. Any number can be open at once — an
    accordion that closes the last card for you makes comparing two families harder than
-   it needs to be. The head is the button, so on a closed card almost the whole card is
-   the target. Pick a topic to enter.
+   it needs to be. **Anywhere on a card toggles it** — the head, the blurb, the padding,
+   the gap between topics. Three clicks are exempt, and each for its own reason: a topic
+   button is the way out of this screen rather than a toggle, the head fires its own
+   handler and would otherwise toggle twice as the click bubbled, and a click that ends
+   a text selection is the end of a drag. The head stays a real `<button>` carrying the
+   keyboard and `aria-expanded`; the card-level handler only widens what a mouse may
+   hit, and adds no tab stop of its own. Pick a topic to enter.
 2. **Visualizer** — sidebar on the left, canvas + transport + explanation on the right.
    The top bar switches topics at any time; clicking the `DSA://VISUALIZER` title
    returns to the category picker.

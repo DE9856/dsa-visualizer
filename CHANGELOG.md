@@ -256,9 +256,11 @@ should a tree be shaped by", none of them the same as balance.
   is to show what the app contains was the one screen you couldn't see at once.
   A card now shows its name, its blurb and a count, and opens to list its
   topics. Any number can be open together, because closing the last one for you
-  makes comparing two families harder than it needs to be, and the card head is
-  the button so there is almost nothing to aim at. Same shape as the collapsible
-  operation groups in the sidebars, down to the chevrons.
+  makes comparing two families harder than it needs to be, and clicking anywhere
+  on a card toggles it — the head, the blurb, the padding, the gap between
+  topics — so there is nothing to aim at. Choosing a topic still leaves the
+  screen rather than collapsing the card behind it. Same shape as the
+  collapsible operation groups in the sidebars, down to the chevrons.
 
 - **Terms of use**, at `/terms.html`, sharing the privacy notice's design and
   linked from it and from the category page's footer. Short, because the site
