@@ -9,7 +9,7 @@ const LINE = { PICK_PIVOT: 1, COMPARE: 4, SWAP: 5, PLACE_PIVOT: 6, DONE: null };
  * says which index should be moved there first — one partition body, four
  * wildly different curves.
  */
-export const PIVOT_STRATEGIES = {
+const PIVOT_STRATEGIES = {
   last: () => (ctx, l, r) => r,
   first: () => (ctx, l, r) => l,
   // The classic defence against sorted input: the median of three samples is

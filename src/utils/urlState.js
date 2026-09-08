@@ -251,7 +251,7 @@ function serializeEdges(graph) {
 }
 
 /** Parses the edge field: "A-B(5),B-C" -> [{ from, to, weight }]. */
-export function parseSharedEdges(text) {
+function parseSharedEdges(text) {
   return String(text || "")
     .split(",")
     .map((s) => s.trim())
@@ -284,7 +284,7 @@ function serializePositions(graph, positions) {
  * Keyed by label, like the vertex and edge fields — vertex ids are per-session
  * counters and would mean nothing in someone else's tab.
  */
-export function parseSharedPositions(text) {
+function parseSharedPositions(text) {
   const out = {};
   String(text || "")
     .split(",")
@@ -304,7 +304,7 @@ export function parseSharedPositions(text) {
 }
 
 /** Parses the vertex field: "A,B,C" -> ["A", "B", "C"]. */
-export function parseSharedVertices(text) {
+function parseSharedVertices(text) {
   return String(text || "")
     .split(",")
     .map((s) => s.trim())
@@ -329,7 +329,7 @@ function serializeVariants(variants) {
  * survive, so a hand-edited link can't name a pivot rule quick sort doesn't
  * have — it just falls back to the default.
  */
-export function parseSharedVariants(text) {
+function parseSharedVariants(text) {
   const out = {};
   String(text || "")
     .split(",")

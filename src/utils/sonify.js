@@ -23,7 +23,7 @@ const MAX_HZ = 1200;
 // next three arrive.
 const MAX_VOICES = 10;
 
-export function frequencyFor(value, scale) {
+function frequencyFor(value, scale) {
   const t = Math.min(1, Math.max(0, value / Math.max(1, scale)));
   return MIN_HZ * Math.pow(MAX_HZ / MIN_HZ, t);
 }
@@ -51,12 +51,18 @@ export function createSonifier() {
     return ctx;
   };
 
-  /** One note, scheduled at an absolute time on the audio clock. */
+  /**
+   * One note, scheduled at an absolute time on the audio clock.
+   *
+   * A note is pitched either by the value it stands for, which is what the
+   * bar views have, or by an outright `freq` — the views where nothing on
+   * screen is a number on a scale pick their own pitches instead.
+   */
   const scheduleNote = (audio, note, at, duration, scale) => {
     const osc = audio.createOscillator();
     const gain = audio.createGain();
     osc.type = note.wave || "sine";
-    osc.frequency.value = frequencyFor(note.value, scale);
+    osc.frequency.value = note.freq ?? frequencyFor(note.value, scale);
 
     // A gain that jumps straight to full is a click, and a linear fade to
     // exactly zero is another one at the end; the short ramp in and the

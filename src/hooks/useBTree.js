@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { BTREE_OP_MAP } from "../dataStructures/bTree";
 import {
   ORDERS,
@@ -8,8 +8,7 @@ import {
   parseValueList,
   randomValues,
 } from "../dataStructures/bTree/helpers";
-import { useStepPlayer } from "./useStepPlayer.js";
-import { useHistory } from "./useHistory.js";
+import { useStructureRun } from "./useStructureRun.js";
 
 const EMPTY_STEP = { root: null, message: "" };
 
@@ -20,49 +19,32 @@ const validVariant = (v) => (VARIANTS.some((x) => x.key === v) ? v : "btree");
 export function useBTree(init) {
   const [order, setOrderState] = useState(() => validOrder(init?.order));
   const [variant, setVariantState] = useState(() => validVariant(init?.variant));
-  const [root, setRoot] = useState(() =>
-    buildFromValues(init?.values?.length ? init.values : randomValues(), validOrder(init?.order), validVariant(init?.variant))
-  );
+
+  const { view, value: root, apply, load } = useStructureRun({
+    initial: () =>
+      buildFromValues(
+        init?.values?.length ? init.values : randomValues(),
+        validOrder(init?.order),
+        validVariant(init?.variant)
+      ),
+    // The structure here is the root node itself, so it is wrapped as the
+    // frame's `root` rather than spread across it.
+    toFrame: (next, message) => ({ root: next, message }),
+    emptyStep: EMPTY_STEP,
+    // Order and variant decide what a given set of keys even looks like, so
+    // they are part of the document rather than settings beside it.
+    snapshot: () => ({ order, variant }),
+    restore: (doc) => {
+      setOrderState(doc.order);
+      setVariantState(doc.variant);
+    },
+  });
 
   const [operation, setOperation] = useState("insert");
   const [valueInput, setValueInput] = useState("");
   const [customInput, setCustomInput] = useState("");
 
-  const [steps, setSteps] = useState([{ ...EMPTY_STEP }]);
-
-  const player = useStepPlayer(steps.length);
-  const { setStepIdx, setPlaying, stepIdx } = player;
-
   const opMeta = BTREE_OP_MAP[operation];
-
-  const history = useHistory(
-    () => ({ root, order, variant }),
-    (doc, message) => {
-      setRoot(doc.root);
-      setOrderState(doc.order);
-      setVariantState(doc.variant);
-      setSteps([{ root: doc.root, message }]);
-      setStepIdx(0);
-      setPlaying(false);
-    }
-  );
-
-  useEffect(() => {
-    setSteps([{ root, message: "Ready" }]);
-    setStepIdx(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const settle = useCallback(
-    (next, message) => {
-      history.record();
-      setRoot(next);
-      setSteps([{ root: next, message }]);
-      setStepIdx(0);
-      setPlaying(false);
-    },
-    [history, setStepIdx, setPlaying]
-  );
 
   const runOperation = useCallback(() => {
     const value = parseInt(valueInput, 10);
@@ -71,13 +53,9 @@ export function useBTree(init) {
       order,
       variant,
     });
-    history.record();
-    setSteps(newSteps);
-    setStepIdx(0);
-    setRoot(finalRoot);
-    setPlaying(newSteps.length > 1);
+    apply(newSteps, finalRoot);
     setValueInput("");
-  }, [opMeta, root, order, variant, valueInput, history, setStepIdx, setPlaying]);
+  }, [opMeta, root, order, variant, valueInput, apply]);
 
   // Order and variant are structural, so changing either rebuilds the tree from
   // the keys it currently holds. Inserting the same keys in the same order into
@@ -87,40 +65,39 @@ export function useBTree(init) {
     (next) => {
       const keys = inorderKeys(root, variant);
       setOrderState(next);
-      settle(buildFromValues(keys, next, variant), `Rebuilt at order ${next} — up to ${next - 1} keys per node`);
+      load(buildFromValues(keys, next, variant), `Rebuilt at order ${next} — up to ${next - 1} keys per node`);
     },
-    [root, variant, settle]
+    [root, variant, load]
   );
 
   const setVariant = useCallback(
     (next) => {
       const keys = inorderKeys(root, variant);
       setVariantState(next);
-      settle(
+      load(
         buildFromValues(keys, order, next),
         next === "bplus"
           ? "Rebuilt as a B+ tree — every key is now in a leaf, and the keys upstairs are only separators"
           : "Rebuilt as a B-tree — keys now live at every level"
       );
     },
-    [root, order, variant, settle]
+    [root, order, variant, load]
   );
 
   const applyCustom = useCallback(() => {
     const values = parseValueList(customInput);
     if (values.length === 0) return;
-    settle(buildFromValues(values, order, variant), `Built from ${values.length} keys`);
+    load(buildFromValues(values, order, variant), `Built from ${values.length} keys`);
     setCustomInput("");
-  }, [customInput, order, variant, settle]);
+  }, [customInput, order, variant, load]);
 
-  const shuffle = useCallback(() => {
-    settle(buildFromValues(randomValues(), order, variant), "New random tree");
-  }, [order, variant, settle]);
-
-  const step = steps[Math.min(stepIdx, steps.length - 1)] || EMPTY_STEP;
+  const shuffle = useCallback(
+    () => load(buildFromValues(randomValues(), order, variant), "New random tree"),
+    [order, variant, load]
+  );
 
   return {
-    ...player,
+    ...view,
     root,
     order,
     setOrder,
@@ -135,12 +112,6 @@ export function useBTree(init) {
     setCustomInput,
     applyCustom,
     shuffle,
-    steps,
-    step,
     runOperation,
-    undo: history.undo,
-    redo: history.redo,
-    canUndo: history.canUndo,
-    canRedo: history.canRedo,
   };
 }

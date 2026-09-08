@@ -30,10 +30,6 @@ export function cloneGraph(graph) {
   };
 }
 
-export function findVertexByLabel(nodes, label) {
-  return nodes.find((n) => n.label === label);
-}
-
 export function edgeExists(edges, fromId, toId, directed) {
   return edges.some(
     (e) => (e.from === fromId && e.to === toId) || (!directed && e.from === toId && e.to === fromId)

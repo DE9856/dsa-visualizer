@@ -20,7 +20,7 @@ import {
  * as it was.
  */
 
-export const SELF_BALANCING = ["redblack", "splay", "treap"];
+const SELF_BALANCING = ["redblack", "splay", "treap"];
 
 export const isSelfBalancing = (treeType) => SELF_BALANCING.includes(treeType);
 

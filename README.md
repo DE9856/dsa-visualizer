@@ -82,7 +82,10 @@ The visualizer also supports interactive operations for:
 - 📥 Queues
 - ➗ Polynomial Operations
 
-Each module provides its own visualization with animations that demonstrate how the underlying data structure changes after every operation.
+Each module provides its own visualization with animations that demonstrate how the underlying data structure changes after every operation — and, with the speaker button
+on, every operation is audible: pitch climbs a pentatonic scale as the run goes on, the
+timbre says whether a frame is a comparison, a swap or an answer, and a refused operation
+lands on one note below the whole scale.
 
 ---
 
@@ -295,7 +298,9 @@ sideways. See
   sideways to move it along the array; on a phone, tap to set and hold to pick up
 - Sound — each value becomes a pitch. Pressing play sweeps the unsorted array first,
   the run itself sounds every comparison and swap, and a finished sort plays back as
-  a rising scale
+  a rising scale. It is on every other view too, where pitch follows the position of
+  the frame in the run instead of a value, so an operation is a phrase as long as it
+  is expensive
 - Pivot and gap-sequence variants for quick and shell sort
 - Colour-by-origin, which turns stability into something you can see
 - Complexity information
@@ -403,7 +408,9 @@ Interactive visualizations for:
     has wrapped onto several lines
   - Insert at head / tail / position
   - Delete by value / position, Update node
-  - Search & traverse, Reverse, Sort, Count length
+  - Traverse — head to tail, and back again along the prev pointers when doubly linked,
+    which is the whole of what the extra pointer buys
+  - Search, Reverse, Sort, Count length
   - Concatenate, Merge sorted lists, Clear
 
 - Range Queries — segment tree and Fenwick tree over one array
@@ -415,6 +422,11 @@ Interactive visualizations for:
 
 - Trees — Binary Tree, BST, AVL, Threaded (single or double), Red-Black, Splay, Treap
   - Insert, Delete, Search
+  - Handled by gesture as well as by the sidebar: click or tap a node to inspect it —
+    depth, subtree height and size, parent and children, plus the balance factor, priority
+    or colour and black-height its tree type turns on —
+    triple-click or hold it to delete, double-click or hold empty canvas to insert, drag
+    to pan and scroll or pinch to zoom — the same vocabulary the graph uses
   - Inorder, Preorder, Postorder, DFS, BFS (level order)
   - Height, Size, Clear
   - On a threaded tree: Threaded Inorder and Reverse Inorder (no stack, no recursion),

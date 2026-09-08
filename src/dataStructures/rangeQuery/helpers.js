@@ -79,12 +79,6 @@ export function parseValues(text, limit = MAX_N) {
     .slice(0, limit);
 }
 
-export function parseIndex(text, n, fallback = 0) {
-  const i = parseInt(String(text || "").trim(), 10);
-  if (Number.isNaN(i)) return fallback;
-  return Math.max(0, Math.min(n - 1, i));
-}
-
 export const randomValues = () =>
   Array.from({ length: 6 + Math.floor(Math.random() * 3) }, () => 1 + Math.floor(Math.random() * 20));
 
@@ -163,7 +157,7 @@ export const fenwickRange = (i) => ({ lo: i - lowbit(i), hi: i - 1 });
  * Rows grouped by lowbit, so a row holds only ranges of one width and they
  * cannot overlap — the same reason a segment tree's depth cannot overlap.
  */
-export const fenwickRow = (i) => Math.log2(lowbit(i));
+const fenwickRow = (i) => Math.log2(lowbit(i));
 
 export const fenwickSpans = (bit, tones = {}) =>
   bit

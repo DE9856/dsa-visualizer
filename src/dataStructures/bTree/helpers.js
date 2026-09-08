@@ -115,19 +115,6 @@ export function inorderKeys(node, variant, out = []) {
   return out;
 }
 
-export function findNode(root, key, variant) {
-  let node = root;
-  while (node) {
-    const i = node.keys.indexOf(key);
-    // In a B+ tree a hit upstairs is only a separator — the real entry is in a
-    // leaf, so the search always runs to the bottom.
-    if (i !== -1 && (!isPlus(variant) || isLeaf(node))) return node;
-    if (isLeaf(node)) return null;
-    node = node.children[childIndexFor(node, key, isPlus(variant))];
-  }
-  return null;
-}
-
 // ---------------------------------------------------------------------
 // insert
 // ---------------------------------------------------------------------

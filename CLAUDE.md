@@ -49,18 +49,39 @@ of frames**. Nothing animates itself and no state is unwound — the UI renders 
 
 ```
 src/dataStructures/<x>/*.js   one file per operation + helpers.js + index.js registry
-src/hooks/use<X>.js           owns the structure's state, calls useStepPlayer, exposes
-                              { ...player, steps, step, opMeta, runOperation, shuffle }
+src/hooks/use<X>.js           owns the view's inputs and operations, calls
+                              useStructureRun, exposes
+                              { ...view, <thing>, opMeta, runOperation, shuffle }
 src/App.jsx                   one branch per view; picks the hook, feeds `transport`
 src/components/<X>Canvas.jsx  renders a single `step`
 src/components/<X>Sidebar.jsx renders inputs from the operation's `fields`
 ```
 
-`useHistory` (`src/hooks/useHistory.js`) gives each view undo/redo. A view passes a
-`snapshot()` of the state worth restoring and a `restore(doc, message)`, then calls
-`history.record()` immediately *before* every mutation. Snapshots hold references, not
-clones — safe only because operations never mutate the structure they're given, so keep
-it that way.
+`useStructureRun` (`src/hooks/useStructureRun.js`) is the engine under every
+data-structure hook: the structure, its frames, playback and undo/redo. A hook gives it
+an `initial`, a `toFrame(value, message)` and an `emptyStep`, and gets back `view` (spread
+straight out to the components) plus three ways to change what is on screen:
+
+```
+apply(steps, final)   an operation was watched happening — play its frames
+load(next, message)   the structure was replaced outright — one still frame
+reframe(message)      same structure, drawn differently — no history entry
+```
+
+`apply` and `load` record history *before* mutating, so that rule is now kept in one
+place; `reframe` deliberately does not, since nothing about the document changed. There
+is no raw setter — changing the structure without recording is meant to be unavailable.
+A view whose document is more than the structure (the heap's `kind`, the tree's type and
+threading, the hash table's strategy) passes `snapshot`/`restore` so those travel through
+undo with it.
+
+`useHistory` (`src/hooks/useHistory.js`) is what it uses underneath. Snapshots hold
+references, not clones — safe only because operations never mutate the structure they're
+given, so keep it that way.
+
+`useLinkedList` and `useHuffman` stay hand-written on purpose: the first reframes from the
+*displayed* nodes rather than the committed list, and the second has no structure and no
+history at all.
 
 `useStepPlayer` (`src/hooks/useStepPlayer.js`) owns playback for *all* views — `stepIdx`,
 `playing`, `speed`, `togglePlay`/`stepForward`/`stepBack`/`reset`/`seek`/`pause`. It runs

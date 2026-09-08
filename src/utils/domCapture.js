@@ -105,7 +105,7 @@ async function inlineFontFiles(css) {
  * Resolves to a string even when the fonts could not be fetched — a capture
  * with fallback glyphs beats no capture at all.
  */
-export function prepareStyles() {
+function prepareStyles() {
   if (!stylesPromise) {
     stylesPromise = (async () => {
       const css = collectCss();

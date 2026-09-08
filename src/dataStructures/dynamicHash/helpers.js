@@ -29,7 +29,7 @@ const nextBucketId = () => `db${(bucketCounter += 1)}`;
 export const BUCKET_SIZE = 2;
 
 /** Linear hashing's starting bucket count. A power of two, so h_L is the low bits. */
-export const INITIAL_BUCKETS = 4;
+const INITIAL_BUCKETS = 4;
 
 /** Linear hashing splits on load factor rather than on overflow. */
 export const SPLIT_LIMIT = 0.75;
@@ -62,7 +62,7 @@ export const isExtendible = (table) => table.kind === "extendible";
 // ---------------------------------------------------------------------
 
 /** The low `bits` bits of a key — the whole of extendible hashing's address. */
-export function lowBits(key, bits) {
+function lowBits(key, bits) {
   const size = 2 ** bits;
   return ((key % size) + size) % size;
 }
@@ -70,7 +70,7 @@ export function lowBits(key, bits) {
 /** The same index written out, which is how a directory is usually drawn. */
 export const binary = (value, bits) => value.toString(2).padStart(Math.max(bits, 1), "0");
 
-export const dirIndexOf = (table, key) => lowBits(key, table.globalDepth);
+const dirIndexOf = (table, key) => lowBits(key, table.globalDepth);
 
 /** Buckets in a linear-hashed table at the current level, before any splits. */
 export const levelSize = (table) => INITIAL_BUCKETS * 2 ** table.level;
@@ -80,7 +80,7 @@ export const levelSize = (table) => INITIAL_BUCKETS * 2 ** table.level;
  * split pointer has already passed, which have been rehashed to the next
  * level and so answer to h_L+1 instead.
  */
-export function linearAddress(table, key) {
+function linearAddress(table, key) {
   const size = levelSize(table);
   const index = ((key % size) + size) % size;
   if (index >= table.next) return { index, level: table.level, size };

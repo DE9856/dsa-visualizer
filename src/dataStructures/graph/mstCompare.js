@@ -42,8 +42,6 @@ export const MST_ALGOS = [
   },
 ];
 
-export const MST_ALGO_MAP = Object.fromEntries(MST_ALGOS.map((a) => [a.key, a]));
-
 // ---------------------------------------------------------------------
 // the two algorithms, without frames
 // ---------------------------------------------------------------------
@@ -117,7 +115,7 @@ function countingUnionFind(n, counters) {
  * with vertex indices; the returned tree edges are the same objects, in the
  * order the algorithm accepted them.
  */
-export function runKruskal(v, edges) {
+function runKruskal(v, edges) {
   const counters = { comparisons: 0, ufReads: 0, ufWrites: 0, finds: 0, unions: 0, skipped: 0 };
   const sorted = sortByWeight([...edges], counters);
   const uf = countingUnionFind(v, counters);
@@ -154,7 +152,7 @@ export function runKruskal(v, edges) {
  * with Kruskal's, which has always produced a spanning forest. The animated
  * operation stops after the start vertex's component instead, and says so.
  */
-export function runPrim(v, edges, start = 0) {
+function runPrim(v, edges, start = 0) {
   const counters = { minScans: 0, edgeScans: 0, updates: 0, restarts: 0 };
   const adjacency = Array.from({ length: v }, () => []);
   edges.forEach((edge) => {

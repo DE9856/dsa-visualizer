@@ -53,7 +53,7 @@ export function treeSize(node) {
   return node.keys.length + node.children.reduce((sum, c) => sum + treeSize(c), 0);
 }
 
-export function collectInorder(node, out = []) {
+function collectInorder(node, out = []) {
   if (!node) return out;
   if (isLeaf(node)) {
     out.push(...node.keys);
@@ -67,13 +67,7 @@ export function collectInorder(node, out = []) {
   return out;
 }
 
-export function minLeafKey(node) {
-  let cur = node;
-  while (!isLeaf(cur)) cur = cur.children[0];
-  return cur.keys[0];
-}
-
-export function maxLeafKey(node) {
+function maxLeafKey(node) {
   let cur = node;
   while (!isLeaf(cur)) cur = cur.children[cur.children.length - 1];
   return cur.keys[cur.keys.length - 1];

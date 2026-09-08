@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { HEAP_OP_MAP, KIND_MAP } from "../dataStructures/heap";
 import { buildHeap } from "../dataStructures/heap/buildHeap";
 import {
@@ -9,8 +9,7 @@ import {
   randomValues,
   rawHeap,
 } from "../dataStructures/heap/helpers";
-import { useStepPlayer } from "./useStepPlayer.js";
-import { useHistory } from "./useHistory.js";
+import { useStructureRun } from "./useStructureRun.js";
 
 const EMPTY_STEP = { nodes: [], kind: "max", message: "" };
 
@@ -18,65 +17,39 @@ const EMPTY_STEP = { nodes: [], kind: "max", message: "" };
 export function useHeap(init) {
   const initialKind = init?.kind ?? "max";
   const [kind, setKindState] = useState(initialKind);
-  const [heap, setHeap] = useState(() =>
-    init?.values ? buildHeapSilent(init.values, initialKind) : randomHeap(initialKind)
-  );
+
+  const { view, value: heap, apply } = useStructureRun({
+    initial: () => (init?.values ? buildHeapSilent(init.values, initialKind) : randomHeap(initialKind)),
+    toFrame: (next, message) => ({ ...next, message }),
+    emptyStep: EMPTY_STEP,
+    // Max/min travels with the heap it describes: undoing back past a flip
+    // has to put the order back too, or the values and the label disagree.
+    snapshot: () => ({ kind }),
+    restore: (doc) => setKindState(doc.kind),
+  });
 
   const [operation, setOperation] = useState("insert");
   const [valueInput, setValueInput] = useState("50");
   const [customInput, setCustomInput] = useState("");
-  const [steps, setSteps] = useState([{ ...EMPTY_STEP }]);
-
-  const player = useStepPlayer(steps.length);
-  const { setStepIdx, setPlaying, stepIdx } = player;
 
   const opMeta = HEAP_OP_MAP[operation];
-
-  const history = useHistory(
-    () => ({ heap, kind }),
-    (doc, message) => {
-      setHeap(doc.heap);
-      setKindState(doc.kind);
-      setSteps([{ ...doc.heap, message }]);
-      setStepIdx(0);
-      setPlaying(false);
-    }
-  );
-
-  useEffect(() => {
-    setSteps([{ ...heap, message: "Ready" }]);
-    setStepIdx(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const play = useCallback(
-    (newSteps, finalHeap) => {
-      // Every heap edit lands here, so this is the one place that has to
-      // remember what the heap looked like beforehand.
-      history.record();
-      setSteps(newSteps);
-      setStepIdx(0);
-      setHeap(finalHeap);
-      setPlaying(newSteps.length > 1);
-    },
-    [setStepIdx, setPlaying, history]
-  );
 
   const runOperation = useCallback(() => {
     const parsed = parseInt(valueInput, 10);
     const { steps: newSteps, finalHeap } = opMeta.run(heap, { value: Number.isNaN(parsed) ? 0 : parsed });
-    play(newSteps, finalHeap);
-  }, [heap, opMeta, valueInput, play]);
+    apply(newSteps, finalHeap);
+  }, [heap, opMeta, valueInput, apply]);
 
   // New values arrive as a plain array and are *watched* becoming a heap —
   // the bottom-up build is the most interesting thing a heap does, and it
-  // would otherwise only ever happen off-screen.
+  // would otherwise only ever happen off-screen. That is why this plays a run
+  // rather than loading a still frame the way the other structures do.
   const loadValues = useCallback(
     (values) => {
       const { steps: newSteps, finalHeap } = buildHeap.run(rawHeap(values, kind));
-      play(newSteps, finalHeap);
+      apply(newSteps, finalHeap);
     },
-    [kind, play]
+    [kind, apply]
   );
 
   const applyCustomHeap = useCallback(() => {
@@ -100,15 +73,16 @@ export function useHeap(init) {
             ...newSteps.slice(1),
           ]
         : newSteps;
-      play(labelled, finalHeap);
+      // `apply` records first, and the snapshot above still reads the previous
+      // `kind` — `setKindState` has not re-rendered yet — so undo lands on the
+      // order this flip left, not the one it arrived at.
+      apply(labelled, finalHeap);
     },
-    [heap, play]
+    [heap, apply]
   );
 
-  const step = steps[Math.min(stepIdx, steps.length - 1)] || EMPTY_STEP;
-
   return {
-    ...player,
+    ...view,
     heap,
     kind,
     setKind,
@@ -122,12 +96,6 @@ export function useHeap(init) {
     setCustomInput,
     applyCustomHeap,
     shuffle,
-    steps,
-    step,
     runOperation,
-    undo: history.undo,
-    redo: history.redo,
-    canUndo: history.canUndo,
-    canRedo: history.canRedo,
   };
 }

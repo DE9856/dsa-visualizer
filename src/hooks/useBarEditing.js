@@ -28,12 +28,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 // Far enough that the wobble in a click doesn't read as a drag, close enough
 // that a deliberate drag feels immediate.
-export const DRAG_THRESHOLD = 4;
+const DRAG_THRESHOLD = 4;
 
 // A finger is nowhere near as steady as a cursor, and this threshold is what
 // picks the axis. Reading a four-pixel tremor as an axis would reorder the
 // array every time the reader meant to scrub a value.
-export const TOUCH_DRAG_THRESHOLD = 12;
+const TOUCH_DRAG_THRESHOLD = 12;
 
 // How long a finger has to rest on a bar before it picks it up. The same hold
 // picks a vertex up on the graph canvas — one gesture to learn, not two.
@@ -51,7 +51,7 @@ export const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
  * state glyphs rather than to the scale — measuring the border box would put
  * the top of the scale a glyph's height above the tallest reachable bar.
  */
-export function barsGeometry(container) {
+function barsGeometry(container) {
   const rect = container.getBoundingClientRect();
   const style = getComputedStyle(container);
   return {
@@ -61,13 +61,13 @@ export function barsGeometry(container) {
 }
 
 /** The value whose bar top would sit under the pointer. */
-export function valueAt({ top, bottom }, clientY, scale) {
+function valueAt({ top, bottom }, clientY, scale) {
   const span = Math.max(1, bottom - top);
   return clamp(Math.round(((bottom - clientY) / span) * scale), 1, scale);
 }
 
 /** The column the pointer is over, clamped to the ends of the row. */
-export function indexAt(rects, clientX) {
+function indexAt(rects, clientX) {
   for (let i = 0; i < rects.length; i++) {
     if (clientX < rects[i].right) return i;
   }
@@ -82,7 +82,7 @@ export function move(list, from, to) {
   return next;
 }
 
-export function startDrag({ index, x, y, values }) {
+function startDrag({ index, x, y, values }) {
   return { index, startX: x, startY: y, draft: values, mode: null };
 }
 
@@ -91,7 +91,7 @@ export function startDrag({ index, x, y, values }) {
  * inside the threshold, so a hand that shakes on the way to a click does not
  * commit it to being a drag.
  */
-export function dragTo(gesture, { x, y }, { geometry, rects, scale, allowReorder, threshold = DRAG_THRESHOLD }) {
+function dragTo(gesture, { x, y }, { geometry, rects, scale, allowReorder, threshold = DRAG_THRESHOLD }) {
   const dx = x - gesture.startX;
   const dy = y - gesture.startY;
 
@@ -116,7 +116,7 @@ export function dragTo(gesture, { x, y }, { geometry, rects, scale, allowReorder
 }
 
 /** The array the gesture leaves behind. */
-export function endDrag(gesture, { y }, { geometry, scale }) {
+function endDrag(gesture, { y }, { geometry, scale }) {
   if (gesture.mode) return gesture.draft;
   const draft = [...gesture.draft];
   draft[gesture.index] = valueAt(geometry, y, scale);

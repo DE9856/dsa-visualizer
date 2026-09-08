@@ -1,11 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import CategoryLanding from "./components/CategoryLanding.jsx";
 import NotFound from "./components/NotFound.jsx";
 import TopBar from "./components/TopBar.jsx";
-import ExportDialog from "./components/ExportDialog.jsx";
+
+// Split out of the initial bundle: the dialog drags the GIF encoder, the video
+// recorder and the DOM capture in with it — around a thousand lines that only
+// matter once someone actually asks to export, which most sessions never do.
+const ExportDialog = lazy(() => import("./components/ExportDialog.jsx"));
 import { useTheme } from "./hooks/useTheme.js";
-import { useSonification } from "./hooks/useSonification.js";
+import { eventFor, useSonification } from "./hooks/useSonification.js";
 import StepTable from "./components/StepTable.jsx";
 import Workspace from "./components/Workspace.jsx";
 import Sidebar from "./components/Sidebar.jsx";
@@ -92,6 +96,30 @@ import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts.js";
 import { delayForSpeed } from "./hooks/useStepPlayer.js";
 import { buildStepTable } from "./utils/stepTable.js";
 import { readSharedState, unopenableHash, clearHash, shareHashFor, replaceHash, buildShareUrl } from "./utils/urlState.js";
+
+/**
+ * Stands in while the export chunk is on its way. Drawing the frame the real
+ * dialog is about to fill — same backdrop, same panel, same heading — means
+ * the press registers immediately instead of reading as a dead button. The
+ * panel grows downward as the body arrives, but it is centred, so the
+ * backdrop and the heading stay where they were.
+ *
+ * The backdrop still closes: a slow network is exactly when someone is most
+ * likely to change their mind.
+ */
+function ExportDialogFallback({ onClose }) {
+  return (
+    <>
+      <button className="export-dialog__backdrop" onClick={onClose} aria-label="Close export" />
+      <div className="panel export-dialog" role="dialog" aria-modal="true" aria-label="Export this run">
+        <div className="export-dialog__head">
+          <span className="label label--tight">EXPORT THIS RUN</span>
+        </div>
+        <p className="export-dialog__note">Loading the encoder…</p>
+      </div>
+    </>
+  );
+}
 
 export default function App() {
   // A shared link carries a topic and its data. Read once, on mount: it seeds
@@ -218,6 +246,7 @@ export default function App() {
     onSeek: active.seek,
     showHelp,
     onToggleHelp: () => setShowHelp((s) => !s),
+    sound,
   };
 
   // Sound is a property of the bars: pitch is the value, and only the sorting
@@ -247,6 +276,55 @@ export default function App() {
       done,
     });
   }, [v.stepIdx, v.step, v.maxVal, v.speed, v.steps.length, v.meta.category, sound, exportOpen, soundable]);
+
+  /**
+   * Every other view, heard. The bars sonify their values; everything else —
+   * trees, graphs, hash tables, DP grids, backtracking searches — has no
+   * value on a scale to pitch, so `playEvent` pitches the frame's position in
+   * the run instead and lets the timbre carry what kind of frame it is. The
+   * point is the same either way: an operation you can hear the length and
+   * the shape of without watching it.
+   */
+  const soundedEvent = useRef({ view: null, idx: -1, step: null, at: 0 });
+  useEffect(() => {
+    if (!sound.enabled || exportOpen || soundable) return;
+    const mark = soundedEvent.current;
+    const now = performance.now();
+    const remember = () => {
+      soundedEvent.current = { view, idx: active.stepIdx, step: active.step, at: now };
+    };
+    // Arriving in a view is not something happening in it: the frame already
+    // on screen when you switch stays silent.
+    if (mark.view !== view) {
+      remember();
+      return;
+    }
+    // A new operation starts at frame 0, which is also the index the last one
+    // gets reset to — so it is the frame object, not the index, that says a
+    // run is new. The interval is the safety on that: the race view rebuilds
+    // its frame on every render, and two operations cannot be a tenth of a
+    // second apart, so a fresh frame that soon is a re-render, not a run.
+    const fresh = active.stepIdx === 0 && mark.step !== active.step && now - mark.at > 120;
+    if (mark.idx === active.stepIdx && !fresh) return;
+    remember();
+
+    // A single frame is usually the structure sitting there — freshly loaded,
+    // or redrawn — rather than an operation being watched. But some operations
+    // genuinely are one frame: `isEmpty`, `size` and the other O(1) queries
+    // answer without walking anything, and were silent for as long as being
+    // short was mistaken for standing still. What separates the two is that an
+    // operation reports something — a refusal, or a `resultBadge` saying what
+    // it came out with. A redraw reports neither: the hooks build those
+    // through `toFrame`, which knows nothing about results.
+    const still = active.steps.length <= 1;
+    if (still && eventFor(active.step) !== "fail" && !active.step?.resultBadge) return;
+
+    sound.playEvent(active.step, {
+      index: active.stepIdx,
+      duration: Math.min(0.14, (delayForSpeed(active.speed) / 1000) * 0.85),
+      done: active.stepIdx === active.steps.length - 1,
+    });
+  }, [view, active.stepIdx, active.step, active.steps, active.speed, sound, exportOpen, soundable]);
 
   // The address bar tracks the data on screen, so the link is always ready to
   // copy. Only committed data is encoded — never half-typed sidebar text.
@@ -586,7 +664,14 @@ export default function App() {
             />
           }
         >
-          <TreeCanvas step={tr.step} treeType={tr.treeType} threadMode={tr.threadMode} />
+          <TreeCanvas
+            step={tr.step}
+            treeType={tr.treeType}
+            threadMode={tr.threadMode}
+            onSelectNode={(value) => tr.setValueInput(String(value))}
+            onDeleteNode={tr.deleteValue}
+            onInsertValue={tr.insertValue}
+          />
           <ListControls {...transport} />
           <ListInfoPanel opMeta={tr.opMeta} />
           <TopicPanel topicKey="tree" />
@@ -1036,24 +1121,26 @@ export default function App() {
             onEditBegin={v.reset}
           />
           <RecursionPanel step={v.step} size={v.displayArr.length} />
-          <Controls {...transport} step={v.step} meta={v.meta} sound={sound} />
+          <Controls {...transport} step={v.step} meta={v.meta} />
           <InfoPanel meta={v.meta} step={v.step} />
         </Workspace>
       )}
 
       {exportOpen && exportTable && (
-        <ExportDialog
-          steps={active.steps}
-          stepIdx={active.stepIdx}
-          seek={active.seek}
-          slug={`dsa-${view}-${codeMeta?.key ?? "run"}`}
-          table={exportTable}
-          onPrint={() => {
-            setExportOpen(false);
-            setPrinting(true);
-          }}
-          onClose={() => setExportOpen(false)}
-        />
+        <Suspense fallback={<ExportDialogFallback onClose={() => setExportOpen(false)} />}>
+          <ExportDialog
+            steps={active.steps}
+            stepIdx={active.stepIdx}
+            seek={active.seek}
+            slug={`dsa-${view}-${codeMeta?.key ?? "run"}`}
+            table={exportTable}
+            onPrint={() => {
+              setExportOpen(false);
+              setPrinting(true);
+            }}
+            onClose={() => setExportOpen(false)}
+          />
+        </Suspense>
       )}
 
       {/* Portalled to <body> deliberately. Printing hides `.app` wholesale so

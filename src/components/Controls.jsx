@@ -99,7 +99,7 @@ export default function Controls({
               className={`btn icon ${sound.enabled ? "active" : ""}`}
               onClick={sound.toggle}
               aria-pressed={sound.enabled}
-              title={sound.enabled ? "Sound on — pitch follows each value" : "Play the run: pitch follows each value"}
+              title={sound.enabled ? "Sound on — every step is a note" : "Hear the run: every step becomes a note"}
               aria-label={sound.enabled ? "Turn sound off" : "Turn sound on"}
             >
               {sound.enabled ? <Volume2 size={15} /> : <VolumeX size={15} />}

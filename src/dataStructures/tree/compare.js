@@ -255,7 +255,7 @@ export function runInserts(kind, keys, collect = true) {
 }
 
 /** Final numbers only — the fast path the height sweep calls. */
-export function measureInserts(kind, keys) {
+function measureInserts(kind, keys) {
   return runInserts(kind, keys, false).stats;
 }
 

@@ -1,9 +1,8 @@
 import { nextId } from "../dataStructures/linkedList/nodeId";
 import { parsePolynomial, formatTerm } from "../dataStructures/polynomial/helpers";
 import { POLY_OP_MAP } from "../dataStructures/polynomial";
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { useStepPlayer } from "./useStepPlayer.js";
-import { useHistory } from "./useHistory.js";
+import { useState, useCallback, useMemo } from "react";
+import { useStructureRun } from "./useStructureRun.js";
 
 function toNodes(terms) {
   return terms.map((t) => ({ id: nextId(), coeff: t.coeff, exp: t.exp, value: formatTerm(t.coeff, t.exp) }));
@@ -17,37 +16,29 @@ const EMPTY_STEP = { nodes: [], message: "" };
 /** `init` is the setup decoded from a shared link ({ poly }). */
 export function usePolynomial(init) {
   const initialPoly = init?.poly || DEFAULT_POLY;
-  const [list, setList] = useState(() => toNodes(parsePolynomial(initialPoly)));
-  const [operation, setOperation] = useState("addPoly");
   const [polyInput, setPolyInput] = useState(initialPoly);
+
+  const { view, value: list, apply, load } = useStructureRun({
+    initial: () => toNodes(parsePolynomial(initialPoly)),
+    toFrame: (nodes, message) => ({ nodes, message }),
+    emptyStep: EMPTY_STEP,
+    // The typed polynomial is part of the document, not just a field: undoing
+    // back to an earlier list should put the text that produced it back too.
+    snapshot: () => ({ polyInput }),
+    restore: (doc) => setPolyInput(doc.polyInput),
+  });
+
+  const [operation, setOperation] = useState("addPoly");
   const [secondPolyInput, setSecondPolyInput] = useState(DEFAULT_SECOND_POLY);
   const [xValueInput, setXValueInput] = useState("2");
-  const [steps, setSteps] = useState([{ ...EMPTY_STEP, nodes: [] }]);
-
-  const player = useStepPlayer(steps.length);
-  const { setStepIdx, setPlaying, stepIdx } = player;
 
   const opMeta = POLY_OP_MAP[operation];
 
-  const history = useHistory(
-    () => ({ list, polyInput }),
-    (doc, message) => {
-      setList(doc.list);
-      setPolyInput(doc.polyInput);
-      setSteps([{ nodes: doc.list, message }]);
-      setStepIdx(0);
-      setPlaying(false);
-    }
-  );
   const secondPreviewNodes = useMemo(() => toNodes(parsePolynomial(secondPolyInput)), [secondPolyInput]);
-  const isIdle = stepIdx >= steps.length - 1 && steps.length <= 1;
+  // The second polynomial is previewed only while nothing is being played, so
+  // it never sits alongside a run it is not part of.
+  const isIdle = view.stepIdx >= view.steps.length - 1 && view.steps.length <= 1;
   const showSecondPreview = isIdle && opMeta.fields.includes("secondList");
-
-  useEffect(() => {
-    setSteps([{ nodes: list, message: "Ready" }]);
-    setStepIdx(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const runOperation = useCallback(() => {
     const params = {
@@ -55,21 +46,13 @@ export function usePolynomial(init) {
       xValue: parseFloat(xValueInput) || 0,
     };
     const { steps: newSteps, finalList } = opMeta.run(list, params);
-    history.record();
-    setSteps(newSteps);
-    setStepIdx(0);
-    setList(finalList);
-    setPlaying(newSteps.length > 1);
-  }, [list, opMeta, secondPolyInput, xValueInput, history]);
+    apply(newSteps, finalList);
+  }, [list, opMeta, secondPolyInput, xValueInput, apply]);
 
-  const applyPolynomial = useCallback(() => {
-    const parsed = toNodes(parsePolynomial(polyInput));
-    history.record();
-    setList(parsed);
-    setSteps([{ nodes: parsed, message: "Polynomial loaded" }]);
-    setStepIdx(0);
-    setPlaying(false);
-  }, [polyInput, history]);
+  const applyPolynomial = useCallback(
+    () => load(toNodes(parsePolynomial(polyInput)), "Polynomial loaded"),
+    [polyInput, load]
+  );
 
   const randomPolynomial = useCallback(() => {
     const termCount = 2 + Math.floor(Math.random() * 3);
@@ -83,18 +66,11 @@ export function usePolynomial(init) {
       if (coeff === 0) continue;
       terms.push({ coeff, exp });
     }
-    const nodes = toNodes(terms);
-    history.record();
-    setList(nodes);
-    setSteps([{ nodes, message: "New random polynomial" }]);
-    setStepIdx(0);
-    setPlaying(false);
-  }, [history]);
-
-  const step = steps[Math.min(stepIdx, steps.length - 1)] || EMPTY_STEP;
+    load(toNodes(terms), "New random polynomial");
+  }, [load]);
 
   return {
-    ...player,
+    ...view,
     list,
     operation,
     setOperation,
@@ -107,13 +83,7 @@ export function usePolynomial(init) {
     setXValueInput,
     applyPolynomial,
     randomPolynomial,
-    steps,
-    step,
     runOperation,
-    undo: history.undo,
-    redo: history.redo,
-    canUndo: history.canUndo,
-    canRedo: history.canRedo,
     secondPreviewNodes,
     showSecondPreview,
   };

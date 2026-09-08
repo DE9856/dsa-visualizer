@@ -17,7 +17,7 @@ const STORE = "dsa-viz:sound";
  * existed to decide, and playing both would double every note in a bubble
  * sort.
  */
-export function notesFor(step) {
+function notesFor(step) {
   const array = step.array;
   if (!array) return [];
 
@@ -47,6 +47,74 @@ function finaleFor(step) {
   // miss is unmistakable against every value that could have been a hit.
   if (step.found === -2) return [{ value: 0, wave: "sine", gain: 0.6 }];
   return [];
+}
+
+/**
+ * The other half of the vocabulary: every view that is not bars.
+ *
+ * Outside sorting and searching nothing on screen is a value on a scale — a
+ * tree node, a hash bucket, a DP cell and a graph vertex have no pitch they
+ * ought to be, and inventing one would be saying something untrue about the
+ * data. So pitch here carries the other thing every run has: how far through
+ * it you are. Each frame takes the next degree of a pentatonic scale, which
+ * makes an operation a phrase whose length is its cost — a push is two notes,
+ * a search down a deep tree is a long climb — while the timbre says what kind
+ * of frame it is.
+ *
+ * Pentatonic because the tune is written by the algorithm rather than by
+ * anyone: no two of its degrees clash, so no sequence of frames can come out
+ * sour, which is not true of a diatonic scale.
+ */
+const PENTATONIC = [0, 2, 4, 7, 9];
+const ROOT_HZ = 262; // middle C
+const DEGREES = PENTATONIC.length * 2; // two octaves, then it wraps
+
+function degreeHz(index) {
+  const degree = ((index % DEGREES) + DEGREES) % DEGREES;
+  const semitones = 12 * Math.floor(degree / PENTATONIC.length) + PENTATONIC[degree % PENTATONIC.length];
+  return ROOT_HZ * Math.pow(2, semitones / 12);
+}
+
+/** Timbre per kind of frame, so two frames on the same pitch still differ. */
+const EVENT_TONES = {
+  step: { wave: "sine", gain: 0.45 },
+  compare: { wave: "sine", gain: 0.75 },
+  swap: { wave: "triangle", gain: 1 },
+  // A structural change shares the refusal's sawtooth deliberately: both are
+  // the run doing something it cannot take back, and the register tells them
+  // apart — a write lands on the scale, a refusal below it.
+  write: { wave: "sawtooth", gain: 0.85 },
+  probe: { wave: "square", gain: 0.5 },
+  found: { wave: "sine", gain: 1 },
+};
+
+// A field counts as set when it names something: an id, a non-empty list, a
+// flag. `-1` and `null` are how the frames spell "nothing here".
+const marks = (field) => {
+  if (Array.isArray(field)) return field.length > 0;
+  if (typeof field === "number") return field >= 0;
+  return field !== undefined && field !== null && field !== false;
+};
+
+/**
+ * Which of the five kinds a frame is. Read in the order the picture uses —
+ * a rejection outranks whatever it was rejecting, an answer outranks the
+ * comparison that found it — and deliberately tolerant about field names,
+ * because twenty views wrote their frames before there was any sound to play
+ * and each named the same idea slightly differently.
+ */
+export function eventFor(step) {
+  if (!step) return "step";
+  if (step.notFound || step.overflow || step.underflow || step.pruned || step.phase === "backtrack") return "fail";
+  if (marks(step.found) || step.match || step.phase === "solution" || step.phase === "match") return "found";
+  if (marks(step.swap) || marks(step.swapping)) return "swap";
+  // The structure itself changed here — a node left, nodes were created, two
+  // lists became one. Occasional by nature, and previously inaudible: a
+  // delete sounded exactly like the search that found what to delete.
+  if (marks(step.removing) || marks(step.created) || marks(step.mergedIds)) return "write";
+  if (marks(step.probe) || marks(step.mid)) return "probe";
+  if (marks(step.compare) || marks(step.comparing) || marks(step.current)) return "compare";
+  return "step";
 }
 
 /**
@@ -128,6 +196,32 @@ export function useSonification() {
     [settings.enabled]
   );
 
+  /**
+   * One frame of a run that isn't bars. `index` is the frame's position in
+   * the run, which is what the pitch is drawn from.
+   */
+  const playEvent = useCallback(
+    (step, { index = 0, duration = 0.1, done = false } = {}) => {
+      if (!settings.enabled) return;
+      const kind = eventFor(step);
+      if (kind === "fail") {
+        // Below the scale entirely, so a rejected operation — a full stack, a
+        // key that isn't there — cannot be mistaken for any note a successful
+        // one could have played.
+        sonifier.current.play([{ freq: 98, wave: "sawtooth", gain: 0.5 }], { duration: 0.22 });
+        return;
+      }
+      const hz = degreeHz(index);
+      const notes = [{ freq: hz, ...EVENT_TONES[kind] }];
+      // An answer, and the end of a run, resolve: the degree it landed on
+      // with the octave above it, which is the only interval here that sounds
+      // like an arrival rather than another step.
+      if (done || kind === "found") notes.push({ freq: hz * 2, wave: "sine", gain: 0.7 });
+      sonifier.current.play(notes, { duration: done ? 0.24 : duration });
+    },
+    [settings.enabled]
+  );
+
   const toggle = useCallback(() => {
     setSettings((prev) => {
       // Turning it on *is* the gesture that unlocks audio, so take it.
@@ -143,5 +237,6 @@ export function useSonification() {
     playSweep,
     setVolume: (volume) => setSettings((prev) => ({ ...prev, volume })),
     playStep,
+    playEvent,
   };
 }

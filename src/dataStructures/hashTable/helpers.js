@@ -213,12 +213,8 @@ export function hash2Expr(key, capacity) {
  * bucket forever — and less than m, which being prime means the walk reaches
  * every bucket before it repeats.
  */
-export function doubleStep(key, capacity) {
+function doubleStep(key, capacity) {
   return 1 + (Math.abs(key) % Math.max(1, capacity - 2));
-}
-
-export function doubleStepExpr(key, capacity) {
-  return `h₂(${key}) = 1 + ${key} mod ${capacity - 2} = ${doubleStep(key, capacity)}`;
 }
 
 // ---------------------------------------------------------------------
@@ -230,7 +226,7 @@ export function doubleStepExpr(key, capacity) {
  * and Robin Hood walk forward one slot at a time, quadratic jumps by attempt²,
  * and double hashing steps by a stride the key computes for itself.
  */
-export function probeIndex(home, attempt, capacity, strategy, key = 0) {
+function probeIndex(home, attempt, capacity, strategy, key = 0) {
   let offset = attempt;
   if (strategy === "quadratic") offset = attempt * attempt;
   else if (strategy === "double") offset = attempt * doubleStep(key, capacity);
@@ -238,7 +234,7 @@ export function probeIndex(home, attempt, capacity, strategy, key = 0) {
 }
 
 /** The offset half of the probe formula, for step messages. */
-export function probeOffsetLabel(strategy, attempt, key = 0, capacity = 1) {
+function probeOffsetLabel(strategy, attempt, key = 0, capacity = 1) {
   if (attempt === 0) return "home";
   if (strategy === "quadratic") return `+${attempt}² = +${attempt * attempt}`;
   if (strategy === "double") {
@@ -332,7 +328,7 @@ export function nextCapacity(capacity) {
  * A hand-edited shared link can name a capacity; this is what keeps it to one
  * the app itself could have produced.
  */
-export function isReachableCapacity(capacity) {
+function isReachableCapacity(capacity) {
   let n = INITIAL_CAPACITY;
   while (n < capacity) n = nextCapacity(n);
   return n === capacity;
@@ -439,7 +435,7 @@ export function locate(table, key) {
 // ---------------------------------------------------------------------
 
 /** How many evictions a cuckoo insert tries before calling it a cycle. */
-export const MAX_KICKS = 16;
+const MAX_KICKS = 16;
 
 const newEntry = (key) => ({ id: nextId(), value: key });
 

@@ -136,13 +136,13 @@ export function lastLevelOrderNode(root) {
   return last;
 }
 
-export function removeNodeById(node, id) {
+function removeNodeById(node, id) {
   if (!node) return null;
   if (node.id === id) return null;
   return { ...node, left: removeNodeById(node.left, id), right: removeNodeById(node.right, id) };
 }
 
-export function replaceValueById(node, id, value) {
+function replaceValueById(node, id, value) {
   if (!node) return null;
   if (node.id === id) return { ...node, value };
   return { ...node, left: replaceValueById(node.left, id, value), right: replaceValueById(node.right, id, value) };
@@ -234,18 +234,18 @@ export function avlBalanceFactor(node) {
 // Pure single rotations: operate on a node and return a new node. Each
 // node keeps its own id — only the parent/child wiring changes — so a
 // rotated node stays trackable across steps.
-export function rotateRightNode(y) {
+function rotateRightNode(y) {
   const x = y.left;
   return { ...x, right: { ...y, left: x.right } };
 }
 
-export function rotateLeftNode(x) {
+function rotateLeftNode(x) {
   const y = x.right;
   return { ...y, left: { ...x, right: y.left } };
 }
 
 // Replaces the subtree rooted at `id` with `newSubtree`, wherever it is.
-export function replaceSubtreeById(node, id, newSubtree) {
+function replaceSubtreeById(node, id, newSubtree) {
   if (!node) return null;
   if (node.id === id) return newSubtree;
   return { ...node, left: replaceSubtreeById(node.left, id, newSubtree), right: replaceSubtreeById(node.right, id, newSubtree) };
@@ -259,7 +259,7 @@ export function replaceSubtreeById(node, id, newSubtree) {
 // performed — a double rotation is two. The comparison view needs the number
 // and nothing else here does, so it is an optional out-parameter rather than
 // a change to what this returns.
-export function avlFixupTree(node, counts) {
+function avlFixupTree(node, counts) {
   if (!node) return null;
   const left = avlFixupTree(node.left, counts);
   const right = avlFixupTree(node.right, counts);
@@ -286,10 +286,6 @@ export function avlFixupTree(node, counts) {
 
 export function avlInsertByValue(root, value, newId, counts) {
   return avlFixupTree(bstInsertByValue(root, value, newId), counts);
-}
-
-export function avlDeleteByValue(root, value) {
-  return avlFixupTree(bstDeleteByValue(root, value));
 }
 
 // Step-generating rebalance: walks the given ancestor path bottom-up,
@@ -328,4 +324,61 @@ export function avlRebalanceWithSteps(rootAfterRawOp, path, steps) {
     });
   }
   return currentRoot;
+}
+
+/**
+ * Everything about one node that the drawing does not already say.
+ *
+ * The canvas shows shape and value; what it cannot show is where a node sits
+ * in the whole — how far down, how much hangs beneath it, and the invariant
+ * its tree type is actually maintaining. A red-black tree's rule is about
+ * black-height, and black-height is invisible: it is the one number that
+ * explains why the tree rotated when it did.
+ *
+ * Returns null when the id names nothing, so a stale selection after a delete
+ * simply shows nothing rather than throwing.
+ */
+export function describeNode(root, id, treeType) {
+  const node = findNodeById(root, id);
+  if (!node) return null;
+
+  // Depth and parent come from the walk down, since a node holds no upward
+  // pointer — the same reason every operation on a tree starts at the root.
+  let depth = 0;
+  let parent = null;
+  const walk = (cur, from, d) => {
+    if (!cur) return false;
+    if (cur.id === id) {
+      depth = d;
+      parent = from;
+      return true;
+    }
+    return walk(cur.left, cur, d + 1) || walk(cur.right, cur, d + 1);
+  };
+  walk(root, null, 0);
+
+  const facts = {
+    value: node.value,
+    depth,
+    height: treeHeight(node),
+    size: treeSize(node),
+    isRoot: parent === null,
+    isLeaf: !node.left && !node.right,
+    parent: parent ? parent.value : null,
+    left: node.left ? node.left.value : null,
+    right: node.right ? node.right.value : null,
+  };
+
+  if (treeType === "avl") facts.balance = avlBalanceFactor(node);
+  if (treeType === "treap" && node.priority !== undefined) facts.priority = node.priority;
+  if (treeType === "redblack" && node.color) {
+    facts.color = node.color === "R" ? "RED" : "BLACK";
+    // Black-height: black nodes on any path down to a leaf, not counting this
+    // one. Every path has the same count when the tree is legal, so taking
+    // the left spine is enough.
+    let blacks = 0;
+    for (let cur = node.left; cur; cur = cur.left) if (cur.color !== "R") blacks += 1;
+    facts.blackHeight = blacks;
+  }
+  return facts;
 }

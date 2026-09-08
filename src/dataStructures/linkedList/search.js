@@ -1,9 +1,9 @@
 export const search = {
   key: "search",
-  label: "Search / Traverse",
+  label: "Search",
   group: "build",
   fields: ["value"],
-  desc: "Walks the list from the head, checking each node's value against the target, and reports where (or whether) it was found.",
+  desc: "Walks the list from the head, checking each node's value against the target, and stops at the first match — or at the end of the chain, having found nothing.",
   time: "O(n)",
   space: "O(1)",
   run(list, { value }) {

@@ -11,6 +11,32 @@ export const CATEGORIES = [
     ],
   },
   {
+    key: "trees",
+    label: "TREES",
+    accent: "var(--green)",
+    blurb: "Branching structures and how they stay balanced.",
+    items: [
+      { key: "tree", label: "Tree", desc: "BST, AVL, red-black, splay, treap & threaded" },
+      { key: "twothree", label: "2-3 Tree", desc: "Balanced multi-way tree" },
+      { key: "btree", label: "B-Tree & B+ Tree", desc: "Wide nodes, splits & merges" },
+      { key: "heap", label: "Heap", desc: "Max/min heap, sift up & down" },
+      { key: "trie", label: "Trie", desc: "Prefix tree & autocomplete" },
+      { key: "treecompare", label: "Balance & Height", desc: "BST vs AVL vs 2-3 on the same keys" },
+      { key: "rangequery", label: "Range Queries", desc: "Segment tree & Fenwick, side by side" },
+      { key: "huffman", label: "Huffman Coding", desc: "Built bottom-up from frequencies" },
+    ],
+  },
+  {
+    key: "graphs",
+    label: "GRAPHS",
+    accent: "var(--purple)",
+    blurb: "Vertices, edges, and the shortest way between them.",
+    items: [
+      { key: "graph", label: "Graph", desc: "BFS, DFS, MST, shortest paths, SCC & max flow" },
+      { key: "unionfind", label: "Union-Find", desc: "Disjoint sets & path compression" },
+    ],
+  },
+  {
     key: "linkedlists",
     label: "LINKED LISTS",
     accent: "var(--blue)",
@@ -28,22 +54,6 @@ export const CATEGORIES = [
     items: [
       { key: "stack", label: "Stack", desc: "Push, pop, peek" },
       { key: "queue", label: "Queue", desc: "Enqueue, dequeue, circular" },
-    ],
-  },
-  {
-    key: "trees",
-    label: "TREES",
-    accent: "var(--green)",
-    blurb: "Branching structures and how they stay balanced.",
-    items: [
-      { key: "tree", label: "Tree", desc: "BST, AVL, red-black, splay, treap & threaded" },
-      { key: "twothree", label: "2-3 Tree", desc: "Balanced multi-way tree" },
-      { key: "btree", label: "B-Tree & B+ Tree", desc: "Wide nodes, splits & merges" },
-      { key: "heap", label: "Heap", desc: "Max/min heap, sift up & down" },
-      { key: "trie", label: "Trie", desc: "Prefix tree & autocomplete" },
-      { key: "treecompare", label: "Balance & Height", desc: "BST vs AVL vs 2-3 on the same keys" },
-      { key: "rangequery", label: "Range Queries", desc: "Segment tree & Fenwick, side by side" },
-      { key: "huffman", label: "Huffman Coding", desc: "Built bottom-up from frequencies" },
     ],
   },
   {
@@ -105,16 +115,6 @@ export const CATEGORIES = [
       { key: "greedy:sieve", label: "Sieve of Eratosthenes", desc: "Cross off multiples, starting at p²" },
       { key: "greedy:fastpow", label: "Fast Exponentiation", desc: "log n multiplications, not n" },
       { key: "greedy:gcd", label: "Euclid's GCD", desc: "The oldest algorithm still in use" },
-    ],
-  },
-  {
-    key: "graphs",
-    label: "GRAPHS",
-    accent: "var(--purple)",
-    blurb: "Vertices, edges, and the shortest way between them.",
-    items: [
-      { key: "graph", label: "Graph", desc: "BFS, DFS, MST, shortest paths, SCC & max flow" },
-      { key: "unionfind", label: "Union-Find", desc: "Disjoint sets & path compression" },
     ],
   },
 ];

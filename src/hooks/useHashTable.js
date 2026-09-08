@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { HASH_OP_MAP, HASH_FN_MAP, STRATEGY_MAP } from "../dataStructures/hashTable";
 import {
   buildTableFromKeys,
@@ -8,8 +8,7 @@ import {
   randomTable,
   tableKeys,
 } from "../dataStructures/hashTable/helpers";
-import { useStepPlayer } from "./useStepPlayer.js";
-import { useHistory } from "./useHistory.js";
+import { useStructureRun } from "./useStructureRun.js";
 
 const EMPTY_STEP = { buckets: [], capacity: 0, message: "" };
 
@@ -19,106 +18,77 @@ export function useHashTable(init) {
   const initialHashFn = init?.hashFn ?? DEFAULT_HASH_FN;
   const [strategy, setStrategyState] = useState(initialStrategy);
   const [hashFn, setHashFnState] = useState(initialHashFn);
-  const [table, setTable] = useState(() =>
-    init?.values
-      ? buildTableFromKeys(init.values, initialStrategy, init.capacity ?? INITIAL_CAPACITY, initialHashFn)
-      : randomTable(initialStrategy, initialHashFn)
-  );
+
+  const { view, value: table, apply, load } = useStructureRun({
+    initial: () =>
+      init?.values
+        ? buildTableFromKeys(init.values, initialStrategy, init.capacity ?? INITIAL_CAPACITY, initialHashFn)
+        : randomTable(initialStrategy, initialHashFn),
+    toFrame: (next, message) => ({ ...next, message }),
+    emptyStep: EMPTY_STEP,
+    // Both settings are part of the document: a table is only meaningful
+    // alongside the rules that placed its keys, so an undo has to bring them
+    // back together.
+    snapshot: () => ({ strategy, hashFn }),
+    restore: (doc) => {
+      setStrategyState(doc.strategy);
+      setHashFnState(doc.hashFn);
+    },
+  });
 
   const [operation, setOperation] = useState("insert");
   const [keyInput, setKeyInput] = useState("42");
   const [customInput, setCustomInput] = useState("");
-  const [steps, setSteps] = useState([{ ...EMPTY_STEP }]);
-
-  const player = useStepPlayer(steps.length);
-  const { setStepIdx, setPlaying, stepIdx } = player;
 
   const opMeta = HASH_OP_MAP[operation];
-
-  const history = useHistory(
-    () => ({ table, strategy, hashFn }),
-    (doc, message) => {
-      setTable(doc.table);
-      setStrategyState(doc.strategy);
-      setHashFnState(doc.hashFn);
-      setSteps([{ ...doc.table, message }]);
-      setStepIdx(0);
-      setPlaying(false);
-    }
-  );
-
-  useEffect(() => {
-    setSteps([{ ...table, message: "Ready" }]);
-    setStepIdx(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const runOperation = useCallback(() => {
     const parsed = parseInt(keyInput, 10);
     const { steps: newSteps, finalTable } = opMeta.run(table, { key: Number.isNaN(parsed) ? 0 : parsed });
-    history.record();
-    setSteps(newSteps);
-    setStepIdx(0);
-    setTable(finalTable);
-    setPlaying(newSteps.length > 1);
-  }, [table, opMeta, keyInput, history]);
+    apply(newSteps, finalTable);
+  }, [table, opMeta, keyInput, apply]);
 
   const applyCustomTable = useCallback(() => {
     const parsed = parseKeyList(customInput);
     if (parsed.length === 0) return;
-    const next = buildTableFromKeys(parsed, strategy, INITIAL_CAPACITY, hashFn);
-    history.record();
-    setTable(next);
-    setSteps([{ ...next, message: "Custom keys loaded" }]);
-    setStepIdx(0);
-    setPlaying(false);
+    load(buildTableFromKeys(parsed, strategy, INITIAL_CAPACITY, hashFn), "Custom keys loaded");
     setCustomInput("");
-  }, [customInput, strategy, hashFn, history]);
+  }, [customInput, strategy, hashFn, load]);
 
-  const shuffle = useCallback(() => {
-    const next = randomTable(strategy, hashFn);
-    history.record();
-    setTable(next);
-    setSteps([{ ...next, message: "New random keys" }]);
-    setStepIdx(0);
-    setPlaying(false);
-  }, [strategy, hashFn, history]);
+  const shuffle = useCallback(
+    () => load(randomTable(strategy, hashFn), "New random keys"),
+    [strategy, hashFn, load]
+  );
 
   // Switching strategy replays the same keys into a fresh table rather than
   // starting over — the whole point is watching where those keys land when
   // only the collision rule changes.
+  //
+  // The setting is changed before `load` records, which is deliberate and
+  // matches what these did by hand: the snapshot closure still sees the old
+  // value this render, so undo returns to the rule that was replaced.
   const setStrategy = useCallback(
     (next) => {
-      history.record();
       setStrategyState(next);
       const rebuilt = buildTableFromKeys(tableKeys(table), next, INITIAL_CAPACITY, hashFn);
-      setTable(rebuilt);
-      setSteps([{ ...rebuilt, message: `Same keys, resolved by ${STRATEGY_MAP[next].label.toLowerCase()}` }]);
-      setStepIdx(0);
-      setPlaying(false);
+      load(rebuilt, `Same keys, resolved by ${STRATEGY_MAP[next].label.toLowerCase()}`);
     },
-    [table, hashFn, history]
+    [table, hashFn, load]
   );
 
   // Same idea one level down: the hash function decides where keys land before
   // any collision rule gets a say, so changing it redeals the same keys.
   const setHashFn = useCallback(
     (next) => {
-      history.record();
       setHashFnState(next);
       const rebuilt = buildTableFromKeys(tableKeys(table), strategy, INITIAL_CAPACITY, next);
-      setTable(rebuilt);
-      setSteps([{ ...rebuilt, message: `Same keys, hashed by ${HASH_FN_MAP[next].formula}` }]);
-      setStepIdx(0);
-      setPlaying(false);
+      load(rebuilt, `Same keys, hashed by ${HASH_FN_MAP[next].formula}`);
     },
-    [table, strategy, history]
+    [table, strategy, load]
   );
 
-  const step = steps[Math.min(stepIdx, steps.length - 1)] || EMPTY_STEP;
-
   return {
-    ...player,
+    ...view,
     table,
     strategy,
     setStrategy,
@@ -133,12 +103,6 @@ export function useHashTable(init) {
     setCustomInput,
     applyCustomTable,
     shuffle,
-    steps,
-    step,
     runOperation,
-    undo: history.undo,
-    redo: history.redo,
-    canUndo: history.canUndo,
-    canRedo: history.canRedo,
   };
 }

@@ -74,7 +74,7 @@ export function countNodes(node) {
 export const totalCharacters = (trie) => trieWords(trie).reduce((sum, word) => sum + word.length, 0);
 
 /** Inserts with no frames, used for shared links, shuffles and custom input. */
-export function insertWordSilent(trie, word) {
+function insertWordSilent(trie, word) {
   let node = trie.root;
   for (const char of word) {
     if (!node.children[char]) node.children[char] = makeNode(char);

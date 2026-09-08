@@ -1,9 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { nextId } from "../dataStructures/linkedList/nodeId";
 import { parseValueList } from "../dataStructures/linkedList/helpers";
 import { STACK_OP_MAP } from "../dataStructures/stack";
-import { useStepPlayer } from "./useStepPlayer.js";
-import { useHistory } from "./useHistory.js";
+import { useStructureRun } from "./useStructureRun.js";
 
 function randomStack(size) {
   return Array.from({ length: size }, () => ({ id: nextId(), value: Math.floor(Math.random() * 90) + 10 }));
@@ -13,71 +12,41 @@ const EMPTY_STEP = { nodes: [], message: "" };
 
 /** `init` is the setup decoded from a shared link ({ values }). */
 export function useStack(init) {
-  const [stack, setStack] = useState(() =>
-    init?.values ? init.values.map((value) => ({ id: nextId(), value })) : randomStack(4)
-  );
+  const { view, value: stack, apply, load } = useStructureRun({
+    initial: () => (init?.values ? init.values.map((value) => ({ id: nextId(), value })) : randomStack(4)),
+    // The stack *is* the node list, so it becomes the frame's `nodes` rather
+    // than being spread the way the object-shaped structures are.
+    toFrame: (nodes, message) => ({ nodes, message }),
+    emptyStep: EMPTY_STEP,
+  });
+
   const [operation, setOperation] = useState("push");
   const [valueInput, setValueInput] = useState("42");
   const [customInput, setCustomInput] = useState("");
-  const [steps, setSteps] = useState([{ ...EMPTY_STEP, nodes: [] }]);
-
-  const player = useStepPlayer(steps.length);
-  const { setStepIdx, setPlaying, stepIdx } = player;
 
   const opMeta = STACK_OP_MAP[operation];
 
-  const history = useHistory(
-    () => ({ stack }),
-    (doc, message) => {
-      setStack(doc.stack);
-      setSteps([{ nodes: doc.stack, message }]);
-      setStepIdx(0);
-      setPlaying(false);
-    }
-  );
-
-  useEffect(() => {
-    setSteps([{ nodes: stack, message: "Ready" }]);
-    setStepIdx(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const runOperation = useCallback(() => {
-    const params = { value: parseInt(valueInput, 10) || 0 };
-    const { steps: newSteps, finalList } = opMeta.run(stack, params);
+    const { steps: newSteps, finalList } = opMeta.run(stack, { value: parseInt(valueInput, 10) || 0 });
     // Recorded even when the operation turns out to be read-only (peek, size):
     // an undo that lands on an identical stack is harmless, and deciding which
     // ops mutate would mean keeping a second list in step with the first.
-    history.record();
-    setSteps(newSteps);
-    setStepIdx(0);
-    setStack(finalList);
-    setPlaying(newSteps.length > 1);
-  }, [stack, opMeta, valueInput, history]);
+    apply(newSteps, finalList);
+  }, [stack, opMeta, valueInput, apply]);
 
   const applyCustomStack = useCallback(() => {
     const parsed = parseValueList(customInput).map((value) => ({ id: nextId(), value }));
-    history.record();
-    setStack(parsed);
-    setSteps([{ nodes: parsed, message: "Custom stack loaded" }]);
-    setStepIdx(0);
-    setPlaying(false);
+    load(parsed, "Custom stack loaded");
     setCustomInput("");
-  }, [customInput, history]);
+  }, [customInput, load]);
 
-  const shuffle = useCallback(() => {
-    const next = randomStack(3 + Math.floor(Math.random() * 3));
-    history.record();
-    setStack(next);
-    setSteps([{ nodes: next, message: "New random stack" }]);
-    setStepIdx(0);
-    setPlaying(false);
-  }, [history]);
-
-  const step = steps[Math.min(stepIdx, steps.length - 1)] || EMPTY_STEP;
+  const shuffle = useCallback(
+    () => load(randomStack(3 + Math.floor(Math.random() * 3)), "New random stack"),
+    [load]
+  );
 
   return {
-    ...player,
+    ...view,
     stack,
     operation,
     setOperation,
@@ -88,12 +57,6 @@ export function useStack(init) {
     setCustomInput,
     applyCustomStack,
     shuffle,
-    steps,
-    step,
     runOperation,
-    undo: history.undo,
-    redo: history.redo,
-    canUndo: history.canUndo,
-    canRedo: history.canRedo,
   };
 }

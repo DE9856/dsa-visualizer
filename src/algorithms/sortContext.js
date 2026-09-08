@@ -18,7 +18,7 @@ import { makeRng } from "../utils/rng.js";
  * `swap`/`put`, which move the tag alongside, so a sort that reorders equal
  * elements shows it in the tags even though the values look identical.
  */
-export function createSortContext(input, options = {}, collect = true) {
+function createSortContext(input, options = {}, collect = true) {
   const a = [...input];
   const n = a.length;
   const tags = a.map((_, i) => i);

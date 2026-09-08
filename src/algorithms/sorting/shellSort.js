@@ -10,7 +10,7 @@ const LINE = { GAP: 0, COMPARE: 2, SWAP: 3, DONE: null };
  * at 1 — the final pass has to be an ordinary insertion sort or the array
  * isn't sorted.
  */
-export const GAP_SEQUENCES = {
+const GAP_SEQUENCES = {
   // Shell's original: halve until 1. Simple, and the one with the O(n²)
   // worst case, because the gaps share factors and early passes can leave
   // whole interleaved subsequences untouched by each other.

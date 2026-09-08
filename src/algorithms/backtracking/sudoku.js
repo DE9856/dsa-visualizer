@@ -72,10 +72,8 @@ export const PUZZLES = [
   },
 ];
 
-export const PUZZLE_MAP = Object.fromEntries(PUZZLES.map((p) => [p.key, p]));
-
 /** Any of 0, ., - or a space means "blank"; everything else must be 1–9. */
-export function parseGrid(text) {
+function parseGrid(text) {
   const chars = String(text || "").replace(/[^0-9.\-\s]/g, "");
   const cells = [];
   for (const ch of chars) {

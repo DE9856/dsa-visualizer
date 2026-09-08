@@ -45,7 +45,7 @@ export function pathToRoot(uf, i) {
   return path;
 }
 
-export const rootOf = (uf, i) => pathToRoot(uf, i).at(-1);
+const rootOf = (uf, i) => pathToRoot(uf, i).at(-1);
 
 /** Children of each element, ascending — the forest the canvas draws. */
 export function childrenOf(uf) {
@@ -72,7 +72,7 @@ export function componentsOf(uf) {
 }
 
 /** Recomputes every root's size from the parent array. */
-export function recomputeSizes(uf) {
+function recomputeSizes(uf) {
   const size = Array.from({ length: uf.n }, () => 1);
   for (const { root, members } of componentsOf(uf)) size[root] = members.length;
   return { ...uf, size };
@@ -191,7 +191,7 @@ export function makeUnionFind(ids) {
 // ---------------------------------------------------------------------
 
 /** Applies union pairs silently — used by shuffles and shared links. */
-export function buildUnionFind(n, pairs = []) {
+function buildUnionFind(n, pairs = []) {
   const uf = emptyUnionFind(n);
   for (const [a, b] of pairs) {
     if (a < 0 || b < 0 || a >= uf.n || b >= uf.n) continue;

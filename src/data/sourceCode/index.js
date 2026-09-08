@@ -24,7 +24,7 @@ export const LANGUAGES = [
   { key: "javascript", label: "JavaScript", ext: "js" },
 ];
 
-export const LANGUAGE_KEYS = LANGUAGES.map((l) => l.key);
+const LANGUAGE_KEYS = LANGUAGES.map((l) => l.key);
 
 /**
  * Which chunk holds each algorithm's listings. A flat registry rather than
@@ -136,7 +136,7 @@ const TAG = /[ \t]*@@(\d+)[ \t]*$/;
  * Splits a tagged listing into the clean text (what gets shown and copied)
  * and the per-line pseudocode index used for highlighting.
  */
-export function parseSource(source) {
+function parseSource(source) {
   const lines = source.replace(/^\n/, "").replace(/\s+$/, "").split("\n");
   const rows = lines.map((line) => {
     const match = line.match(TAG);

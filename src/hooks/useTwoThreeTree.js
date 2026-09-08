@@ -1,88 +1,42 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { TWO_THREE_OP_MAP } from "../dataStructures/twoThreeTree";
 import { randomTree, parseValueList, buildTreeFromValues } from "../dataStructures/twoThreeTree/helpers";
-import { useStepPlayer } from "./useStepPlayer.js";
-import { useHistory } from "./useHistory.js";
+import { useStructureRun } from "./useStructureRun.js";
 
 const EMPTY_STEP = { root: null, message: "" };
 
 /** `init` is the setup decoded from a shared link ({ values }). */
 export function useTwoThreeTree(init) {
-  const [tree, setTree] = useState(() =>
-    init?.values ? buildTreeFromValues(init.values) : randomTree()
-  );
+  const { view, value: tree, apply, load } = useStructureRun({
+    initial: () => (init?.values ? buildTreeFromValues(init.values) : randomTree()),
+    toFrame: (next, message) => ({ ...next, message }),
+    emptyStep: EMPTY_STEP,
+  });
 
   const [operation, setOperation] = useState("insert");
   const [valueInput, setValueInput] = useState("");
   const [customInput, setCustomInput] = useState("");
 
-  const [steps, setSteps] = useState([{ ...EMPTY_STEP }]);
-
-  const player = useStepPlayer(steps.length);
-  const { setStepIdx, setPlaying, stepIdx } = player;
-
   const opMeta = TWO_THREE_OP_MAP[operation];
 
-  const history = useHistory(
-    () => ({ tree }),
-    (doc, message) => {
-      setTree(doc.tree);
-      setSteps([{ ...doc.tree, message }]);
-      setStepIdx(0);
-      setPlaying(false);
-    }
-  );
-
-  useEffect(() => {
-    setSteps([{ ...tree, message: "Ready" }]);
-    setStepIdx(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const runWith = useCallback(
-    (opKey, params) => {
-      const meta = TWO_THREE_OP_MAP[opKey];
-      const { steps: newSteps, finalTree } = meta.run(tree, params);
-      history.record();
-      setSteps(newSteps);
-      setStepIdx(0);
-      setTree(finalTree);
-      setPlaying(newSteps.length > 1);
-    },
-    [tree, history]
-  );
-
   const runOperation = useCallback(() => {
-    const value = parseInt(valueInput, 10);
-    runWith(operation, { value: Number.isNaN(value) ? 0 : value });
+    const parsed = parseInt(valueInput, 10);
+    const { steps: newSteps, finalTree } = opMeta.run(tree, { value: Number.isNaN(parsed) ? 0 : parsed });
+    apply(newSteps, finalTree);
     setValueInput("");
-  }, [operation, valueInput, runWith]);
+  }, [tree, opMeta, valueInput, apply]);
 
   const applyCustomTree = useCallback(() => {
     const values = parseValueList(customInput);
     if (values.length === 0) return;
-    const next = buildTreeFromValues(values);
-    history.record();
-    setTree(next);
-    setSteps([{ ...next, message: "Custom tree loaded" }]);
-    setStepIdx(0);
-    setPlaying(false);
+    load(buildTreeFromValues(values), "Custom tree loaded");
     setCustomInput("");
-  }, [customInput, history]);
+  }, [customInput, load]);
 
-  const shuffle = useCallback(() => {
-    const next = randomTree();
-    history.record();
-    setTree(next);
-    setSteps([{ ...next, message: "New random tree" }]);
-    setStepIdx(0);
-    setPlaying(false);
-  }, [history]);
-
-  const step = steps[Math.min(stepIdx, steps.length - 1)] || EMPTY_STEP;
+  const shuffle = useCallback(() => load(randomTree(), "New random tree"), [load]);
 
   return {
-    ...player,
+    ...view,
     tree,
     operation,
     setOperation,
@@ -93,12 +47,6 @@ export function useTwoThreeTree(init) {
     setCustomInput,
     applyCustomTree,
     shuffle,
-    steps,
-    step,
     runOperation,
-    undo: history.undo,
-    redo: history.redo,
-    canUndo: history.canUndo,
-    canRedo: history.canRedo,
   };
 }

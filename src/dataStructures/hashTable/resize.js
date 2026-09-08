@@ -14,7 +14,7 @@ import {
 } from "./helpers";
 
 /** Where a key ended up, whichever table and bucket that turned out to be. */
-export function findKey(table, key) {
+function findKey(table, key) {
   const inFirst = table.buckets.findIndex((bucket) => bucket.some((e) => e.value === key && !e.deleted));
   if (inFirst >= 0) return { index: inFirst, table: 1 };
   if (table.buckets2) {

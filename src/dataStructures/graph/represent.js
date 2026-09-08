@@ -122,7 +122,7 @@ const QUERY_SAMPLES = 4000;
  * measured against a graph the other doesn't have. `arcs` is already directed:
  * an undirected edge arrives as both of its directions.
  */
-export function buildBoth(v, arcs) {
+function buildBoth(v, arcs) {
   const matrix = Array.from({ length: v }, () => new Array(v).fill(0));
   const lists = Array.from({ length: v }, () => []);
   arcs.forEach(([from, to]) => {
@@ -162,7 +162,7 @@ function listQueryCost(lists, from, to) {
  * pair when the graph is small enough for that to be quick, which is what the
  * graph on screen gets.
  */
-export function measureBoth(v, arcs, { queries = QUERY_SAMPLES, seed = 1 } = {}) {
+function measureBoth(v, arcs, { queries = QUERY_SAMPLES, seed = 1 } = {}) {
   const { matrix, lists } = buildBoth(v, arcs);
   const storedArcs = lists.reduce((total, row) => total + row.length, 0);
 

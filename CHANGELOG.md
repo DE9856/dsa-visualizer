@@ -23,6 +23,15 @@ should a tree be shaped by", none of them the same as balance.
 
 ### Fixed
 
+- **The keyboard-shortcuts button no longer sits on top of the volume slider.** The slider
+  asked for 64px and rendered at its parent's full width, running underneath the button
+  beside it. `.controls__volume` was losing the cascade to the generic
+  `input[type="range"] { width: 100% }` — an attribute selector weighs the same as a class,
+  so `input[type="range"]` scores (0,1,1) and outranks a lone class at (0,1,0). Matching the
+  tag as well restores the intended order without reaching for `!important`. The sound group
+  now also holds its width instead of being squeezed by the speed slider, and a thin rule
+  separates the controls that are about the run from the two that are about the page.
+
 - **An export no longer hangs when the tab is in the background.** The capture
   waited for two animation frames between steps, to be sure the step it had
   just seeked to was laid out. A backgrounded tab never fires one, so tabbing
@@ -47,6 +56,128 @@ should a tree be shaped by", none of them the same as balance.
   impossible to draw.
 
 ### Changed
+
+- **Sound is on every view, not only the bars.** The speaker button lived in the sorting
+  and searching transport and did nothing anywhere else, because pitch there means the
+  value of an element and nothing in a tree, a hash table, a DP grid or a graph is a
+  value on a scale to be pitched. Pretending otherwise would have said something untrue
+  about the data, so those views sonify the other thing every run has instead: each frame
+  takes the next degree of a pentatonic scale, which makes an operation a phrase whose
+  length is its cost — a push is two notes, a search down a deep tree is a long climb.
+  The waveform still says what kind of frame it is, an answer resolves onto the octave
+  above, and a refused operation — a full stack, a key that is not there, a pruned branch
+  — is one note below the scale entirely, where nothing successful can reach. Structures
+  sitting still stay silent: loading, undoing or redrawing one is a single frame with
+  nothing happening in it, and switching views does not replay the frame already on
+  screen.
+
+  Two things a structure operation does are audible that were not. Changing the structure
+  — a node leaving, nodes being created, two lists becoming one — now has a timbre of its
+  own, where before a delete sounded exactly like the search that found what to delete; it
+  takes the refusal's sawtooth deliberately, because both are the run doing something it
+  cannot take back, and the register separates them. And the O(1) queries have a voice at
+  all: `isEmpty`, `size` and `peek` answer without walking anything, so a whole class of
+  operation was being silenced as a structure standing still when what it really was is a
+  run one frame long. A frame that reports a result is now told from a redraw by whether
+  it reports one, rather than by how many frames came with it.
+
+- **The tree canvas can be handled, not just watched.** It had no interaction at all: every
+  tree was built by typing into the sidebar, and a tree deeper than the panel was squeezed
+  to fit or scrolled sideways on a phone. Now a node is inspected by clicking or tapping it,
+  which reports what the drawing cannot — its depth, the height and size of the subtree under
+  it, its parent and children, an AVL balance factor reddened once it leaves [-1, 1], a
+  treap's priority, and a red-black node's colour and black-height, that last being the
+  invisible number the whole red-black rule is about;
+  deleted by triple-clicking or holding it, which plays the real delete and its rebalance;
+  and inserted by double-clicking or holding empty canvas. Pan by dragging, zoom by
+  scrolling or pinching, and RESET VIEW to put it back.
+
+  The gestures are the graph's on purpose, so one set of habits covers both views, but they
+  cannot mean the same thing. A vertex is dropped where you put it, and its position is the
+  data; a tree node's position is derived from its value, so the press supplies a point and
+  the point cannot supply a key. Inserting therefore opens a small input where you pressed,
+  and where the node actually lands is decided by the ordering — which is the lesson, not a
+  limitation. Zoom is anchored to the cursor or to the midpoint between two fingers, so what
+  you are looking at stays under them.
+
+- **Traversing a linked list is its own operation.** It used to be half of "Search /
+  Traverse", which meant you could not simply walk a list — you had to nominate a value to
+  look for and then ignore the fact that it was being searched for, and the run stopped
+  early the moment it happened to hit that value. Traverse now takes no input and visits
+  every node from the head to the end of the chain, which is the operation the cost of
+  every other one is made of. It is also where the list type finally shows itself. A
+  circular list has no null to stop at, so the walk gets a frame for arriving back at the
+  head and the note that it has to remember where it began or go round forever. A doubly
+  linked list is then walked back the other way along its prev pointers, which is the
+  whole of what the extra pointer per node buys: a singly linked list cannot do it at all,
+  because a node knows nothing about what points at it, so going backwards means starting
+  again from the head and a reverse walk costs O(n²) instead of O(n). Search keeps the
+  target and the early exit, and Traverse sits beside it.
+
+- **The landing page leads with the sections people arrive for.** Graphs sat last, after
+  eight sections of algorithm families, which is the wrong place for one of the four
+  structures a course reaches first. The order is now arrays, trees, graphs and linked
+  lists, then everything else in its previous order.
+
+- **The data-structure hooks share one engine instead of twelve copies of it.** Every
+  structure view had written out the same four things longhand — the structure, the frames
+  of the operation being watched, playback over them, and undo/redo — and they were the
+  same in all of them: `useStack` and `useQueue` differed by three lines once you renamed
+  the noun. That machinery is now `useStructureRun`, and twelve hooks went from 1,451
+  lines to 1,005.
+
+  The useful part is not the line count but that the engine names what was previously
+  implicit. There are three ways the picture changes, and they behave differently:
+  `apply(steps, final)` plays an operation's frames, `load(next, message)` replaces the
+  structure outright, and `reframe(message)` redraws the same structure under new rules —
+  switching a range query between a segment tree and a Fenwick tree — without an undo
+  entry, because nothing about the document changed. The first two record history before
+  mutating, so the rule that used to live in a comment in every hook is now kept in one
+  place, and no raw setter is handed out: changing a structure without recording is not
+  something a view can express any more.
+
+  Views whose document is more than the structure — the heap's max/min, the tree's type
+  and threading, the hash table's collision strategy and hash function — declare that with
+  `snapshot`/`restore`, so undoing past a switch brings the setting back along with the
+  keys rather than leaving the two disagreeing.
+
+  `useLinkedList` and `useHuffman` were left as they were, deliberately: the first reframes
+  from the nodes currently *on screen* rather than the committed list, which `load` would
+  quietly change, and the second has no structure and no history to begin with.
+
+- **The export dialog is no longer in the initial download.** Opening it is the only
+  thing that needs the GIF encoder, the video recorder and the DOM capture — roughly a
+  thousand lines between them — and most sessions never do, yet every visit paid for all
+  of it before the landing page could draw. The dialog is now behind `React.lazy`, which
+  moves those three modules into a chunk of their own: the main bundle drops from 294.92
+  kB to 281.43 kB (83.93 kB to 78.72 kB gzipped), and the 14.33 kB that left arrives only
+  when someone actually clicks EXPORT.
+
+  A code-split dialog can be asked for before its code arrives, so the press now draws a
+  stand-in with the real dialog's backdrop, panel and heading rather than nothing at all.
+  It closes on the backdrop like the real one, because a slow network is exactly when
+  someone is most likely to change their mind.
+
+- **Dead code removed, and helper modules now say what they actually offer.** Nine
+  unreferenced symbols went — `utils/randomArray.js` entirely (superseded by the seeded
+  `buildInput` in `utils/distributions.js`), `PUZZLE_MAP`, `findNode`, `findVertexByLabel`,
+  `MST_ALGO_MAP`, `doubleStepExpr`, `parseIndex`, `avlDeleteByValue` and `minLeafKey` —
+  along with the one CSS rule, `.topbar__share`, that no element carried.
+
+  Separately, 53 exports whose every reference was inside their own defining file are no
+  longer exported. The point is the read: `useBarEditing.js` published its whole drag
+  state machine — `barsGeometry`, `valueAt`, `indexAt`, `startDrag`, `dragTo`, `endDrag`
+  and its three thresholds — as if any of it were an entry point, when the hook is the
+  only one; `tree/helpers.js` published six rotation and splice internals the same way.
+  What a module exports is the only cheap signal of what it is for, and these were
+  drowning it.
+
+  Nothing observable changed, and nothing in the bundle did either: Rollup had already
+  tree-shaken all of it, so the built chunks are byte-identical apart from the removed CSS
+  rule. Verified by running every sorting and searching algorithm to a correct result and
+  exercising each touched structure's operations — 2-3 tree, all six hash-table schemes,
+  both range-query kinds, union-find, trie, both dynamic-hash kinds, both B-tree variants,
+  all 23 graph operations and the tree-height sweep.
 
 - **The string canvas is shared, and knows nothing about strings.** `StringCanvas` was
   already a generic renderer for rows sharing one set of columns; only its name and its

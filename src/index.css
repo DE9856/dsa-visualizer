@@ -1291,7 +1291,30 @@ input[type="range"] {
 }
 
 .controls__help-btn {
+  /* Pushed to the end when the row has slack, and never shrunk when it does
+     not — an icon button that loses width becomes an unhittable sliver. */
   margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* A rule between the run's controls and the two that are about the page
+   rather than the run. Without it the volume slider and the shortcuts button
+   read as one cluster, which is what made them look jammed together even
+   before the slider was overrunning its box. */
+.controls__sound + .controls__help-btn,
+.controls__sound {
+  position: relative;
+}
+
+.controls__sound::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 18px;
+  background: var(--border);
 }
 
 /* ---------- timeline scrubber ---------- */
@@ -1915,6 +1938,11 @@ input[type="range"] {
   margin-top: 10px;
   color: var(--green);
   letter-spacing: 0.04em;
+  /* A badge that reports two results — the two orders a doubly linked list
+     can be walked in — puts one per line, and the monospace column keeps them
+     comparable. Every other badge is a single line and is unaffected: only a
+     string that already contains a newline breaks. */
+  white-space: pre-line;
 }
 
 .ll-null {
@@ -3156,11 +3184,6 @@ input[type="range"] {
   position: relative;
 }
 
-.topbar__share {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-}
-
 /* Fallback for when the clipboard isn't available: the link, selected and
    ready to copy by hand. */
 .share__manual {
@@ -3458,6 +3481,130 @@ input[type="range"] {
   overflow-y: hidden;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
+}
+
+/* The node inspector: what the drawing cannot say about the node you picked.
+   A wrapping row of label/value pairs rather than a fixed table, so it reflows
+   onto a phone instead of demanding a column that isn't there. */
+.tree-inspect {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  margin-top: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-alt);
+}
+
+.tree-inspect__value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary);
+  padding-right: 4px;
+  border-right: 1px solid var(--border);
+}
+
+.tree-inspect__fact {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.tree-inspect__label {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+.tree-inspect__datum {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* An AVL node outside [-1, 1] is the whole reason the next rotation happens,
+   so it is called out rather than left to be spotted. */
+.tree-inspect__datum--warn {
+  color: var(--red);
+}
+
+.tree-inspect__clear {
+  margin-left: auto;
+  padding: 2px 8px;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.tree-inspect__clear:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+/* The tree's own stage. It replaces the sideways scroll container the tree
+   used to sit in: a wide tree is now navigated by dragging and pinching, which
+   reaches the same places without a scrollbar and works the same way on a
+   laptop as on a phone. It still clips, so nothing here can scroll the page
+   sideways. */
+.tree-canvas__stage {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  /* The browser's own pan and zoom are declined, because the canvas
+     implements both itself and the two fighting over one finger is what makes
+     a gesture feel broken. */
+  touch-action: none;
+}
+
+/* The canvas is draggable everywhere except on a node, which is a target. */
+.graph-svg--grab {
+  cursor: grab;
+}
+
+.graph-svg--grab:active {
+  cursor: grabbing;
+}
+
+.tree-node--hit {
+  cursor: pointer;
+}
+
+/* Sits over the point that was pressed, so the value is typed where the node
+   is about to appear — though where it actually lands is decided by the tree's
+   ordering, not by where the press was. */
+.tree-canvas__insert {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+}
+
+.tree-canvas__insert .input {
+  width: 84px;
+  text-align: center;
+  padding: 5px 8px;
+  font-size: 12px;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.28);
+}
+
+/* Floated over the canvas rather than sat in the hint row, which already ends
+   in the export and share controls — a third button there lands on top of
+   them. Bottom-left is the one corner of a tree that is reliably empty: the
+   root is centred at the top and the deepest nodes spread from the middle. */
+.tree-canvas__reset {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 2;
+  padding: 4px 10px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
 }
 
 /* A tree laid out at its natural size instead of squeezed to fit. */
@@ -6652,18 +6799,27 @@ select.text-input option {
 .controls__sound {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  /* The group keeps its size while the speed slider takes the slack, so the
+     volume never gets squeezed into a control too small to aim at. */
+  flex-shrink: 0;
 }
 
-.controls__volume {
-  width: 64px;
-  flex-shrink: 0;
+/* `input` carries the tag, and `[type="range"]` weighs the same as a class, so
+   the generic `input[type="range"] { width: 100% }` above scores (0,1,1) and
+   beats a lone class at (0,1,0). A bare `.controls__volume` therefore lost,
+   the slider stretched to its parent's full width, and it ran underneath the
+   keyboard button beside it. Matching the tag here restores the intended
+   order rather than reaching for `!important`. */
+input.controls__volume {
+  width: 76px;
+  flex: 0 0 auto;
 }
 
 @media (max-width: 760px) {
   /* The transport is already tight on a phone; the toggle stays, the slider
      goes — the system volume is right there. */
-  .controls__volume {
+  input.controls__volume {
     display: none;
   }
 }

@@ -21,7 +21,7 @@ const WIDTHS = [480, 720, 960, 1280];
  * a longer one is thinned evenly, always keeping the first and last frame so
  * the export still starts at the beginning and ends on the answer.
  */
-export function planFrames(total, maxFrames = MAX_FRAMES) {
+function planFrames(total, maxFrames = MAX_FRAMES) {
   if (total <= maxFrames) return Array.from({ length: total }, (_, i) => i);
   const stride = Math.ceil(total / maxFrames);
   const frames = [];

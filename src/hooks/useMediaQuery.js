@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 
 /** Phone-sized layout: the sidebar becomes a bottom sheet below this width. */
-export const MOBILE_QUERY = "(max-width: 760px)";
+const MOBILE_QUERY = "(max-width: 760px)";
 
 /** Fingers rather than a cursor: the gestures differ, the layout need not. */
-export const TOUCH_QUERY = "(pointer: coarse)";
+const TOUCH_QUERY = "(pointer: coarse)";
 
 /**
  * Subscribes to a CSS media query so components can change *structure*, not

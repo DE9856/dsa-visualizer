@@ -640,6 +640,8 @@ a light run exports light.
 
 ### Hearing the run
 
+#### The bar views
+
 The speaker button in the transport bar plays the run: each element's value
 becomes a pitch, so a sort is a scatter that resolves into a rising scale, and
 a binary search is three or four probes closing on one note.
@@ -673,14 +675,76 @@ triangle, a search's probes a square. A run ends on a cue of its own — three
 notes from across a sorted array, the pitch of the element a search found, or
 a single note below the whole range for a search that found nothing.
 
+#### Everywhere else
+
+The speaker button is on every view's transport bar, not just the bars, and it
+turns one thing on for all of them. But pitch cannot mean the same thing
+outside sorting and searching: a tree node, a hash bucket, a DP cell and a
+graph vertex are not values on a scale, and pitching them as if they were
+would be saying something untrue about the data.
+
+So in those views pitch carries the other thing every run has — **how far
+through it you are**. Each frame takes the next degree of a pentatonic scale
+over two octaves, wrapping when it runs off the top, which makes an operation
+a phrase whose length is its cost: a push is two notes, a search down a deep
+tree is a long climb, and a rebalance is the burst in the middle. Pentatonic
+because the tune is written by the algorithm rather than by anyone — no two of
+its degrees clash, so no sequence of frames can come out sour, which is not
+true of a diatonic scale.
+
+The waveform still carries the kind of frame, classified from whatever the
+frame happens to say: a plain step, a comparison (`compare`, `current`), a
+swap, a **write** (`removing`, `created`, `mergedIds`), a probe, an answer
+(`found`, a solved board, a match) or a refusal (`notFound`, an overflow, a
+pruned branch, a backtrack). The classifier in `eventFor` is
+deliberately tolerant about field names, because twenty views wrote their
+frames long before there was any sound to play and each named the same idea
+slightly differently. A refusal is one note below the scale entirely, so a
+full stack or a key that isn't there cannot be mistaken for any note a success
+could have played; an answer, and the last frame of a run, resolve onto the
+octave above.
+
+A **write** is the newest of those, and the part of an operation that was
+previously inaudible: the structure itself changing — a node leaving, nodes
+being created, two lists becoming one — which until it had a timbre of its own
+sounded exactly like the traversal that found where to change, so a delete and
+the search inside it were one undifferentiated run of notes. It takes the
+refusal's sawtooth on purpose: both are the run doing something it cannot take
+back, and the register is what tells them apart, a write on the scale and a
+refusal below it.
+
+Still frames stay silent, but "still" means the structure sitting there rather
+than the run being short. A structure that was just loaded, undone or redrawn
+is one frame with nothing to hear; a one-frame run that reports something is
+the whole of what that operation did, and sounds. What separates them is that
+an operation reports a refusal or carries a `resultBadge` saying what it came
+out with, and a redraw carries neither — the hooks build those through
+`toFrame`, which knows nothing about results. That is what gives the O(1)
+queries — `isEmpty`, `size`, `peek` — a voice: they answer without walking
+anything, and were silent for exactly as long as shortness was mistaken for
+stillness.
+
+`resultBadge` is deliberately *not* wired into `eventFor` itself, tempting as
+it is: most views set it once, on the frame stating the answer, but a few use
+it as a running read-out — topological sort re-badges the order so far on
+every frame it places a vertex. A timbre that fires on nearly every frame is
+not information, which is the same rule that keeps `idle` and `sorted`
+toneless in the bar views. Restricted to the one-frame test it cannot misfire,
+because a run with more than one frame never reaches it.
+
+Arriving in a view stays silent: the frame already on screen when you switch is
+not an event in it.
+
 It is off by default and remembered, and browsers refuse to start audio until
 the reader has interacted with the page, so the first note can only ever
 follow something they did. Exports stay silent: the capture seeks through
 every frame in turn, which would otherwise fire hundreds of notes at once.
 
-Sound is the third channel beside colour and the state glyphs, and the only
-one that carries the *value* rather than the state — which is what makes it
-useful with the screen off as well as classic to listen to.
+Sound is the third channel beside colour and the state glyphs, and in the bar
+views the only one that carries the *value* rather than the state — which is
+what makes it useful with the screen off as well as classic to listen to.
+Elsewhere it carries the shape and the length of the operation, which is the
+thing a still picture of the finished structure never shows.
 
 ### Colour is not the only channel
 
@@ -724,6 +788,14 @@ left out. A run longer than 240 steps is thinned evenly to fit, always keeping
 the first and last frame. The player is put back on the step it was on when
 the export finishes, and the printed table carries the shareable link to the
 run so the paper is not a dead end.
+
+The dialog and the three modules behind it — `gifEncoder.js`, `videoRecorder.js` and
+`domCapture.js` — are loaded on demand, for the same reason the source listings are:
+they are only needed once someone asks to export, and most sessions never do. `App.jsx`
+holds `ExportDialog` behind a `React.lazy`, so the encoders live in their own chunk
+rather than the initial bundle. Because the click can therefore land before the code
+does, the `Suspense` fallback draws the dialog's frame — backdrop, panel and heading —
+instead of leaving the press with nothing to show for itself.
 
 ### The sidebar
 
@@ -856,7 +928,7 @@ says so — and draw `lo` / `mid` / `hi` pointers under the bars.
 
 | Structure | Variants | Operations |
 | --- | --- | --- |
-| **Linked List** | singly, doubly, circular | insert at head/tail/position, delete by value/position, search & traverse, update node, reverse, sort, count length, concatenate, merge sorted, clear |
+| **Linked List** | singly, doubly, circular | insert at head/tail/position, delete by value/position, traverse (both directions when doubly), search, update node, reverse, sort, count length, concatenate, merge sorted, clear |
 | **Polynomial** | linked-list backed | add, multiply, evaluate P(x) |
 | **Stack** | fixed capacity 8 | push, pop, peek/top, search, size, isEmpty, isFull, clear |
 | **Queue** | fixed capacity 8 | enqueue, dequeue, peek/front, search, size, isEmpty, isFull, clear |
@@ -1500,6 +1572,85 @@ Two properties are visible in the finished tree rather than argued for. Every sy
 **sibling property** holds: a rarer symbol is never shallower than a commoner one, because
 merging the two lightest first is exactly what pushes them deepest.
 
+### Handling the tree
+
+The tree canvas is navigable and editable by hand, on both a cursor and a finger:
+
+| | Cursor | Touch |
+| --- | --- | --- |
+| **Inspect a node** | click it | tap it |
+| **Insert a value** | double-click empty canvas | press and hold empty canvas |
+| **Delete a node** | triple-click it | press and hold it |
+| **Pan** | drag empty canvas | drag empty canvas |
+| **Zoom** | scroll, or trackpad pinch | pinch |
+| **Undo the view** | RESET VIEW, bottom-left once the view has moved | same |
+
+The vocabulary is the graph's on purpose — hold to act, triple-click to delete, double-click
+empty space to add — so one set of habits works across both views. What could not carry over
+is what the gestures *mean*. A vertex can be dropped anywhere and connected to anything, so
+there the canvas position is the data. A tree node's position is **derived from its value**,
+so there is nothing to drag and nowhere to drop: the press supplies a point, and the point
+cannot supply a value. That is why inserting opens a small input at the press rather than
+inventing a key — and where the node lands is decided by the ordering, not by where you
+pressed. Deleting runs the real `delete` operation and plays its frames, so a red-black or
+AVL tree rebalances in front of you rather than silently.
+
+Picking a node **inspects** it: a row under the drawing reports what the picture cannot say
+about it — its depth, the height and size of the subtree hanging beneath it, its parent and
+children, and whatever its tree type is actually maintaining. An AVL node shows its balance
+factor, reddened the moment it leaves [-1, 1], which is the condition the next rotation
+exists to fix. A treap node shows its priority. A red-black node shows its colour and its
+**black-height** — the count of black nodes between it and the leaves, equal down every path
+when the tree is legal, and the one number that explains why a rotation happened where it
+did. None of that is visible in a drawing of circles.
+
+The facts are recomputed from the frame's own tree rather than cached, so they follow the
+run: step through a rebalance with a node picked and watch its depth and its subtree change
+under it. `describeNode` lives in `tree/helpers.js` beside `treeHeight` and `treeSize` rather
+than in the component, and returns `null` for an id that names nothing — so a node deleted
+out from under the selection leaves the panel empty instead of throwing.
+
+Picking also fills the sidebar's value input, which is the lesser half of the gesture but
+still worth having for the two operations that take a value and want a node pointed at: a
+threaded tree's **inorder successor**, and a **splay** tree's search, which drags whatever
+you name to the root. The selection draws as a dashed ring *outside* the circle rather than
+as another fill, because a step's own highlight is what the run is saying and a selection
+made beforehand must not paint over it.
+
+Pan and zoom are `usePanZoom`. Zoom is anchored to the cursor, or to the midpoint between two
+fingers, so whatever you are looking at stays under them — without that the view creeps
+toward the origin and the whole gesture is spent chasing it back. The transform is applied to
+a single `<g>` rather than by rewriting the viewBox: the drawing is laid out once and a pinch
+costs one attribute write however large the tree. The view resets when the tree is replaced
+outright — a new random tree, a different type — since a zoom into a subtree that no longer
+exists is just blank canvas.
+
+Two things the DOM forces. The wheel listener is attached imperatively because React
+registers wheel handlers as **passive**, and a passive listener cannot `preventDefault`, so
+the page would scroll behind every zoom; `touchmove` is refused the same way, because
+`touch-action` is ignored on SVG children. And both are keyed on the **element**, from a
+callback ref, not on a ref object: the canvas is not rendered until there is a tree to draw,
+and a ref object never announces its arrival — an effect keyed on one looks once, finds
+nothing, and leaves the listener permanently unattached.
+
+The double-click is counted from pointer presses rather than left to the browser's
+`dblclick`. That event is strict about how far the pointer may drift between the two presses
+and about nothing intervening, and this canvas captures the pointer and re-renders on every
+press, so the gesture was missed often enough to read as the canvas ignoring you. The window
+(450ms) and the radius (26px) are deliberately looser than the browser's: a second press is
+never a pan, so accepting a sloppy one costs nothing, while rejecting a real one costs the
+whole gesture.
+
+The value box is positioned in the **stage's** pixels, not the SVG's coordinates. The viewBox
+is fitted with `xMidYMid meet`, so its coordinates only span the letterboxed strip the
+drawing actually occupies — treating them as a fraction of the panel put the box wherever
+the letterboxing happened to fall, which is why it appeared to open at random. It is also
+clamped inside the canvas, so a press in a corner still opens a box that can be read.
+
+The canvas is drawn even when the tree is empty, for the same reason the graph's is: the
+gesture that makes the first node is a press on the canvas, so there has to be a canvas to
+press.
+
 ### Three more ways to keep a tree short
 
 A plain BST has no shape of its own — feed it sorted keys and it becomes a linked list.
@@ -1877,8 +2028,11 @@ src/
 │   ├── useBarEditing.js         click/drag editing of the bars, hold-then-drag
 │   │                            on a finger; the gesture state machine is pure
 │   │                            and exported
-│   ├── useSonification.js       on/off, volume, and frames → notes
+│   ├── useSonification.js       on/off, volume, and frames → notes (bars and events)
 │   ├── useStepPlayer.js         shared playback engine (see below)
+│   ├── useStructureRun.js      the engine under every data-structure
+│   │                            hook: structure + frames + playback +
+│   │                            undo, via apply/load/reframe
 │   ├── useKeyboardShortcuts.js  global transport shortcuts
 │   ├── useRace.js               2-4 sorts on one input, under one transport
 │   ├── useTreeCompare.js        BST/AVL/2-3 from one key order, one insert per tick
@@ -1899,7 +2053,7 @@ src/
 │   ├── stepTable.js        frames → printable rows
 │   ├── stateStyle.js       what compare/swap/sorted mean, in tokens, glyphs
 │   │                       and timbres
-│   ├── sonify.js           Web Audio: value → pitch, log-mapped
+│   ├── sonify.js           Web Audio: value → pitch, log-mapped; or an outright freq
 │   └── urlState.js         encodes/decodes the shareable link, and tells a
 │                           link that names nothing from a plain visit
 ├── App.jsx                 stage + view routing, wires the active player
@@ -2193,9 +2347,18 @@ plain BST.
 
 ### Add a whole new structure
 
-Create `src/dataStructures/<name>/`, a `use<Name>()` hook that calls `useStepPlayer`, a
+Create `src/dataStructures/<name>/`, a `use<Name>()` hook that calls `useStructureRun`, a
 canvas component, a sidebar component, then add a branch in `App.jsx` and an entry in
 `src/data/categories.js`.
+
+The hook itself is mostly declaration: hand `useStructureRun` an `initial`, a
+`toFrame(value, message)` and an `emptyStep`, spread the `view` it returns straight out,
+and add the view's own inputs and `runOperation` around it. The structure changes only
+through `apply` (an operation was watched), `load` (it was replaced) or `reframe` (it is
+drawn differently); the first two record undo history for you, and there is no raw
+setter, so a change that cannot be undone is not something the hook can express. If the
+view has settings that decide what its structure means — a max/min flag, a collision
+strategy — pass `snapshot`/`restore` so undo carries them along with it.
 
 ---
 

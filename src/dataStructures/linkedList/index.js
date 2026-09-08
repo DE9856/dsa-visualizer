@@ -6,6 +6,7 @@ import { deleteValue } from "./deleteValue";
 import { deleteAt } from "./deleteAt";
 import { clearList } from "./clearList";
 import { search } from "./search";
+import { traverse } from "./traverse";
 import { length } from "./length";
 import { reverse } from "./reverse";
 import { sortList } from "./sortList";
@@ -22,6 +23,7 @@ export const LL_OPERATIONS = [
   deleteAt,
   clearList,
   search,
+  traverse,
   length,
   reverse,
   sortList,
