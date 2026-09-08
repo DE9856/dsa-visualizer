@@ -452,10 +452,13 @@ export default function GraphCanvas({
     : isMobile
       ? pendingLink
         ? "NOW TAP THE VERTEX TO CONNECT IT TO · OR THIS ONE AGAIN FOR A SELF-LOOP"
-        : "TAP TWO VERTICES TO CONNECT · HOLD ONE TO MOVE IT · HOLD SPACE TO ADD ONE"
+        : // "SPACE" reads as the spacebar on a phone, which is not there, and
+          // each gesture needs to name what it acts on: a vertex, or the
+          // canvas around one.
+          "TAP TWO VERTICES TO CONNECT · LONG-PRESS A VERTEX TO MOVE IT · LONG-PRESS EMPTY CANVAS TO ADD ONE"
       : pendingLink
         ? "NOW CLICK THE VERTEX TO CONNECT IT TO · OR THIS ONE AGAIN FOR A SELF-LOOP"
-        : "CLICK TWO TO CONNECT · DRAG TO MOVE · TRIPLE-CLICK TO DELETE · DOUBLE-CLICK SPACE TO ADD";
+        : "CLICK TWO VERTICES TO CONNECT · DRAG ONE TO MOVE IT · TRIPLE-CLICK ONE TO DELETE · DOUBLE-CLICK EMPTY CANVAS TO ADD";
 
   return (
     <div className="panel canvas graph-canvas">
@@ -469,7 +472,7 @@ export default function GraphCanvas({
         {!hasNodes && (
           <div className="graph-canvas__empty mono">
             {isMobile
-              ? "EMPTY GRAPH \u2014 HOLD ANYWHERE TO ADD A VERTEX"
+              ? "EMPTY GRAPH \u2014 LONG-PRESS ANYWHERE TO ADD A VERTEX"
               : "EMPTY GRAPH \u2014 DOUBLE-CLICK ANYWHERE TO ADD A VERTEX"}
           </div>
         )}

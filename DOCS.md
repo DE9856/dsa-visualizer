@@ -1579,14 +1579,16 @@ The tree canvas is navigable and editable by hand, on both a cursor and a finger
 | | Cursor | Touch |
 | --- | --- | --- |
 | **Inspect a node** | click it | tap it |
-| **Insert a value** | double-click empty canvas | press and hold empty canvas |
-| **Delete a node** | triple-click it | press and hold it |
+| **Insert a value** | double-click empty canvas | long-press empty canvas |
+| **Delete a node** | triple-click it | long-press it |
 | **Pan** | drag empty canvas | drag empty canvas |
 | **Zoom** | scroll, or trackpad pinch | pinch |
 | **Undo the view** | RESET VIEW, bottom-left once the view has moved | same |
 
-The vocabulary is the graph's on purpose — hold to act, triple-click to delete, double-click
-empty space to add — so one set of habits works across both views. What could not carry over
+The vocabulary is the graph's on purpose — long-press to act, triple-click to delete,
+double-click empty canvas to add — so one set of habits works across both views. The hints
+name the *target* rather than borrowing the graph's word "space", which on a phone reads as
+a spacebar that isn't there. What could not carry over
 is what the gestures *mean*. A vertex can be dropped anywhere and connected to anything, so
 there the canvas position is the data. A tree node's position is **derived from its value**,
 so there is nothing to drag and nowhere to drop: the press supplies a point, and the point

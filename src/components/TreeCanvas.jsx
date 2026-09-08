@@ -385,8 +385,11 @@ export default function TreeCanvas({ step, treeType, threadMode, onSelectNode, o
   const hint = inserting
     ? "TYPE A VALUE · ENTER TO INSERT · ESC TO CANCEL"
     : isMobile
-      ? "TAP A NODE TO INSPECT IT · HOLD ONE TO DELETE · HOLD SPACE TO INSERT · DRAG TO PAN · PINCH TO ZOOM"
-      : "CLICK A NODE TO INSPECT IT · TRIPLE-CLICK TO DELETE · DOUBLE-CLICK SPACE TO INSERT · DRAG TO PAN · SCROLL TO ZOOM";
+      ? // "SPACE" on a phone reads as the spacebar, which is not there. Each
+        // gesture names what it acts on instead: a node, or the canvas around
+        // one.
+        "TAP A NODE TO INSPECT · LONG-PRESS A NODE TO DELETE · LONG-PRESS EMPTY CANVAS TO INSERT · DRAG TO PAN · PINCH TO ZOOM"
+      : "CLICK A NODE TO INSPECT · TRIPLE-CLICK A NODE TO DELETE · DOUBLE-CLICK EMPTY CANVAS TO INSERT · DRAG TO PAN · SCROLL TO ZOOM";
 
   const moved = transform.k !== 1 || transform.x !== 0 || transform.y !== 0;
 
@@ -587,7 +590,9 @@ export default function TreeCanvas({ step, treeType, threadMode, onSelectNode, o
               there has to be a canvas to press even with nothing on it. */}
           {!root && (
             <div className="graph-canvas__empty mono">
-              {isMobile ? "EMPTY TREE — HOLD ANYWHERE TO INSERT" : "EMPTY TREE — DOUBLE-CLICK ANYWHERE TO INSERT"}
+              {isMobile
+                ? "EMPTY TREE — LONG-PRESS ANYWHERE TO INSERT"
+                : "EMPTY TREE — DOUBLE-CLICK ANYWHERE TO INSERT"}
             </div>
           )}
 

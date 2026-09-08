@@ -912,6 +912,21 @@ input[type="range"] {
   letter-spacing: 0.04em;
   color: var(--text-dim);
   margin-bottom: 10px;
+  /* EXPORT and SHARE float over this row from the panel's top-right corner,
+     so the note has to stop before them or its last words are read through a
+     button. Reserved rather than measured: the cluster's width is fixed by
+     two labels that do not change, and a note long enough to reach it simply
+     wraps a line earlier. */
+  padding-right: 190px;
+}
+
+@media (max-width: 760px) {
+  /* The share cluster is desktop-only — a phone gets these in the nav sheet —
+     so the note takes the full width back rather than wrapping around a gap
+     with nothing in it. */
+  .canvas__note {
+    padding-right: 0;
+  }
 }
 
 .bars {
