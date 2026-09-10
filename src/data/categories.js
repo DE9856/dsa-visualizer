@@ -20,6 +20,9 @@ export const CATEGORIES = [
       { key: "twothree", label: "2-3 Tree", desc: "Balanced multi-way tree" },
       { key: "btree", label: "B-Tree & B+ Tree", desc: "Wide nodes, splits & merges" },
       { key: "heap", label: "Heap", desc: "Max/min heap, sift up & down" },
+      { key: "leftist", label: "Leftist Tree", desc: "A heap that melds in O(log n)" },
+      { key: "depq", label: "Priority Queues", desc: "Single- vs double-ended: min-max & interval heaps" },
+      { key: "selectiontree", label: "Selection Tree", desc: "Winner & loser trees for a k-way merge" },
       { key: "trie", label: "Trie", desc: "Prefix tree & autocomplete" },
       { key: "treecompare", label: "Balance & Height", desc: "BST vs AVL vs 2-3 on the same keys" },
       { key: "rangequery", label: "Range Queries", desc: "Segment tree & Fenwick, side by side" },
@@ -34,6 +37,16 @@ export const CATEGORIES = [
     items: [
       { key: "graph", label: "Graph", desc: "BFS, DFS, MST, shortest paths, SCC & max flow" },
       { key: "unionfind", label: "Union-Find", desc: "Disjoint sets & path compression" },
+    ],
+  },
+  {
+    key: "matrices",
+    label: "MATRICES & ARRAYS",
+    accent: "var(--yellow)",
+    blurb: "Where an element actually lives, and what it costs not to store the zeros.",
+    items: [
+      { key: "sparsematrix", label: "Sparse Matrix", desc: "Triplet form, fast transpose, add & multiply" },
+      { key: "mdarray", label: "Array Layout", desc: "Row vs column major, and packing a special matrix" },
     ],
   },
   {
@@ -54,6 +67,7 @@ export const CATEGORIES = [
     items: [
       { key: "stack", label: "Stack", desc: "Push, pop, peek" },
       { key: "queue", label: "Queue", desc: "Enqueue, dequeue, circular" },
+      { key: "expression", label: "Infix, Postfix & Prefix", desc: "Convert and evaluate, one stack at a time" },
     ],
   },
   {
@@ -78,6 +92,7 @@ export const CATEGORIES = [
       { key: "dp:coins", label: "Coin Change", desc: "Fewest coins, where greedy fails" },
       { key: "dp:lis", label: "Longest Increasing Subseq.", desc: "One row, answer in the middle" },
       { key: "dp:matrixchain", label: "Matrix Chain Order", desc: "Where to put the brackets" },
+      { key: "dp:obst", label: "Optimal BST", desc: "Balance is the wrong target when you know the frequencies" },
     ],
   },
   {

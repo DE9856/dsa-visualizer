@@ -30,6 +30,18 @@ import ListCanvas from "./components/ListCanvas.jsx";
 import ListControls from "./components/ListControls.jsx";
 import ListInfoPanel from "./components/ListInfoPanel.jsx";
 import PolySidebar from "./components/PolySidebar.jsx";
+import ExpressionSidebar from "./components/ExpressionSidebar.jsx";
+import ExpressionCanvas from "./components/ExpressionCanvas.jsx";
+import SparseMatrixSidebar from "./components/SparseMatrixSidebar.jsx";
+import SparseMatrixCanvas from "./components/SparseMatrixCanvas.jsx";
+import MdArraySidebar from "./components/MdArraySidebar.jsx";
+import MdArrayCanvas from "./components/MdArrayCanvas.jsx";
+import LeftistSidebar from "./components/LeftistSidebar.jsx";
+import LeftistCanvas from "./components/LeftistCanvas.jsx";
+import DepqSidebar from "./components/DepqSidebar.jsx";
+import DepqCanvas from "./components/DepqCanvas.jsx";
+import SelectionTreeSidebar from "./components/SelectionTreeSidebar.jsx";
+import SelectionTreeCanvas from "./components/SelectionTreeCanvas.jsx";
 import StackSidebar from "./components/StackSidebar.jsx";
 import StackCanvas from "./components/StackCanvas.jsx";
 import QueueSidebar from "./components/QueueSidebar.jsx";
@@ -75,6 +87,12 @@ import { useRace } from "./hooks/useRace.js";
 import { useTreeCompare } from "./hooks/useTreeCompare.js";
 import { useLinkedList } from "./hooks/useLinkedList.js";
 import { usePolynomial } from "./hooks/usePolynomial.js";
+import { useExpression } from "./hooks/useExpression.js";
+import { useSparseMatrix } from "./hooks/useSparseMatrix.js";
+import { useMdArray } from "./hooks/useMdArray.js";
+import { useLeftist } from "./hooks/useLeftist.js";
+import { useDepq } from "./hooks/useDepq.js";
+import { useSelectionTree } from "./hooks/useSelectionTree.js";
 import { useStack } from "./hooks/useStack.js";
 import { useQueue } from "./hooks/useQueue.js";
 import { useGraph } from "./hooks/useGraph.js";
@@ -145,6 +163,12 @@ export default function App() {
   const tcmp = useTreeCompare(initFor("treecompare"));
   const ll = useLinkedList(initFor("linkedlist"));
   const poly = usePolynomial(initFor("polynomial"));
+  const expr = useExpression(initFor("expression"));
+  const sm = useSparseMatrix(initFor("sparsematrix"));
+  const md = useMdArray(initFor("mdarray"));
+  const lft = useLeftist(initFor("leftist"));
+  const dq = useDepq(initFor("depq"));
+  const sel = useSelectionTree(initFor("selectiontree"));
   const st = useStack(initFor("stack"));
   const q = useQueue(initFor("queue"));
   const gr = useGraph(initFor("graph"));
@@ -170,6 +194,9 @@ export default function App() {
     treecompare: tcmp,
     linkedlist: ll,
     polynomial: poly,
+    expression: expr,
+    sparsematrix: sm,
+    mdarray: md,
     stack: st,
     queue: q,
     graph: gr,
@@ -178,6 +205,9 @@ export default function App() {
     hashtable: ht,
     dynamichash: dh,
     heap: hp,
+    leftist: lft,
+    depq: dq,
+    selectiontree: sel,
     trie: tri,
     unionfind: uf,
     dp,
@@ -328,7 +358,7 @@ export default function App() {
 
   // The address bar tracks the data on screen, so the link is always ready to
   // copy. Only committed data is encoded — never half-typed sidebar text.
-  const shareHash = shareHashFor(view, { v, race, tcmp, ll, poly, st, q, gr, tr, tt, ht, dh, hp, tri, uf, dp, bt, str, rq, hf, btr, grd });
+  const shareHash = shareHashFor(view, { v, race, tcmp, ll, poly, expr, sm, md, lft, dq, sel, st, q, gr, tr, tt, ht, dh, hp, tri, uf, dp, bt, str, rq, hf, btr, grd });
   const shareUrl = buildShareUrl(shareHash);
 
   // What the phone action bar needs — the same player, minus the read-outs
@@ -529,6 +559,167 @@ export default function App() {
           <ListInfoPanel opMeta={poly.opMeta} />
           <TopicPanel topicKey="polynomial" />
         </Workspace>
+      ) : view === "expression" ? (
+        <Workspace
+          {...shell}
+          panelLabel="EXPRESSION"
+          sidebar={
+            <ExpressionSidebar
+              notation={expr.notation}
+              onNotationChange={expr.setNotation}
+              operation={expr.operation}
+              onOperationChange={expr.setOperation}
+              opMeta={expr.opMeta}
+              exprInput={expr.exprInput}
+              setExprInput={expr.setExprInput}
+              inputError={expr.inputError}
+              onApplyExpression={expr.applyExpression}
+              onShuffle={expr.shuffle}
+              onRun={expr.runOperation}
+            />
+          }
+        >
+          <ExpressionCanvas step={expr.step} />
+          <ListControls {...transport} />
+          <ListInfoPanel opMeta={expr.opMeta} />
+          <TopicPanel topicKey="expression" />
+        </Workspace>
+      ) : view === "sparsematrix" ? (
+        <Workspace
+          {...shell}
+          panelLabel="SPARSE MATRIX"
+          sidebar={
+            <SparseMatrixSidebar
+              matrix={sm.matrix}
+              operation={sm.operation}
+              onOperationChange={sm.setOperation}
+              opMeta={sm.opMeta}
+              matrixInput={sm.matrixInput}
+              setMatrixInput={sm.setMatrixInput}
+              onApplyMatrix={sm.applyMatrix}
+              onShuffle={sm.shuffle}
+              secondInput={sm.secondInput}
+              setSecondInput={sm.setSecondInput}
+              secondMatrix={sm.secondMatrix}
+              onRandomSecond={sm.randomSecond}
+              rowInput={sm.rowInput}
+              setRowInput={sm.setRowInput}
+              colInput={sm.colInput}
+              setColInput={sm.setColInput}
+              onRun={sm.runOperation}
+            />
+          }
+        >
+          <SparseMatrixCanvas step={sm.step} />
+          <ListControls {...transport} />
+          <ListInfoPanel opMeta={sm.opMeta} />
+          <TopicPanel topicKey="sparsematrix" />
+        </Workspace>
+      ) : view === "mdarray" ? (
+        <Workspace
+          {...shell}
+          panelLabel="ARRAY LAYOUT"
+          sidebar={
+            <MdArraySidebar
+              dims={md.dims}
+              layout={md.layout}
+              onLayoutChange={md.setLayout}
+              operation={md.operation}
+              onOperationChange={md.setOperation}
+              opMeta={md.opMeta}
+              dimsInput={md.dimsInput}
+              setDimsInput={md.setDimsInput}
+              onApplyDims={md.applyDims}
+              indexInput={md.indexInput}
+              setIndexInput={md.setIndexInput}
+              onShuffle={md.shuffle}
+              onRun={md.runOperation}
+            />
+          }
+        >
+          <MdArrayCanvas step={md.step} />
+          <ListControls {...transport} />
+          <ListInfoPanel opMeta={md.opMeta} />
+          <TopicPanel topicKey="mdarray" />
+        </Workspace>
+      ) : view === "leftist" ? (
+        <Workspace
+          {...shell}
+          panelLabel="LEFTIST TREE"
+          sidebar={
+            <LeftistSidebar
+              kind={lft.kind}
+              onKindChange={lft.setKind}
+              operation={lft.operation}
+              onOperationChange={lft.setOperation}
+              opMeta={lft.opMeta}
+              valueInput={lft.valueInput}
+              setValueInput={lft.setValueInput}
+              secondInput={lft.secondInput}
+              setSecondInput={lft.setSecondInput}
+              valuesInput={lft.valuesInput}
+              setValuesInput={lft.setValuesInput}
+              onShuffle={lft.shuffle}
+              onRun={lft.runOperation}
+            />
+          }
+        >
+          <LeftistCanvas step={lft.step} />
+          <ListControls {...transport} />
+          <ListInfoPanel opMeta={lft.opMeta} />
+          <TopicPanel topicKey="leftist" />
+        </Workspace>
+      ) : view === "depq" ? (
+        <Workspace
+          {...shell}
+          panelLabel="PRIORITY QUEUE"
+          sidebar={
+            <DepqSidebar
+              queue={dq.queue}
+              kind={dq.kind}
+              onKindChange={dq.setKind}
+              operation={dq.operation}
+              onOperationChange={dq.setOperation}
+              opMeta={dq.opMeta}
+              valueInput={dq.valueInput}
+              setValueInput={dq.setValueInput}
+              valuesInput={dq.valuesInput}
+              setValuesInput={dq.setValuesInput}
+              onShuffle={dq.shuffle}
+              onRun={dq.runOperation}
+            />
+          }
+        >
+          <DepqCanvas step={dq.step} />
+          <ListControls {...transport} />
+          <ListInfoPanel opMeta={dq.opMeta} />
+          <TopicPanel topicKey="depq" />
+        </Workspace>
+      ) : view === "selectiontree" ? (
+        <Workspace
+          {...shell}
+          panelLabel="SELECTION TREE"
+          sidebar={
+            <SelectionTreeSidebar
+              state={sel.state}
+              kind={sel.kind}
+              onKindChange={sel.setKind}
+              operation={sel.operation}
+              onOperationChange={sel.setOperation}
+              opMeta={sel.opMeta}
+              runsInput={sel.runsInput}
+              setRunsInput={sel.setRunsInput}
+              onApplyRuns={sel.applyRuns}
+              onShuffle={sel.shuffle}
+              onRun={sel.runOperation}
+            />
+          }
+        >
+          <SelectionTreeCanvas step={sel.step} />
+          <ListControls {...transport} />
+          <ListInfoPanel opMeta={sel.opMeta} />
+          <TopicPanel topicKey="selectiontree" />
+        </Workspace>
       ) : view === "stack" ? (
         <Workspace
           {...shell}
@@ -674,7 +865,10 @@ export default function App() {
           />
           <ListControls {...transport} />
           <ListInfoPanel opMeta={tr.opMeta} />
-          <TopicPanel topicKey="tree" />
+          {/* Keyed by type, not by view: a treap and a red-black tree are
+              different structures, not settings on one, so a single write-up
+              would describe a BST while something else is on screen. */}
+          <TopicPanel topicKey={`tree:${tr.treeType}`} />
         </Workspace>
       ) : view === "treecompare" ? (
         <Workspace

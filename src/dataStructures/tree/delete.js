@@ -1,13 +1,14 @@
 import { cloneTree, bstDeleteByValue, plainDeleteByValue, findMinNode, lastLevelOrderNode, avlRebalanceWithSteps, isOrderedTree } from "./helpers";
 import { inorderNodes, inorderIndex, computeThreads } from "./threads";
 import { selfBalancingDelete } from "./selfBalancingOps";
+import { treeDesc } from "./descriptions";
 
 export const del = {
   key: "delete",
   label: "Delete",
   group: "build",
   fields: ["value"],
-  desc: "In a BST, AVL or threaded tree, delete finds the value by comparison, then handles three cases: a leaf is simply removed, a node with one child is replaced by that child, and a node with two children has its value swapped with its inorder successor (the minimum of its right subtree) before that successor is removed. An AVL tree then walks back up from the point of removal, rechecking each ancestor's balance factor and rotating wherever it's violated. In a threaded tree the removal closes a gap in the inorder sequence, so the threads that ran through the deleted node are relinked to point at its two neighbours directly. A plain binary tree has no ordering to search by, so it scans for the value, swaps it with the deepest, right-most node in level order, and drops that node — the same shape used to delete from a binary heap.",
+  desc: treeDesc("delete"),
   time: "O(log n) for a BST/AVL average case, O(h) worst-case for a BST, O(log n) guaranteed for AVL",
   space: "O(h)",
   run(tree, { value, treeType, threadMode }) {

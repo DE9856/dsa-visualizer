@@ -72,6 +72,10 @@ The visualizer also supports interactive operations for:
   comparison on one key sequence
 - 🌲 2-3 Trees
 - ⛰️ Heaps (max & min, sift up/down)
+- 🎚️ Priority Queues (min heap vs min-max heap vs interval heap — single- and
+  double-ended)
+- 🪶 Leftist Trees (meldable heaps, melding in O(log n))
+- 🏆 Selection Trees (winner & loser trees for a k-way merge)
 - 🔤 Tries (prefix tree & autocomplete)
 - 🔗 Linked Lists (singly, doubly, circular)
 - 🗂️ Hash Tables (chaining, linear/quadratic probing, double hashing, Robin Hood, cuckoo)
@@ -80,7 +84,10 @@ The visualizer also supports interactive operations for:
 - 🧩 Union-Find (disjoint sets with path compression)
 - 📦 Stacks
 - 📥 Queues
+- 🧮 Expression Notation (infix ↔ postfix ↔ prefix, converted and evaluated)
 - ➗ Polynomial Operations
+- 🕳️ Sparse Matrices (triplet form, fast transpose, add & multiply)
+- 🗺️ Array Layout (row- vs column-major addressing, and packed special matrices)
 
 Each module provides its own visualization with animations that demonstrate how the underlying data structure changes after every operation — and, with the speaker button
 on, every operation is audible: pitch climbs a pentatonic scale as the run goes on, the
@@ -144,7 +151,8 @@ src/
 │   ├── sorting/            one file per sorting algorithm
 │   ├── searching/          one file per searching algorithm
 │   ├── dp/                 one file per DP problem (LCS, edit distance,
-│   │                       knapsack, coin change, LIS, matrix chain)
+│   │                       knapsack, coin change, LIS, matrix chain,
+│   │                       optimal BST)
 │   ├── backtracking/       one file per problem (n-queens, sudoku, subset
 │   │                       sum, permutations) + the search-tree recorder
 │   ├── strings/            KMP, Z-algorithm, Rabin-Karp, Manacher
@@ -156,14 +164,23 @@ src/
 │   └── index.js            algorithm registry
 │
 ├── dataStructures/
+│   ├── depq/               (single.js / minmax.js / interval.js: one
+│   │                        invariant each over the same flat array)
 │   ├── dynamicHash/
+│   ├── expression/         (helpers.js: precedence, the tokeniser and the
+│   │                        validators shared by all six operations)
 │   ├── graph/              (represent.js: list vs matrix cost;
 │   │                        mstCompare.js: Prim vs Kruskal, counted)
 │   ├── hashTable/          (probeSweep.js: probes against load factor)
 │   ├── heap/
+│   ├── leftist/            (meldSteps.js: the meld every operation is)
 │   ├── linkedList/
+│   ├── mdArray/            (helpers.js: the seven layouts, each with its
+│   │                        own mapping, storage order and arithmetic)
 │   ├── polynomial/
 │   ├── queue/
+│   ├── selectionTree/      (winner and loser trees over one array)
+│   ├── sparseMatrix/
 │   ├── stack/
 │   ├── tree/               (compare.js: BST vs AVL vs 2-3 on one key order)
 │   ├── trie/
@@ -254,10 +271,16 @@ home page:
 #v=tree&type=avl&a=30,20,10,25,40,50
 #v=graph&w=1&g=A,B,C,D&e=A-B(5),B-C(2),C-D(7),A-D
 #v=graph&g=A,B,C&e=A-B,B-C&xy=A:0.2:0.15,C:0.75:0.8
+#v=expression&type=postfix&x=2 3 4 * + 5 -
+#v=sparsematrix&a=0,0,3,0;5,0,0,0;0,7,0,1
+#v=mdarray&type=lower&d=5
+#v=depq&type=interval&a=40,15,70,5,55,90
+#v=selectiontree&type=loser&r=10,15,16;9,20,38;20,30,40
 ```
 
 Custom arrays, lists, stacks, queues, trees, heaps, tries, hash tables, union-finds,
-graphs and polynomials all round-trip exactly — including a graph you have rearranged by
+graphs, polynomials, expressions, sparse matrices, array shapes, priority queues, leftist
+trees and merge runs all round-trip exactly — including a graph you have rearranged by
 hand. See [DOCS.md](DOCS.md#sharing-a-setup) for the full format.
 
 ---
@@ -327,12 +350,14 @@ sideways. See
 
 ### Dynamic Programming
 
-- Six problems on one table canvas: longest common subsequence, edit distance, 0/1
-  knapsack, coin change, longest increasing subsequence, matrix chain order
+- Seven problems on one table canvas: longest common subsequence, edit distance, 0/1
+  knapsack, coin change, longest increasing subsequence, matrix chain order, optimal
+  binary search tree
 - The table fills cell by cell, showing which neighbours each cell read and which one its
   answer actually came from
 - Then it backtracks, marking the solution path and building the answer itself — the
-  subsequence, the edit script, the items taken, the coins spent, the bracketing
+  subsequence, the edit script, the items taken, the coins spent, the bracketing, the
+  tree
 - Every cell keeps the decision it made (`↖ ↑ ←`, `✓ ·`, `k=3`), which is what the
   backtrack reads rather than recomputing
 - The recurrence is shown alongside with the executing line highlighted
@@ -518,6 +543,88 @@ Interactive visualizations for:
 - Polynomial
   - Linked-list representation
   - Add, Multiply, Evaluate P(x)
+
+- Expression Notation — infix, postfix, prefix
+  - The operations offered follow the notation: an infix expression can be converted to
+    postfix or prefix or evaluated with two stacks; a postfix or prefix one can be
+    evaluated or turned back into fully bracketed infix
+  - Infix -> postfix is the shunting yard, with the precedence comparison behind every
+    pop spelled out as it is made; infix -> prefix is the same algorithm run over the
+    reversed expression, and the reversal flips the associativity rule with it
+  - Evaluating postfix is one stack and one pass; evaluating prefix is the same pass
+    backwards, and the operand order reverses with it
+  - Evaluating infix directly takes two stacks -- the honest cost of the notation -- and
+    the step count can be compared with evaluating the postfix form
+  - Operands may be names or numbers; names read better for the conversions and the
+    evaluations need numbers. A malformed expression is refused with the reason, rather
+    than failing halfway through as a stack underflow
+
+- Sparse Matrix
+  - Drawn twice at once: as the dense grid it stands for, with the zeros as holes, and as
+    the (row, column, value) triplet list it actually is
+  - Build the triplet list, with the storage cost of both forms counted at the end
+  - Transpose two ways -- the naive O(cols x t) hunt column by column, and the fast
+    O(cols + t) counting transpose -- which produce the identical result from very
+    different amounts of work, reported as step counts
+  - Add (a two-list merge, dropping any term that cancels to zero) and Multiply (only the
+    pairs that share an index ever multiply)
+  - Read A[i][j], by binary search over the terms -- the operation the representation
+    gives up
+
+- Array Layout -- multidimensional arrays and special matrices
+  - Seven layouts: row-major and column-major, then lower- and upper-triangular,
+    symmetric, tridiagonal and diagonal
+  - Every logical cell is labelled with the memory slot it maps to, and the memory strip
+    below is labelled with the index each slot holds -- the same mapping read both ways
+  - Address one element, with the arithmetic expanded a term at a time
+  - Lay the whole array out in memory, in storage order, which is what decides locality
+  - Walk it by rows and by columns and count the address jumps: with the grain every step
+    lands on the next slot, against the grain almost none do
+  - For the packed layouts, count what the shape saves -- cells stored, cells that share
+    a slot with their mirror, and cells that have no address at all
+  - Up to three dimensions, drawn as a stack of slices
+
+- Priority Queues -- single- and double-ended
+  - Three structures over the same flat array: an ordinary min heap, a min-max heap, and
+    an interval heap
+  - Insert, Delete Min, Delete Max, Build, Peek Both Ends, Check the Invariant
+  - Delete Max is the operation that separates them. The min heap has to hunt its leaves
+    for the maximum and the run says how many it examined; a min-max heap finds it with
+    one comparison; an interval heap needs none
+  - A min-max heap's levels alternate min and max, so the picture labels them, and every
+    sift moves two levels at a time -- against grandparents, the nearest node of the same
+    kind
+  - An interval heap draws two values per node, because a node is a closed interval; the
+    root's is the range of the whole collection
+  - Switching structure re-inserts the same values under the new invariant: identical
+    input, three completely different arrays, all three with the same first element
+
+- Leftist Tree -- a meldable heap
+  - Min or max, with every node's null-path length s drawn beside it
+  - Meld is the only operation: insert melds with a one-node tree, delete-min melds the
+    root's two subtrees, and both builds are sequences of melds. There is no sift-up and
+    no sift-down anywhere in the structure
+  - The meld is drawn in its two passes -- merge the two right spines into one key-ordered
+    chain, then link the chain back up from the bottom, swapping children where the
+    leftist property demands it
+  - The right spine is drawn heavier than the rest, because it is the only path any
+    operation touches, and Spine & Bound checks its length against the bound
+  - Build two ways -- one insert at a time (O(n log n)) and pairwise melding through a
+    queue (O(n)) -- with the spine work each spent reported for comparison
+
+- Selection Tree -- winner and loser trees
+  - k sorted runs at the leaves of a tournament; each internal node records the result of
+    one match, and every node is labelled with the run it names and the value that run is
+    currently offering
+  - A winner tree keeps the winner of each match, so the root is the answer. A loser tree
+    keeps the loser and holds the champion above the root, at position 0 -- drawn outside
+    the tree, because that is where it lives
+  - Play the tournament, output one element (replaying only the path from the changed leaf
+    to the root), or merge everything
+  - The comparison count is reported against a flat scan of all k heads, which is the
+    whole argument for the structure
+  - Runs are padded out to a power of two with empty runs that offer infinity and lose
+    every match they play
 
 ---
 

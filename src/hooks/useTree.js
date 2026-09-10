@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { TREE_OP_MAP, TREE_TYPES, treeOpAvailable } from "../dataStructures/tree";
 import { randomTree, parseValueList, buildTreeFromValues } from "../dataStructures/tree/helpers";
 import { useStructureRun } from "./useStructureRun.js";
@@ -35,7 +35,17 @@ export function useTree(init) {
   // applies. Falling back here rather than resetting the state on every switch
   // keeps the selection if the user switches straight back.
   const activeOperation = treeOpAvailable(TREE_OP_MAP[operation], { treeType, threadMode }) ? operation : "insert";
-  const opMeta = TREE_OP_MAP[activeOperation];
+
+  // Seven tree types share `insert`, `delete` and `search`, and what those
+  // actually do differs enough between them that one description covering all
+  // seven would be a paragraph of which six-sevenths is about something not on
+  // screen. So a tree operation may declare `desc` as a function of the setup,
+  // and it is resolved here — which keeps `opMeta.desc` a plain string for
+  // everything downstream, including the info panel and the printable table.
+  const opMeta = useMemo(() => {
+    const op = TREE_OP_MAP[activeOperation];
+    return typeof op.desc === "function" ? { ...op, desc: op.desc({ treeType, threadMode }) } : op;
+  }, [activeOperation, treeType, threadMode]);
 
   const runWith = useCallback(
     (opKey, params) => {

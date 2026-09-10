@@ -6838,3 +6838,1476 @@ input.controls__volume {
     display: none;
   }
 }
+
+/* ---------- expression notation (infix / postfix / prefix) ---------- */
+
+/* A group whose contents are always shown: the expression sidebar filters its
+   operations by notation, which leaves two or three, and a disclosure per
+   operation would be all furniture and no choice. */
+.algo-group__header--static {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  cursor: default;
+}
+
+.expr-input-error {
+  margin: 6px 0 2px;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--red);
+}
+
+.expr-prec {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 8px;
+}
+
+.expr-prec__row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-alt);
+  font-size: 11px;
+}
+
+.expr-prec__ops {
+  color: var(--primary);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.expr-prec__prec {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.expr-prec__assoc {
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.expr-canvas {
+  /* `.canvas` is a fixed 340px; every canvas whose content grows
+     overrides it the same way. */
+  height: auto;
+  min-height: 340px;
+  align-items: stretch;
+}
+
+.expr-strip-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.expr-strip__label,
+.expr-stack__label,
+.expr-out__label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.expr-strip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-bottom: 2px;
+}
+
+.expr-token {
+  min-width: 30px;
+  padding: 5px 8px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 7px;
+  background: var(--panel-alt);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text);
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease,
+    color var(--step-anim) ease,
+    opacity var(--step-anim) ease,
+    box-shadow var(--step-anim) ease;
+}
+
+.expr-token--operator {
+  color: var(--primary);
+}
+
+.expr-token--lparen,
+.expr-token--rparen {
+  color: var(--text-dim);
+  border-style: dashed;
+}
+
+.expr-token--bad {
+  color: var(--red);
+  border-color: var(--red);
+}
+
+/* Read already, and kept in place rather than removed: the strip is the ruler
+   the scan position is read against, so it must not shrink. */
+.expr-token.is-consumed {
+  opacity: 0.35;
+}
+
+.expr-token.is-cursor {
+  border-color: var(--primary);
+  background: rgb(var(--primary-rgb) / 0.16);
+  box-shadow: 0 0 10px rgb(var(--primary-rgb) / 0.45);
+  opacity: 1;
+}
+
+/* The precedence comparison the current step is making, spelled out. */
+.expr-note {
+  margin-top: 10px;
+  padding: 4px 9px;
+  align-self: center;
+  border: 1px solid rgb(var(--blue-rgb) / 0.35);
+  border-radius: 6px;
+  background: rgb(var(--blue-rgb) / 0.1);
+  font-size: 11px;
+  color: var(--blue);
+}
+
+.expr-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  margin-top: 14px;
+  min-height: 150px;
+}
+
+.expr-stack-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.expr-stack {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 3px;
+  min-width: 92px;
+}
+
+.expr-slot {
+  position: relative;
+  padding: 6px 10px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 7px;
+  background: var(--panel-alt);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text);
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease,
+    box-shadow var(--step-anim) ease;
+}
+
+.expr-slot.is-top {
+  border-color: var(--blue);
+  background: rgb(var(--blue-rgb) / 0.14);
+}
+
+.expr-slot--wall {
+  border-style: dashed;
+  color: var(--text-dim);
+}
+
+.expr-slot--result {
+  border-color: var(--green);
+  background: rgb(var(--green-rgb) / 0.16);
+}
+
+.expr-slot__tag {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 6px);
+  transform: translateY(-50%);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--blue);
+}
+
+.expr-stack__empty {
+  padding: 6px 10px;
+  border: 1.5px dashed var(--border);
+  border-radius: 7px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.expr-stack__base {
+  margin-top: 3px;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.expr-out {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.expr-out__items {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-bottom: 2px;
+}
+
+.expr-out__items--wrap {
+  flex-wrap: wrap;
+}
+
+.expr-out__empty {
+  font-size: 10.5px;
+  color: var(--text-dim);
+  opacity: 0.8;
+}
+
+.expr-chip {
+  padding: 4px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--panel-alt);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  /* Both stacks and the output cannot sit in a row on a phone; the stacks stay
+     beside each other and the output drops below them. */
+  .expr-body {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .expr-out {
+    flex-basis: 100%;
+  }
+
+  .expr-strip-wrap {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+}
+
+/* ---------- sparse matrix ---------- */
+
+.sm-stat {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.sm-stat span {
+  padding: 2px 7px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--panel-alt);
+  font-size: 10.5px;
+  color: var(--text);
+}
+
+.sm-textarea {
+  font-size: 11.5px;
+  line-height: 1.5;
+  white-space: pre;
+}
+
+.sm-cell-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.sm-canvas {
+  /* `.canvas` is a fixed 340px; every canvas whose content grows
+     overrides it the same way. */
+  height: auto;
+  min-height: 340px;
+  align-items: stretch;
+}
+
+/* The grid, its triplet list, and any second matrix, in a row that wraps
+   rather than scrolling the page sideways. */
+.sm-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.sm-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* The grid and its own triplet list, beside each other. Stacked, a 6x6 with a
+   dozen terms is taller than the panel. */
+.sm-block__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* `.canvas-scroll` is width:100% by default, which would take the whole row
+   and push the triplet list onto the next line. Here it should be only as
+   wide as the grid inside it. */
+.sm-block__body > .canvas-scroll {
+  width: auto;
+  max-width: 100%;
+  flex: 0 1 auto;
+}
+
+.sm-block__head {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+}
+
+.sm-grid {
+  display: grid;
+  gap: 2px;
+}
+
+.sm-grid__corner {
+  min-width: 16px;
+}
+
+.sm-grid__head {
+  font-size: 9px;
+  color: var(--text-dim);
+  text-align: center;
+  align-self: center;
+  min-width: 16px;
+}
+
+.sm-grid__head.is-scan {
+  color: var(--blue);
+  font-weight: 700;
+}
+
+.sm-cell {
+  min-width: 30px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease,
+    box-shadow var(--step-anim) ease;
+}
+
+/* Empty rather than "0": in the representation beside it, the cell is not
+   there at all. */
+.sm-cell.is-zero {
+  background: transparent;
+  border-style: dashed;
+  border-color: rgb(var(--ink-rgb) / 0.09);
+}
+
+.sm-cell.is-set {
+  background: var(--panel-alt);
+  border-color: var(--border-strong);
+}
+
+.sm-cell.is-scan {
+  background: rgb(var(--blue-rgb) / 0.07);
+}
+
+.sm-cell.is-cur {
+  border-color: var(--primary);
+  background: rgb(var(--primary-rgb) / 0.18);
+  box-shadow: 0 0 9px rgb(var(--primary-rgb) / 0.4);
+}
+
+.sm-triples {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 128px;
+}
+
+.sm-triples__head,
+.sm-triple {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.4fr;
+  gap: 2px;
+  text-align: center;
+}
+
+.sm-triples__head span {
+  font-size: 8.5px;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.sm-triple span {
+  padding: 3px 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel-alt);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease,
+    opacity var(--step-anim) ease;
+}
+
+.sm-triple.is-active span {
+  border-color: var(--primary);
+  background: rgb(var(--primary-rgb) / 0.16);
+}
+
+.sm-triple.is-probe span {
+  border-color: var(--blue);
+  background: rgb(var(--blue-rgb) / 0.16);
+}
+
+/* Outside the half a binary search has narrowed to — the absence of a state
+   rather than one of its own, so no border colour, just recession. */
+.sm-triple.is-muted {
+  opacity: 0.3;
+}
+
+.sm-triples__empty {
+  padding: 4px;
+  font-size: 10px;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.sm-counts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.sm-counts__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sm-counts__label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  min-width: 108px;
+}
+
+.sm-counts__cells {
+  display: flex;
+  gap: 3px;
+}
+
+.sm-count {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 32px;
+  padding: 3px 5px;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  background: var(--panel-alt);
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease;
+}
+
+.sm-count b {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.sm-count i {
+  font-style: normal;
+  font-size: 8px;
+  color: var(--text-dim);
+}
+
+.sm-count.is-cur {
+  border-color: var(--primary);
+  background: rgb(var(--primary-rgb) / 0.16);
+}
+
+@media (max-width: 760px) {
+  .sm-row {
+    gap: 14px;
+  }
+
+  .sm-counts__label {
+    min-width: 0;
+  }
+
+  .sm-counts__row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}
+
+/* ---------- multidimensional arrays ---------- */
+
+/* A small inline button for a set of mutually exclusive choices that will not
+   fit a row of equal-width toggles — seven array layouts, in two groups. */
+.btn--chip {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+}
+
+.md-layouts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.md-layouts__label {
+  font-size: 9px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.md-layouts__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.md-formula-chip {
+  margin-top: 8px;
+  padding: 5px 9px;
+  border: 1px solid rgb(var(--blue-rgb) / 0.3);
+  border-radius: 6px;
+  background: rgb(var(--blue-rgb) / 0.08);
+  font-size: 11px;
+  color: var(--blue);
+  overflow-wrap: anywhere;
+}
+
+.md-canvas {
+  /* `.canvas` is a fixed 340px; every canvas whose content grows
+     overrides it the same way. */
+  height: auto;
+  min-height: 340px;
+  align-items: stretch;
+}
+
+.md-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.md-head__layout {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--yellow);
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: rgb(var(--yellow-rgb) / 0.12);
+  border: 1px solid rgb(var(--yellow-rgb) / 0.35);
+}
+
+.md-head__formula,
+.md-head__shape {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.md-slices {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 2px;
+}
+
+.md-slice {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.md-slice__label {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+.md-grid {
+  display: grid;
+  gap: 3px;
+}
+
+/* Each cell shows the slot it maps to, with its own index underneath — the
+   mapping in both directions, without stepping through anything. */
+.md-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  padding: 4px 3px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease,
+    box-shadow var(--step-anim) ease;
+}
+
+.md-cell b {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.md-cell i {
+  font-style: normal;
+  font-size: 8px;
+  color: var(--text-dim);
+}
+
+.md-cell.is-stored {
+  background: var(--panel-alt);
+  border-color: var(--border-strong);
+}
+
+.md-cell.is-shared {
+  background: rgb(var(--purple-rgb) / 0.1);
+  border-color: rgb(var(--purple-rgb) / 0.4);
+  border-style: dashed;
+}
+
+/* Not an element holding zero — no element. */
+.md-cell.is-hole {
+  background: transparent;
+  border-style: dashed;
+  border-color: rgb(var(--ink-rgb) / 0.09);
+}
+
+.md-cell.is-hole b {
+  color: var(--text-dim);
+  opacity: 0.5;
+}
+
+.md-cell.is-visited {
+  background: rgb(var(--green-rgb) / 0.08);
+}
+
+.md-cell.is-redirect {
+  border-color: var(--purple);
+  background: rgb(var(--purple-rgb) / 0.18);
+}
+
+.md-cell.is-cur {
+  border-color: var(--primary);
+  background: rgb(var(--primary-rgb) / 0.18);
+  box-shadow: 0 0 10px rgb(var(--primary-rgb) / 0.45);
+}
+
+.md-formula {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--panel-alt);
+}
+
+.md-formula__line {
+  font-size: 11.5px;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.md-formula__line.is-zero {
+  color: var(--text-dim);
+}
+
+.md-formula__line.is-redirect {
+  color: var(--purple);
+}
+
+.md-tally {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.md-tally__item {
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 10.5px;
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+  color: var(--text);
+}
+
+.md-tally__item.is-stored {
+  border-color: rgb(var(--green-rgb) / 0.4);
+  color: var(--green);
+}
+
+.md-tally__item.is-shared {
+  border-color: rgb(var(--purple-rgb) / 0.4);
+  color: var(--purple);
+}
+
+.md-tally__item.is-zero {
+  color: var(--text-dim);
+}
+
+.md-memory-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.md-memory__label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.md-memory {
+  display: flex;
+  gap: 2px;
+  padding-bottom: 2px;
+}
+
+.md-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 34px;
+  padding: 3px 4px;
+  border: 1px dashed var(--border);
+  border-radius: 5px;
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease;
+}
+
+.md-slot b {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text);
+  min-height: 13px;
+}
+
+.md-slot i {
+  font-style: normal;
+  font-size: 8px;
+  color: var(--text-dim);
+}
+
+.md-slot.is-filled {
+  border-style: solid;
+  border-color: var(--border-strong);
+  background: var(--panel-alt);
+}
+
+.md-slot.is-cur {
+  border-color: var(--primary);
+  background: rgb(var(--primary-rgb) / 0.18);
+}
+
+.md-jump {
+  align-self: center;
+  margin-top: 10px;
+  padding: 3px 9px;
+  border-radius: 5px;
+  font-size: 11px;
+  border: 1px solid var(--border);
+}
+
+.md-jump.is-near {
+  border-color: rgb(var(--green-rgb) / 0.4);
+  background: rgb(var(--green-rgb) / 0.1);
+  color: var(--green);
+}
+
+.md-jump.is-far {
+  border-color: rgb(var(--red-rgb) / 0.4);
+  background: rgb(var(--red-rgb) / 0.1);
+  color: var(--red);
+}
+
+@media (max-width: 760px) {
+  .md-memory-wrap {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+}
+
+/* ---------- leftist tree ---------- */
+
+.lt-canvas {
+  align-items: center;
+}
+
+/* Two trees side by side during a meld; they wrap rather than scrolling the
+   page sideways. */
+.lt-trees {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 20px;
+  width: 100%;
+}
+
+.lt-tree {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.lt-tree__label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+.lt-edge {
+  stroke: var(--border-strong);
+  stroke-width: 1.6;
+  transition: stroke var(--step-anim) ease;
+}
+
+/* The only path any operation walks, so it is the only one drawn heavily. */
+.lt-edge.is-spine {
+  stroke: var(--blue);
+  stroke-width: 2.6;
+}
+
+.lt-node circle {
+  fill: var(--panel-alt);
+  stroke: var(--border-strong);
+  stroke-width: 2;
+  transition: fill var(--step-anim) ease, stroke var(--step-anim) ease, filter var(--step-anim) ease;
+}
+
+.lt-node.is-spine circle {
+  stroke: rgb(var(--blue-rgb) / 0.6);
+  fill: rgb(var(--blue-rgb) / 0.07);
+}
+
+.lt-node.is-active circle {
+  stroke: var(--blue);
+  fill: rgb(var(--blue-rgb) / 0.18);
+  filter: drop-shadow(0 0 6px rgb(var(--blue-rgb) / 0.4));
+}
+
+.lt-node.is-compare circle {
+  stroke: var(--blue);
+  fill: rgb(var(--blue-rgb) / 0.2);
+  filter: drop-shadow(0 0 7px rgb(var(--blue-rgb) / 0.45));
+}
+
+.lt-node.is-swap circle {
+  stroke: var(--primary);
+  fill: rgb(var(--primary-rgb) / 0.24);
+  filter: drop-shadow(0 0 8px rgb(var(--primary-rgb) / 0.55));
+}
+
+.lt-node.is-removing circle {
+  stroke: var(--red);
+  fill: rgb(var(--red-rgb) / 0.22);
+  filter: drop-shadow(0 0 8px rgb(var(--red-rgb) / 0.5));
+}
+
+/* The null-path length, beside the node rather than in it — the value is
+   still the thing you read first. */
+.lt-node__s {
+  font-size: 8.5px;
+  font-weight: 700;
+  fill: var(--yellow);
+}
+
+.lt-spine-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.lt-spine__label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.lt-spine {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-bottom: 2px;
+}
+
+.lt-spine__item {
+  min-width: 32px;
+  padding: 4px 7px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--panel-alt);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text);
+  transition: opacity var(--step-anim) ease, border-color var(--step-anim) ease;
+}
+
+/* Which tree the spine node came from — the merge is the only place that
+   distinction is visible at all. */
+.lt-spine__item.is-a {
+  border-color: rgb(var(--blue-rgb) / 0.5);
+}
+
+.lt-spine__item.is-b {
+  border-color: rgb(var(--purple-rgb) / 0.5);
+}
+
+/* Not linked back up yet. */
+.lt-spine__item.is-pending {
+  opacity: 0.4;
+}
+
+.lt-forest__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 34px;
+  padding: 3px 6px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--panel-alt);
+}
+
+.lt-forest__item b {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.lt-forest__item i {
+  font-style: normal;
+  font-size: 8px;
+  color: var(--text-dim);
+}
+
+@media (max-width: 760px) {
+  .lt-spine-wrap {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+}
+
+/* ---------- priority queues (single- and double-ended) ---------- */
+
+.dq-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* What each end costs to find, stated up front — it is the reason all three
+   kinds share one view. */
+.dq-cost {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 10px;
+}
+
+.dq-cost__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-alt);
+}
+
+.dq-cost__row span {
+  font-size: 9px;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+}
+
+.dq-cost__row b {
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.dq-cost__row b.is-cheap {
+  color: var(--green);
+}
+
+.dq-cost__row b.is-dear {
+  color: var(--red);
+}
+
+.algo-row__note {
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 8.5px;
+  font-weight: 700;
+  color: var(--red);
+  background: rgb(var(--red-rgb) / 0.12);
+}
+
+.dq-canvas {
+  align-items: center;
+}
+
+.dq-node circle {
+  fill: var(--panel-alt);
+  stroke: var(--border-strong);
+  stroke-width: 2;
+  transition: fill var(--step-anim) ease, stroke var(--step-anim) ease, filter var(--step-anim) ease;
+}
+
+.dq-node.is-swap circle,
+.dq-half.is-swap {
+  stroke: var(--primary);
+  fill: rgb(var(--primary-rgb) / 0.24);
+  filter: drop-shadow(0 0 7px rgb(var(--primary-rgb) / 0.55));
+}
+
+.dq-node.is-pending circle,
+.dq-half.is-pending {
+  stroke: var(--primary);
+  fill: rgb(var(--primary-rgb) / 0.18);
+}
+
+.dq-node.is-compare circle,
+.dq-half.is-compare {
+  stroke: var(--blue);
+  fill: rgb(var(--blue-rgb) / 0.18);
+}
+
+.dq-node.is-active circle,
+.dq-half.is-active {
+  stroke: var(--blue);
+  fill: rgb(var(--blue-rgb) / 0.2);
+  filter: drop-shadow(0 0 6px rgb(var(--blue-rgb) / 0.4));
+}
+
+.dq-node.is-current circle,
+.dq-half.is-current {
+  stroke: var(--primary);
+  fill: rgb(var(--primary-rgb) / 0.12);
+}
+
+.dq-node.is-removing circle,
+.dq-half.is-removing {
+  stroke: var(--red);
+  fill: rgb(var(--red-rgb) / 0.22);
+  filter: drop-shadow(0 0 7px rgb(var(--red-rgb) / 0.5));
+}
+
+/* Being searched through — the min heap's hunt for its maximum. */
+.dq-node.is-scan circle,
+.dq-half.is-scan {
+  stroke: var(--yellow);
+  fill: rgb(var(--yellow-rgb) / 0.12);
+}
+
+.dq-node.is-path circle,
+.dq-half.is-path {
+  stroke: rgb(var(--blue-rgb) / 0.5);
+}
+
+/* Which level of a min-max heap is which — the alternation is the invariant
+   and nothing else in the picture shows it. */
+.dq-level {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.dq-level.is-min {
+  fill: var(--blue);
+}
+
+.dq-level.is-max {
+  fill: var(--red);
+}
+
+.dq-end {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  fill: var(--green);
+}
+
+.dq-half {
+  fill: var(--panel-alt);
+  stroke: var(--border-strong);
+  stroke-width: 1.6;
+  transition: fill var(--step-anim) ease, stroke var(--step-anim) ease, filter var(--step-anim) ease;
+}
+
+/* The empty upper half of a node holding a single element. */
+.dq-half.is-vacant {
+  fill: transparent;
+  stroke: rgb(var(--ink-rgb) / 0.12);
+  stroke-dasharray: 3 3;
+}
+
+.dq-cell.is-hi {
+  border-left-style: dashed;
+}
+
+.dq-cell.is-swap {
+  border-color: var(--primary);
+  background: rgb(var(--primary-rgb) / 0.24);
+}
+
+.dq-cell.is-compare {
+  border-color: var(--blue);
+  background: rgb(var(--blue-rgb) / 0.18);
+}
+
+.dq-cell.is-active,
+.dq-cell.is-pending {
+  border-color: var(--primary);
+  background: rgb(var(--primary-rgb) / 0.18);
+}
+
+.dq-cell.is-current {
+  border-color: var(--primary);
+}
+
+.dq-cell.is-removing {
+  border-color: var(--red);
+  background: rgb(var(--red-rgb) / 0.22);
+}
+
+.dq-cell.is-scan {
+  border-color: var(--yellow);
+  background: rgb(var(--yellow-rgb) / 0.12);
+}
+
+.dq-formula {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+/* ---------- selection trees (winner / loser) ---------- */
+
+.st-canvas {
+  align-items: center;
+}
+
+/* A loser tree's overall winner lives at position 0, outside the tree — so it
+   is drawn outside the tree. */
+.st-champion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 4px 10px;
+  border: 1.5px dashed rgb(var(--green-rgb) / 0.45);
+  border-radius: 7px;
+  background: rgb(var(--green-rgb) / 0.08);
+  transition: background-color var(--step-anim) ease, border-color var(--step-anim) ease;
+}
+
+.st-champion.is-active {
+  border-style: solid;
+  border-color: var(--green);
+  background: rgb(var(--green-rgb) / 0.18);
+}
+
+.st-champion__tag {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+.st-champion__value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green);
+}
+
+.st-node circle {
+  fill: var(--panel-alt);
+  stroke: var(--border-strong);
+  stroke-width: 2;
+  transition: fill var(--step-anim) ease, stroke var(--step-anim) ease, filter var(--step-anim) ease;
+}
+
+.st-node.is-compare circle {
+  stroke: var(--blue);
+  fill: rgb(var(--blue-rgb) / 0.18);
+  filter: drop-shadow(0 0 6px rgb(var(--blue-rgb) / 0.4));
+}
+
+.st-node.is-active circle {
+  stroke: var(--primary);
+  fill: rgb(var(--primary-rgb) / 0.2);
+  filter: drop-shadow(0 0 7px rgb(var(--primary-rgb) / 0.5));
+}
+
+.st-node.is-path circle {
+  stroke: rgb(var(--blue-rgb) / 0.55);
+}
+
+.st-node__run {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  fill: var(--text-dim);
+}
+
+.st-node__key {
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--text);
+}
+
+.st-node__pos {
+  font-size: 8px;
+  fill: var(--text-dim);
+  opacity: 0.7;
+}
+
+.st-leaf rect {
+  fill: var(--panel-alt);
+  stroke: var(--border-strong);
+  stroke-width: 1.6;
+  transition: fill var(--step-anim) ease, stroke var(--step-anim) ease;
+}
+
+.st-leaf.is-hot rect {
+  stroke: var(--blue);
+  fill: rgb(var(--blue-rgb) / 0.16);
+}
+
+.st-leaf.is-winner rect {
+  stroke: var(--green);
+  fill: rgb(var(--green-rgb) / 0.18);
+}
+
+/* A run with nothing left offers ∞ and loses every match from then on. */
+.st-leaf.is-spent rect {
+  stroke-dasharray: 3 3;
+  fill: transparent;
+}
+
+.st-leaf.is-spent .st-leaf__label {
+  fill: var(--text-dim);
+}
+
+.st-leaf__label {
+  font-size: 12px;
+  font-weight: 600;
+  fill: var(--text);
+}
+
+.st-leaf__run {
+  font-size: 8px;
+  fill: var(--text-dim);
+}
+
+.st-runs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.st-run {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 4px;
+  border-radius: 6px;
+  transition: background-color var(--step-anim) ease;
+}
+
+.st-run.is-hot {
+  background: rgb(var(--blue-rgb) / 0.08);
+}
+
+.st-run__label {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  min-width: 38px;
+}
+
+.st-run__cells {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.st-run__cell {
+  min-width: 28px;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--panel-alt);
+  font-size: 11.5px;
+  text-align: center;
+  color: var(--text);
+}
+
+/* The head is the only value in a run the tree can see. */
+.st-run__cell.is-head {
+  border-color: var(--border-strong);
+  font-weight: 700;
+}
+
+.st-run__spent {
+  font-size: 10px;
+  color: var(--text-dim);
+  opacity: 0.8;
+}
+
+.st-output-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.st-output__label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.st-output {
+  display: flex;
+  gap: 3px;
+  padding-bottom: 2px;
+}
+
+.st-output__cell {
+  min-width: 28px;
+  padding: 3px 6px;
+  border: 1px solid rgb(var(--green-rgb) / 0.4);
+  border-radius: 5px;
+  background: rgb(var(--green-rgb) / 0.1);
+  font-size: 11.5px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text);
+}
+
+.st-output__empty {
+  font-size: 10.5px;
+  color: var(--text-dim);
+  opacity: 0.8;
+}
+
+@media (max-width: 760px) {
+  .st-output-wrap {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+}

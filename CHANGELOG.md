@@ -13,15 +13,192 @@ Usability and playback-smoothness pass across every visualizer, five new structu
 tables, dynamic hashing, heaps, tries and union-find — and two new comparison views: Race &
 Compare, which puts sorting algorithms against each other on real, self-reported operation
 counts, and Balance & Height, which builds a BST, an AVL tree and a 2-3 tree from one key
-sequence. Dynamic programming arrives as a family of its own: six problems that fill a
+sequence. Dynamic programming arrives as a family of its own: seven problems that fill a
 table cell by cell and then walk it backwards to recover the answer the number alone
 never gives you. Backtracking arrives as another: four searches drawn beside the tree they
 explore, with the branches pruning cut away marked as such. The TREES section grows the
 most: red-black trees, splay trees and treaps alongside AVL, segment and Fenwick trees over
 one array, B-trees and B+ trees, and Huffman coding — four different answers to "what
-should a tree be shaped by", none of them the same as balance.
+should a tree be shaped by", none of them the same as balance. A MATRICES & ARRAYS family
+arrives with nothing algorithmic in it at all — sparse matrices and array addressing are
+both about representation, and what a structure costs to store against what that costs
+back on every access. Expression notation joins STACKS & QUEUES; priority queues that
+answer both ends, leftist trees that meld, and selection trees for a k-way merge join
+TREES; and optimal binary search trees join the dynamic programming family.
+
+### Added
+
+- **A new family: MATRICES & ARRAYS.** Two views, and neither of them is about an
+  algorithm — both are about *representation*, and what a structure costs to store versus
+  what that costs back on every access.
+
+  **Sparse matrices** are drawn twice at once: as the dense grid they stand for, with the
+  zeros as holes, and as the (row, column, value) triplet list they actually are, with
+  every step highlighting the same entry in both. Building the list reports the storage of
+  both forms — three numbers per term plus a header, against one per cell, which is why
+  the crossover sits at about a third density rather than a half. The two transposes are
+  the reason the view exists: swapping r and c takes one pass but destroys the row-major
+  order the list has to be in, so the naive fix rebuilds the result in order and re-reads
+  every term once per column (O(cols · t)), while the fast transpose counts the terms per
+  column first, turns the counts into starting positions with a running sum, and then
+  places every term in one pass (O(cols + t)). They produce the identical result, and the
+  step counts are reported so the gap is a number rather than a claim. Addition is a
+  two-list merge whose interesting case is a sum that cancels — the term is dropped,
+  because a sparse list storing zeros would stop being sparse. Multiplication only ever
+  multiplies the pairs that share an index. And reading `A[i][j]` is a binary search,
+  because random access is the thing the representation gives up.
+
+  **Array layout** draws the arithmetic that makes a multidimensional array a fiction.
+  Seven layouts — row-major, column-major, lower- and upper-triangular, symmetric,
+  tridiagonal, diagonal — and in each one every logical cell is labelled with the memory
+  slot it maps to, with the strip below labelled with the index each slot holds: the same
+  mapping read both ways. Addressing one element expands the formula a term at a time
+  (and note what the row-major one never contains: the first dimension, which is exactly
+  why C lets you write `int a[][4]`). Laying the array out shows the storage order, which
+  is what actually decides locality. And walking it by rows and by columns is the same
+  traversal with the loops swapped, counting the address jump at every step: with the
+  grain every step lands on the next slot, against the grain almost none do — same
+  elements, same arithmetic, several times slower on real hardware. For the packed
+  layouts, a fifth operation sorts every cell into stored, structurally zero, or sharing a
+  slot with its mirror, and totals them.
+
+- **Expression notation: infix, postfix and prefix**, converted and evaluated, under
+  STACKS & QUEUES. The view shows the stack, because the stack is the whole content of the
+  subject — precedence and associativity are not properties of a notation, they are the
+  rules that decide when an operator comes off it, and the comparison behind every pop is
+  spelled out as it is made. The operations offered follow the notation, so "evaluate
+  postfix" is never offered for an infix expression. Infix → postfix is the shunting yard;
+  infix → prefix is the *same* shunting yard run over the reversed expression with the
+  brackets swapped, and both things that change in the mirror are shown — the reversal
+  flips associativity, so the pop rule flips with it. Evaluating postfix is one pass and
+  one stack; evaluating prefix is that pass backwards, with the operand order reversed
+  along with it. Evaluating infix directly takes two stacks, which is the honest cost of
+  the notation, and its step count can be compared with evaluating the postfix form.
+  Turning postfix back into infix is the evaluator with strings in place of numbers, and
+  the fully bracketed result is worth reading twice: every bracket it prints was already
+  being stated by the operator positions.
+
+- **Priority queues, single- and double-ended.** Three structures over the same flat
+  array, and one operation that separates them. A plain min heap has no idea where its
+  maximum is — it must be a leaf, so ⌈n/2⌉ of them get examined, and the run highlights
+  every one it looks at while the sidebar carries the `O(n)` before you even click. A
+  **min-max heap** alternates its levels, so the root is the smallest element and the
+  largest is one of its two children; the canvas labels the levels, because the alternation
+  *is* the invariant, and every sift moves two levels at a time against grandparents — the
+  nearest node of the same kind — with a trickle-down weighing six candidates instead of
+  two. An **interval heap** reads the same array in pairs: a node is a closed interval, the
+  lo values form a min heap and the hi values a max heap, and the root holds both answers
+  side by side with no comparison at all. Switching between the three re-inserts the same
+  values under the new invariant, which is the comparison the view exists for: identical
+  input, three completely different arrays, all three with the same first element.
+
+- **Leftist trees**, a heap you can meld. A binary heap is fast at everything except
+  joining two of them, because its shape is the array it lives in — so melding two
+  n-element heaps means re-heapifying, O(n), which swamps everything else it was chosen
+  for. A leftist tree gives up the array and keeps one rule: s(left) ≥ s(right) at every
+  node, where s is the null-path length. That bounds the right spine at ⌊log₂(n+1)⌋, and
+  since every operation works only down the right spines, they are all logarithmic — which
+  the canvas makes visible by drawing every node's s beside it and the right spine heavier
+  than the rest. Meld is then the *only* operation: insert melds with a one-node tree,
+  delete-min melds the root's two subtrees, and both builds are sequences of melds. It is
+  drawn in its two passes — merge the two right spines into one key-ordered chain, then
+  link the chain back up from the bottom, swapping children where the rule demands it —
+  which is why it is written iteratively; a recursion hides the second pass inside its
+  unwinding. Building by repeated insertion (O(n log n)) and by pairwise melding through a
+  queue (O(n)) are both offered, on the same values, each reporting the spine work it
+  spent.
+
+- **Selection trees — winner trees and loser trees.** Merging k sorted runs the obvious
+  way costs k−1 comparisons per output, because every one re-scans every run's head and
+  re-derives, every single time, a fact that has barely changed: only one run moved. A
+  selection tree remembers the tournament, so the next winner costs ⌈log₂ k⌉. The two
+  kinds fall out of one pass over it — every match establishes both who won and who lost,
+  and a winner tree stores the first while a loser tree stores the second. A winner tree's
+  root is the answer, and replaying a path re-plays each match, reading both children of
+  every node on it. A loser tree keeps the champion above the root, at position 0, drawn
+  outside the tree because that is where it lives — and replaying is then a plain walk
+  upward, beating the contender against the loser already sitting at each node: one value
+  read per level, and the sibling subtree never consulted. Every node is labelled with the
+  run it names and the value that run is currently offering, because the array stores run
+  indices and the values move underneath them. The comparison total is reported against a
+  flat scan of all k heads.
+
+- **Optimal binary search trees**, as a seventh dynamic programming problem. Balance is
+  what you build when you know the keys but not how often each one is looked up; given the
+  frequencies it is the wrong target, and a key asked for a thousand times a second belongs
+  near the root even if that makes the tree lopsided. `c[i][j]` is the cheapest subtree
+  over the run of keys i…j, and the trick is in the last term: whichever key becomes the
+  root, every *other* key in the run drops one level, so the run's whole weight is added
+  exactly once regardless of the choice. That single term is why a subproblem's cost does
+  not depend on the context it is used in, and so why the table works at all. It shares the
+  triangular shape and the increasing-run-length fill order with matrix chain
+  multiplication, and the two are worth reading side by side. The final frame gives the
+  cost of a perfectly balanced tree over the same keys, because the gap between the two
+  numbers is what knowing the frequencies is worth.
+
+### Changed
+
+- **New favicon set.** The blue "DV" wordmark is replaced by an orange one carrying a bar
+  chart above the D and a line chart for the V, which also puts the icon on the app's own
+  accent colour. Every size is rendered in one pass from the 1254px original rather than
+  by resampling a 512 down a chain, which is what keeps the 16px legible, and the mark is
+  unpremultiplied from the black field it was drawn on so its glow survives being placed
+  on the app's `#0b0d12` ground instead of picking up a halo.
+
+  The set gains a 48×48 tab icon — the size Chrome actually picks on a 1.5x display — and
+  its `.ico` is now a multi-size PNG-compressed one covering 16 through 256, against three
+  BMP sizes before. Tab icons take the mark nearly to the frame edge, because at 16px
+  every pixel of it counts; the touch and manifest icons keep a margin, because the
+  platform rounds their corners.
+
+  The tab icons and the `.ico` are now **transparent**, where they previously carried a
+  dark ground. A tab strip is dark in dark mode and light in light mode, and the browser
+  draws the favicon straight onto it — so a baked-in background reads as a dark tile on a
+  light strip. The touch and manifest icons stay opaque on purpose: iOS composites a
+  transparent touch icon onto a ground of its own choosing, and the mark's gradient runs
+  light enough that it loses contrast on the white circle a launcher puts a non-maskable
+  icon in.
+
+  `favicon.ico` is also named explicitly in the markup instead of being left to the
+  browser's implicit `/favicon.ico` request, since that request is only made when no
+  `<link rel="icon">` matches — so the old `.ico` was shipped and never used. The five
+  links are identical in `index.html` and in all three standalone pages, which is now
+  written down in `DOCS.md` because replacing the set means editing four files.
+
+- **The algorithm and data-structure chunk was split in two.** `manualChunks` in
+  `vite.config.js` put `src/algorithms/` and `src/dataStructures/` in one chunk, which
+  crossed Rollup's 500 kB warning once six structures were added to it. They are now
+  `algorithms` and `structures`, which is also the honest split: a new sort touches one and
+  a new structure the other, so they cache and invalidate on their own schedules.
+
+- **`DOCS.md`'s "add a whole new structure" now lists all six registrations** a view needs
+  to be reachable and shareable, rather than the two it mentioned. Adding six of them in a
+  row made it clear that the missing four — the URL state, the two topic files, and the
+  canvas height and scroll-container conventions in the stylesheet — are exactly the ones
+  easy to forget and invisible until someone shares a link or opens the view on a phone.
 
 ### Fixed
+
+- **The tree view described a BST whatever type was selected.** The topic panel was keyed
+  to the view rather than the type, so it was titled "Tree (Binary Search Tree)" and
+  carried a BST write-up while an AVL tree, a red-black tree, a splay tree or a treap was
+  on screen — and splay trees and treaps were not mentioned anywhere in it at all. There
+  are now seven write-ups, one per type, and the panel is keyed `tree:<type>`.
+
+  The per-operation descriptions had the same fault in a smaller way: `insert`, `delete`
+  and `search` enumerated what a BST, an AVL tree, a threaded tree and a plain binary tree
+  do, and stopped there — so selecting Splay and reading Insert told you nothing about
+  splaying. Those three now declare `desc` as a function of the setup, resolved in
+  `useTree`, with the shared descent and the seven type-specific halves kept apart in
+  `src/dataStructures/tree/descriptions.js`.
+
+- **The hash table write-up covered half the strategies the sidebar offers.** It described
+  chaining, linear probing and quadratic probing but never double hashing, Robin Hood or
+  cuckoo hashing, and of the four hash functions only division. All six strategies and all
+  four functions are now covered. An audit of every other view with a type toggle — linked
+  list, B-tree, dynamic hashing, heap, range queries, and the new priority-queue, leftist,
+  selection-tree, expression and array-layout views — found their single write-ups already
+  covering every variant they offer.
 
 - **The keyboard-shortcuts button no longer sits on top of the volume slider.** The slider
   asked for 64px and rendered at its parent's full width, running underneath the button

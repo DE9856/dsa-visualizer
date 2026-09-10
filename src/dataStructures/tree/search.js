@@ -1,12 +1,13 @@
 import { cloneTree, isOrderedTree } from "./helpers";
 import { selfBalancingSearch } from "./selfBalancingOps";
+import { treeDesc } from "./descriptions";
 
 export const search = {
   key: "search",
   label: "Search",
   group: "query",
   fields: ["value"],
-  desc: "In a BST, AVL or threaded tree, search exploits the ordering: compare the target with the current node and step left or right, discarding half the remaining tree at each hop. A plain binary tree has no such ordering, so search instead has to scan every node (breadth-first here) until it finds a match.",
+  desc: treeDesc("search"),
   time: "O(log n) avg / O(h) worst-case for a BST, O(n) for a plain binary tree",
   space: "O(h)",
   run(tree, { value, treeType }) {

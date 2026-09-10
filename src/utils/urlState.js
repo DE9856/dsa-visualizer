@@ -1,6 +1,7 @@
 import { isLeaf } from "../dataStructures/twoThreeTree/helpers";
 import { INITIAL_CAPACITY as HASH_INITIAL_CAPACITY } from "../dataStructures/hashTable/helpers";
 import { parseWordList } from "../dataStructures/trie/helpers";
+import { parseRuns } from "../dataStructures/selectionTree/helpers";
 import { ALGO_MAP, SORT_KEYS } from "../algorithms";
 import { DISTRIBUTION_KEYS } from "./distributions";
 import { ORDER_KEYS } from "../dataStructures/tree/compare";
@@ -22,12 +23,19 @@ import { GREEDY_ALGO_MAP, GREEDY_KEYS } from "../algorithms/greedy";
  *   #v=treecompare&ord=sorted&n=15&sd=7&st=1
  *   #v=searching&algo=binary&a=5,3,8,1&t=8
  *   #v=linkedlist&type=doubly&a=5,12,3
+ *   #v=expression&type=postfix&x=2 3 4 * + 5 -
+ *   #v=sparsematrix&a=0,0,3,0;5,0,0,0;0,7,0,1
+ *   #v=mdarray&type=lower&d=5
+ *   #v=mdarray&type=rowmajor&d=3,4,2
  *   #v=tree&type=avl&a=50,30,70
  *   #v=tree&type=threaded&tm=single&a=50,30,70
  *   #v=hashtable&type=linear&a=42,13,7
  *   #v=hashtable&type=cuckoo&hf=midsquare&a=42,13,7
  *   #v=dynamichash&type=extendible&a=12,5,30,3
  *   #v=heap&type=min&a=4,10,3,5,1
+ *   #v=leftist&type=min&a=40,15,70,5
+ *   #v=depq&type=interval&a=40,15,70,5,55,90
+ *   #v=selectiontree&type=loser&r=10,15,16;9,20,38;20,30,40
  *   #v=trie&a=car,card,care,cat
  *   #v=unionfind&p=0,0,2,0,4,4
  *   #v=graph&d=1&w=1&g=A: B(5), C; B: C; D:
@@ -53,6 +61,9 @@ const VIEWS = [
   "treecompare",
   "linkedlist",
   "polynomial",
+  "expression",
+  "sparsematrix",
+  "mdarray",
   "stack",
   "queue",
   "graph",
@@ -61,6 +72,9 @@ const VIEWS = [
   "hashtable",
   "dynamichash",
   "heap",
+  "leftist",
+  "depq",
+  "selectiontree",
   "trie",
   "unionfind",
   "dp",
@@ -83,6 +97,10 @@ const HASH_STRATEGIES = ["chaining", "linear", "quadratic", "double", "robinhood
 const HASH_FUNCTIONS = ["division", "multiplication", "midsquare", "folding"];
 const DYNAMIC_KINDS = ["extendible", "linear"];
 const HEAP_KINDS = ["max", "min"];
+const NOTATIONS = ["infix", "postfix", "prefix"];
+const SELECTION_KINDS = ["winner", "loser"];
+const DEPQ_KINDS = ["single", "minmax", "interval"];
+const MD_LAYOUTS = ["rowmajor", "colmajor", "lower", "upper", "symmetric", "tridiagonal", "diagonal"];
 
 // A DP problem's inputs are the raw text its sidebar boxes hold, so they can
 // travel as themselves. One short hash key per field, and only the fields the
@@ -122,6 +140,8 @@ const DP_FIELD_KEYS = {
   amount: "amt",
   sequence: "sq",
   dims: "dm",
+  keys: "ky",
+  freqs: "fq",
 };
 
 // Values are capped to the same limits the sidebar parsers use, so a
@@ -168,6 +188,35 @@ function buildHash(fields) {
     .filter(([, value]) => value !== undefined && value !== null && value !== "")
     .map(([key, value]) => `${key}=${enc(value)}`)
     .join("&");
+}
+
+/**
+ * A sparse matrix as its dense grid, rows separated by `;`. The dense form
+ * rather than the triplet list because it is what the sidebar box holds, and
+ * because a link naming a term outside the declared shape would be a matrix
+ * the app could not have built.
+ */
+function serializeMatrix(matrix) {
+  return Array.from({ length: matrix.rows }, (_, r) =>
+    Array.from({ length: matrix.cols }, (_, c) => matrix.triples.find((t) => t.r === r && t.c === c)?.value ?? 0).join(
+      ","
+    )
+  ).join(";");
+}
+
+/**
+ * The runs of a selection tree, separated by `;`.
+ *
+ * Read from the committed runs rather than from the sidebar text, and from
+ * their full value lists rather than what is left of them: a half-drained
+ * merge is a position within a run, not a setup, and a link that reopened one
+ * would point somewhere no button could get you back to.
+ */
+function serializeRuns(state) {
+  return state.runs
+    .filter((run) => !run.padded)
+    .map((run) => run.values.join(","))
+    .join(";");
 }
 
 function parseValues(text) {
@@ -393,6 +442,20 @@ function fieldsFor(view, s) {
       return { v: view, type: s.ll.listType, a: nodeValues(s.ll.list) };
     case "polynomial":
       return { v: view, p: s.poly.polyInput };
+    // The expression is the document, and the notation is half of what it
+    // means — the same text is a different expression read three ways.
+    case "expression":
+      return { v: view, type: s.expr.notation, x: s.expr.exprInput };
+    // The dense grid, rows separated by `;` — the same text the sidebar box
+    // accepts, and the form the triplet list is derived from rather than the
+    // list itself, so a hand-edited link cannot describe a term outside the
+    // shape it declares.
+    case "sparsematrix":
+      return { v: view, a: serializeMatrix(s.sm.matrix) };
+    // The shape, as the numbers themselves — a packed layout is square, so
+    // its link carries the one dimension its sidebar box asks for.
+    case "mdarray":
+      return { v: view, type: s.md.layout, d: s.md.dims.join(",") };
     case "stack":
       return { v: view, a: nodeValues(s.st.stack) };
     case "queue":
@@ -429,6 +492,21 @@ function fieldsFor(view, s) {
     // and the shape comes back exactly.
     case "heap":
       return { v: view, type: s.hp.kind, a: s.hp.values.join(",") };
+    // Level order, which is what re-melding the values in that order
+    // reproduces — a leftist tree's shape is decided by the order its values
+    // arrived in, so the order is the shape.
+    case "leftist":
+      return { v: view, type: s.lft.kind, a: s.lft.values.join(",") };
+    // Array order, which for all three kinds is what re-inserting the values
+    // in that order reproduces exactly.
+    case "depq":
+      return { v: view, type: s.dq.kind, a: s.dq.values.join(",") };
+    // The runs as originally typed, separated by `;` — not their current
+    // heads. A half-drained merge is a position in a run, not a setup, and a
+    // link that reopened one would be a link to somewhere you cannot get back
+    // to by pressing anything.
+    case "selectiontree":
+      return { v: view, type: s.sel.kind, r: serializeRuns(s.sel.state) };
     // A trie's shape depends only on which words it holds, not the order they
     // arrived in, so the alphabetical list rebuilds it exactly.
     case "trie":
@@ -550,6 +628,31 @@ export function readSharedState() {
     if (Number.isInteger(seed) && seed >= 0) state.seed = seed;
   } else if (view === "polynomial") {
     if (fields.p) state.poly = fields.p.slice(0, MAX_TEXT);
+  } else if (view === "selectiontree") {
+    // `parseRuns` sorts every run, caps their number and length, and refuses
+    // anything with fewer than two runs — so a hand-edited link can only
+    // produce a setup the sidebar would have accepted.
+    if (SELECTION_KINDS.includes(fields.type)) state.kind = fields.type;
+    const runs = parseRuns((fields.r || "").slice(0, MAX_TEXT));
+    if (runs) state.runs = runs;
+  } else if (view === "mdarray") {
+    // `shapeFor` in the hook squares up a packed layout and caps the rank and
+    // every dimension, so a link naming a 9×2 triangular matrix opens as the
+    // square one the app would have built.
+    if (MD_LAYOUTS.includes(fields.type)) state.layout = fields.type;
+    const dims = parseValues(fields.d || "").filter((n) => Number.isInteger(n) && n > 0);
+    if (dims.length) state.dims = dims;
+  } else if (view === "sparsematrix") {
+    // `parseMatrix` caps both dimensions and turns anything unparseable into
+    // a zero, so whatever the text says the result is a matrix the sidebar
+    // could have produced.
+    if (fields.a) state.matrix = fields.a.slice(0, MAX_TEXT);
+  } else if (view === "expression") {
+    // Whatever the text is, `tokenize` turns it into tokens and `validate`
+    // decides whether it is an expression — so a hand-edited link can only
+    // ever produce something the box would have accepted.
+    if (NOTATIONS.includes(fields.type)) state.notation = fields.type;
+    if (fields.x) state.expr = fields.x.slice(0, MAX_TEXT);
   } else if (view === "unionfind") {
     // Every entry must be a whole number: dropping a malformed one would shift
     // every element after it onto the wrong parent. fromParentArray() then
@@ -629,8 +732,9 @@ export function readSharedState() {
       if (TREE_TYPES.includes(fields.type)) state.treeType = fields.type;
       if (THREAD_MODES.includes(fields.tm)) state.threadMode = fields.tm;
     }
-    if (view === "heap" && HEAP_KINDS.includes(fields.type)) state.kind = fields.type;
+    if ((view === "heap" || view === "leftist") && HEAP_KINDS.includes(fields.type)) state.kind = fields.type;
     if (view === "dynamichash" && DYNAMIC_KINDS.includes(fields.type)) state.kind = fields.type;
+    if (view === "depq" && DEPQ_KINDS.includes(fields.type)) state.kind = fields.type;
     if (view === "hashtable") {
       if (HASH_STRATEGIES.includes(fields.type)) state.strategy = fields.type;
       if (HASH_FUNCTIONS.includes(fields.hf)) state.hashFn = fields.hf;

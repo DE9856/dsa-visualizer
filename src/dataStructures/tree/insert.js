@@ -1,13 +1,14 @@
 import { cloneTree, nextNodeId, bstInsertByValue, levelOrderInsert, findNodeById, avlRebalanceWithSteps, isOrderedTree } from "./helpers";
 import { threadsFrom } from "./threads";
 import { selfBalancingInsert } from "./selfBalancingOps";
+import { treeDesc } from "./descriptions";
 
 export const insert = {
   key: "insert",
   label: "Insert",
   group: "build",
   fields: ["value"],
-  desc: "In a BST, AVL or threaded tree, insert walks down from the root comparing the new value at each node and stepping left or right until an empty slot is found. An AVL tree then walks back up the same path recomputing each ancestor's balance factor (height(left) - height(right)); if it falls outside [-1, 1], a single or double rotation restores it. A threaded tree instead fixes up pointers: the parent's thread on the side the new node landed becomes a real child link, and the new leaf takes over the thread to the neighbour that pointer used to reach. A plain binary tree has no ordering to follow, so insert instead scans level by level (like a queue) and places the value in the first open child slot, keeping the tree's shape complete.",
+  desc: treeDesc("insert"),
   time: "O(log n) for a BST/AVL average case, O(h) worst-case for a BST, O(log n) guaranteed for AVL",
   space: "O(h)",
   run(tree, { value, treeType, threadMode }) {

@@ -4,6 +4,7 @@ import { DP_GROUPS, DP_PROBLEMS } from "../algorithms/dp";
 import {
   MAX_AMOUNT,
   MAX_CAPACITY,
+  MAX_OBST_KEYS,
   MAX_SEQUENCE,
   MAX_STRING,
 } from "../algorithms/dp/helpers.js";
@@ -34,6 +35,18 @@ const FIELDS = {
     type: "text",
     placeholder: "30, 35, 15, 5, 10, 20",
     hint: "n+1 numbers describe n matrices",
+  },
+  keys: {
+    label: "KEYS, IN SORTED ORDER",
+    type: "text",
+    placeholder: "do, if, int, while",
+    hint: `up to ${MAX_OBST_KEYS}; the order given is the in-order walk`,
+  },
+  freqs: {
+    label: "LOOKUP FREQUENCIES",
+    type: "text",
+    placeholder: "5, 10, 3, 7",
+    hint: "one per key, in the same order",
   },
 };
 

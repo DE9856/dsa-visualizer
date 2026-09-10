@@ -48,6 +48,7 @@ export const MAX_COINS = 6;
 export const MAX_AMOUNT = 24;
 export const MAX_SEQUENCE = 14;
 export const MAX_MATRICES = 7;
+export const MAX_OBST_KEYS = 7;
 
 /** Displayed in place of a number too large to be a real answer. */
 export const INF = "∞";

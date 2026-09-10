@@ -18,9 +18,14 @@ export default defineConfig({
         // descriptions, and together they pushed the app chunk back over the
         // warning. They are pure logic with no components in them, so they
         // cache and invalidate independently of the UI.
+        //
+        // They are two chunks rather than one because together they crossed
+        // 500 kB as well, and they are the two halves that grow on their own
+        // schedules: a new sort touches one and a new structure the other.
         manualChunks: (id) => {
           if (id.includes("node_modules")) return "vendor";
-          if (id.includes("/src/algorithms/") || id.includes("/src/dataStructures/")) return "algorithms";
+          if (id.includes("/src/algorithms/")) return "algorithms";
+          if (id.includes("/src/dataStructures/")) return "structures";
           return undefined;
         },
       },
