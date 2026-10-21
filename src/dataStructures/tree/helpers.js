@@ -1,0 +1,384 @@
+import {
+  freeze as freezeBalanced,
+  randomPriority,
+  rbInsert,
+  splayInsert,
+  treapInsert,
+} from "./selfBalancing";
+
+const SELF_BALANCING_TYPES = ["redblack", "splay", "treap"];
+const isSelfBalancing = (treeType) => SELF_BALANCING_TYPES.includes(treeType);
+
+/** One silent insert into whichever of the three this is. */
+function buildSelfBalancing(root, value, treeType) {
+  const noop = () => {};
+  if (treeType === "redblack") return freezeBalanced(rbInsert(root, value, noop));
+  if (treeType === "splay") return freezeBalanced(splayInsert(root, value, noop));
+  return freezeBalanced(treapInsert(root, value, randomPriority(), noop));
+}
+
+let nodeCounter = 0;
+export function nextNodeId() {
+  nodeCounter += 1;
+  return `tn${nodeCounter}`;
+}
+
+// Spread rather than pick: a red-black node carries a colour and a treap node
+// a priority, and a clone that quietly dropped them would leave the tree
+// looking right and behaving wrongly.
+export function cloneNode(node) {
+  if (!node) return null;
+  return { ...node, left: cloneNode(node.left), right: cloneNode(node.right) };
+}
+
+export function cloneTree(tree) {
+  return { root: cloneNode(tree.root) };
+}
+
+export function findNodeById(node, id) {
+  if (!node) return null;
+  if (node.id === id) return node;
+  return findNodeById(node.left, id) || findNodeById(node.right, id);
+}
+
+// Leftmost node of a subtree — the inorder successor's target when deleting
+// a two-child node in a BST.
+export function findMinNode(node) {
+  let cur = node;
+  while (cur.left) cur = cur.left;
+  return cur;
+}
+
+export function treeSize(node) {
+  if (!node) return 0;
+  return 1 + treeSize(node.left) + treeSize(node.right);
+}
+
+// Height of an empty tree is defined as -1, a single node as 0 — the usual
+// convention so callers can print a sensible number either way.
+//
+// Memoized against the node object. Every AVL balance factor asks for two
+// heights and avlFixupTree asks for a balance factor at every node, so an
+// unmemoized O(n) height made a single insert O(n²) and building a tree
+// O(n³) — fine for the 30-node trees the canvas draws, hopeless for the
+// height-vs-n sweep in the comparison view. Caching is sound because nodes in
+// this codebase are immutable: every operation builds new nodes rather than
+// mutating the ones it was given, so a node's height can never change after
+// it exists. A WeakMap means a cached height dies with the tree it describes.
+const heightCache = new WeakMap();
+
+export function treeHeight(node) {
+  if (!node) return -1;
+  const cached = heightCache.get(node);
+  if (cached !== undefined) return cached;
+  const height = 1 + Math.max(treeHeight(node.left), treeHeight(node.right));
+  heightCache.set(node, height);
+  return height;
+}
+
+// Pure BST insert: returns a NEW tree with `value` inserted, sharing
+// untouched subtrees. Duplicate values are ignored (BSTs don't store them).
+export function bstInsertByValue(node, value, newId) {
+  if (!node) return { id: newId, value, left: null, right: null };
+  if (value < node.value) return { ...node, left: bstInsertByValue(node.left, value, newId) };
+  if (value > node.value) return { ...node, right: bstInsertByValue(node.right, value, newId) };
+  return node;
+}
+
+// Pure BST delete (standard three-case algorithm: leaf, one child, two
+// children via inorder successor). Returns a NEW tree.
+export function bstDeleteByValue(node, value) {
+  if (!node) return null;
+  if (value < node.value) return { ...node, left: bstDeleteByValue(node.left, value) };
+  if (value > node.value) return { ...node, right: bstDeleteByValue(node.right, value) };
+  if (!node.left) return node.right;
+  if (!node.right) return node.left;
+  const successor = findMinNode(node.right);
+  return { id: node.id, value: successor.value, left: node.left, right: bstDeleteByValue(node.right, successor.value) };
+}
+
+// Pure level-order insert for a plain (unordered) binary tree: places the
+// new node in the first open child slot, scanning level by level — keeps
+// the shape "complete", like a heap.
+export function levelOrderInsert(root, value, newId) {
+  const newNode = { id: newId, value, left: null, right: null };
+  if (!root) return newNode;
+  const clone = cloneNode(root);
+  const queue = [clone];
+  while (queue.length) {
+    const cur = queue.shift();
+    if (!cur.left) {
+      cur.left = newNode;
+      return clone;
+    }
+    queue.push(cur.left);
+    if (!cur.right) {
+      cur.right = newNode;
+      return clone;
+    }
+    queue.push(cur.right);
+  }
+  return clone;
+}
+
+// Deepest, rightmost node in level order — the node a plain binary tree
+// deletes from (after copying its value into the target being removed).
+export function lastLevelOrderNode(root) {
+  if (!root) return null;
+  let last = root;
+  const queue = [root];
+  while (queue.length) {
+    const node = queue.shift();
+    last = node;
+    if (node.left) queue.push(node.left);
+    if (node.right) queue.push(node.right);
+  }
+  return last;
+}
+
+function removeNodeById(node, id) {
+  if (!node) return null;
+  if (node.id === id) return null;
+  return { ...node, left: removeNodeById(node.left, id), right: removeNodeById(node.right, id) };
+}
+
+function replaceValueById(node, id, value) {
+  if (!node) return null;
+  if (node.id === id) return { ...node, value };
+  return { ...node, left: replaceValueById(node.left, id, value), right: replaceValueById(node.right, id, value) };
+}
+
+// Delete-by-value for a plain (unordered) binary tree: find the target by
+// scanning, swap its value with the last level-order node's value, then
+// drop that last node — mirrors the classic binary-heap deletion shape.
+export function plainDeleteByValue(root, value) {
+  if (!root) return root;
+  const findTarget = (node) => {
+    if (!node) return null;
+    if (node.value === value) return node;
+    return findTarget(node.left) || findTarget(node.right);
+  };
+  const target = findTarget(root);
+  if (!target) return root;
+  const last = lastLevelOrderNode(root);
+  if (target.id === last.id) return removeNodeById(root, last.id);
+  const withoutLast = removeNodeById(root, last.id);
+  return replaceValueById(withoutLast, target.id, last.value);
+}
+
+export function parseValueList(input) {
+  return input
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map(Number)
+    .filter((n) => !Number.isNaN(n))
+    .slice(0, 30);
+}
+
+// Every tree type except the plain binary tree obeys the BST ordering rule and
+// so shares its insert/delete/search walk — a threaded tree is a BST whose
+// spare null pointers happen to be spoken for.
+export function isOrderedTree(treeType) {
+  return (
+    treeType === "bst" ||
+    treeType === "avl" ||
+    treeType === "threaded" ||
+    treeType === "redblack" ||
+    treeType === "splay" ||
+    treeType === "treap"
+  );
+}
+
+/**
+ * Builds a tree of `treeType` from scratch. The self-balancing three go
+ * through their own insert so the result is a tree they could actually have
+ * produced — a red-black tree assembled by plain BST inserts would be
+ * mis-coloured, and a treap with no priorities is just a BST.
+ */
+export function buildTreeFromValues(values, treeType) {
+  let root = null;
+  values.forEach((v) => {
+    const id = nextNodeId();
+    if (isSelfBalancing(treeType)) {
+      root = buildSelfBalancing(root, v, treeType);
+      return;
+    }
+    if (treeType === "avl") root = avlInsertByValue(root, v, id);
+    else if (isOrderedTree(treeType)) root = bstInsertByValue(root, v, id);
+    else root = levelOrderInsert(root, v, id);
+  });
+  return { root };
+}
+
+export function randomTree(treeType) {
+  const count = 6 + Math.floor(Math.random() * 3);
+  const values = new Set();
+  while (values.size < count) values.add(1 + Math.floor(Math.random() * 90));
+  return buildTreeFromValues([...values], treeType);
+}
+
+// ---------------------------------------------------------------------
+// AVL helpers
+// ---------------------------------------------------------------------
+
+// height(left) - height(right). Outside [-1, 1] means the subtree needs a
+// rotation to restore the AVL invariant. Recomputed from scratch each call
+// (O(n)) rather than cached on the node — trees here are small (<30 nodes)
+// so the simplicity is worth the cost.
+export function avlBalanceFactor(node) {
+  if (!node) return 0;
+  return treeHeight(node.left) - treeHeight(node.right);
+}
+
+// Pure single rotations: operate on a node and return a new node. Each
+// node keeps its own id — only the parent/child wiring changes — so a
+// rotated node stays trackable across steps.
+function rotateRightNode(y) {
+  const x = y.left;
+  return { ...x, right: { ...y, left: x.right } };
+}
+
+function rotateLeftNode(x) {
+  const y = x.right;
+  return { ...y, left: { ...x, right: y.left } };
+}
+
+// Replaces the subtree rooted at `id` with `newSubtree`, wherever it is.
+function replaceSubtreeById(node, id, newSubtree) {
+  if (!node) return null;
+  if (node.id === id) return newSubtree;
+  return { ...node, left: replaceSubtreeById(node.left, id, newSubtree), right: replaceSubtreeById(node.right, id, newSubtree) };
+}
+
+// Whole-subtree post-order rebalance: fixes any node that violates the AVL
+// invariant. Applied to an already-valid AVL tree it's a no-op everywhere
+// except along the path that just changed, so it's a simple, always-correct
+// way to restore balance after a raw BST insert/delete.
+// `counts`, when given, is mutated with the number of single rotations
+// performed — a double rotation is two. The comparison view needs the number
+// and nothing else here does, so it is an optional out-parameter rather than
+// a change to what this returns.
+function avlFixupTree(node, counts) {
+  if (!node) return null;
+  const left = avlFixupTree(node.left, counts);
+  const right = avlFixupTree(node.right, counts);
+  let current = { ...node, left, right };
+  const bf = avlBalanceFactor(current);
+  if (bf > 1) {
+    if (avlBalanceFactor(current.left) < 0) {
+      current = { ...current, left: rotateLeftNode(current.left) };
+      if (counts) counts.rotations += 1;
+    }
+    if (counts) counts.rotations += 1;
+    return rotateRightNode(current);
+  }
+  if (bf < -1) {
+    if (avlBalanceFactor(current.right) > 0) {
+      current = { ...current, right: rotateRightNode(current.right) };
+      if (counts) counts.rotations += 1;
+    }
+    if (counts) counts.rotations += 1;
+    return rotateLeftNode(current);
+  }
+  return current;
+}
+
+export function avlInsertByValue(root, value, newId, counts) {
+  return avlFixupTree(bstInsertByValue(root, value, newId), counts);
+}
+
+// Step-generating rebalance: walks the given ancestor path bottom-up,
+// emitting one step per node it checks and extra steps for any rotation.
+// Only nodes on `path` can have changed height, so this is equivalent to
+// avlFixupTree but produces a readable, incremental animation.
+export function avlRebalanceWithSteps(rootAfterRawOp, path, steps) {
+  let currentRoot = rootAfterRawOp;
+  for (let i = path.length - 1; i >= 0; i -= 1) {
+    const id = path[i];
+    const node = findNodeById(currentRoot, id);
+    if (!node) continue;
+    const bf = avlBalanceFactor(node);
+    if (Math.abs(bf) <= 1) {
+      steps.push({ root: currentRoot, current: id, message: `Balance factor at ${node.value} is ${bf} — still balanced` });
+      continue;
+    }
+    let working = node;
+    if (bf > 1 && avlBalanceFactor(node.left) < 0) {
+      const rotatedChild = rotateLeftNode(node.left);
+      currentRoot = replaceSubtreeById(currentRoot, node.left.id, rotatedChild);
+      steps.push({ root: currentRoot, active: [rotatedChild.id], message: `Left-Right case at ${node.value} (balance ${bf}) — rotate ${node.left.value} left first` });
+      working = findNodeById(currentRoot, id);
+    } else if (bf < -1 && avlBalanceFactor(node.right) > 0) {
+      const rotatedChild = rotateRightNode(node.right);
+      currentRoot = replaceSubtreeById(currentRoot, node.right.id, rotatedChild);
+      steps.push({ root: currentRoot, active: [rotatedChild.id], message: `Right-Left case at ${node.value} (balance ${bf}) — rotate ${node.right.value} right first` });
+      working = findNodeById(currentRoot, id);
+    }
+    const rotated = bf > 1 ? rotateRightNode(working) : rotateLeftNode(working);
+    currentRoot = replaceSubtreeById(currentRoot, id, rotated);
+    steps.push({
+      root: currentRoot,
+      active: [rotated.id],
+      message: `${bf > 1 ? "Left heavy" : "Right heavy"} at ${node.value} (balance ${bf}) — rotate ${bf > 1 ? "right" : "left"}`,
+    });
+  }
+  return currentRoot;
+}
+
+/**
+ * Everything about one node that the drawing does not already say.
+ *
+ * The canvas shows shape and value; what it cannot show is where a node sits
+ * in the whole — how far down, how much hangs beneath it, and the invariant
+ * its tree type is actually maintaining. A red-black tree's rule is about
+ * black-height, and black-height is invisible: it is the one number that
+ * explains why the tree rotated when it did.
+ *
+ * Returns null when the id names nothing, so a stale selection after a delete
+ * simply shows nothing rather than throwing.
+ */
+export function describeNode(root, id, treeType) {
+  const node = findNodeById(root, id);
+  if (!node) return null;
+
+  // Depth and parent come from the walk down, since a node holds no upward
+  // pointer — the same reason every operation on a tree starts at the root.
+  let depth = 0;
+  let parent = null;
+  const walk = (cur, from, d) => {
+    if (!cur) return false;
+    if (cur.id === id) {
+      depth = d;
+      parent = from;
+      return true;
+    }
+    return walk(cur.left, cur, d + 1) || walk(cur.right, cur, d + 1);
+  };
+  walk(root, null, 0);
+
+  const facts = {
+    value: node.value,
+    depth,
+    height: treeHeight(node),
+    size: treeSize(node),
+    isRoot: parent === null,
+    isLeaf: !node.left && !node.right,
+    parent: parent ? parent.value : null,
+    left: node.left ? node.left.value : null,
+    right: node.right ? node.right.value : null,
+  };
+
+  if (treeType === "avl") facts.balance = avlBalanceFactor(node);
+  if (treeType === "treap" && node.priority !== undefined) facts.priority = node.priority;
+  if (treeType === "redblack" && node.color) {
+    facts.color = node.color === "R" ? "RED" : "BLACK";
+    // Black-height: black nodes on any path down to a leaf, not counting this
+    // one. Every path has the same count when the tree is legal, so taking
+    // the left spine is enough.
+    let blacks = 0;
+    for (let cur = node.left; cur; cur = cur.left) if (cur.color !== "R") blacks += 1;
+    facts.blackHeight = blacks;
+  }
+  return facts;
+}

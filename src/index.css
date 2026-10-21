@@ -1,0 +1,8810 @@
+/**
+ * The two typefaces, served from this origin rather than from Google Fonts.
+ * Self-hosting removes the only third party the app contacted — a webfont
+ * request tells its host the reader's IP address, browser and the page that
+ * asked — and makes the site work offline and behind a blocked font CDN.
+ *
+ * One file per family, not one per weight: both are *variable* fonts, so the
+ * whole 400-700 range the app uses comes out of a single woff2. Google serves
+ * exactly these files; the download is the same bytes, from here instead.
+ *
+ * The `latin` subset only, which is the one an English page pulls from Google
+ * today — so nothing that rendered before renders differently now. The few
+ * glyphs outside it (the arrows in the linked-list canvas) fell through to a
+ * system face before this change and still do.
+ */
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/fonts/jetbrains-mono-latin.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/fonts/ibm-plex-sans-latin.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/**
+ * Theming works on three independent axes, each a set of attributes on
+ * <html>, because they answer different questions and people need to combine
+ * the answers:
+ *
+ *   data-theme     light | dark        what surface am I reading on
+ *   data-contrast  high                how hard should the edges push
+ *   data-palette   safe                which hues encode algorithm state
+ *
+ * Only *primitives* are redefined per axis. Custom properties resolve where
+ * they are used, not where they are declared, so overriding `--ink-rgb` alone
+ * re-derives every border, panel fill and hairline in the app — which is why
+ * a light theme is a dozen lines rather than a second stylesheet.
+ *
+ * Colour carries the whole of the algorithm encoding here — compare, swap,
+ * sorted, pivot — so the state hues are named for what they *mean* rather
+ * than for what colour they are. A palette swap then re-points the meaning,
+ * and every view follows without knowing a palette exists. The glyphs in
+ * `stateStyle.js` ride alongside as a second, non-colour channel.
+ */
+:root {
+  color-scheme: dark;
+
+  /* ---- the hues, as bare channels so any alpha can be mixed from them ---- */
+  --primary-rgb: 255 138 61;
+  --blue-rgb: 79 184 224;
+  --green-rgb: 95 214 160;
+  --red-rgb: 255 107 107;
+  --purple-rgb: 177 140 255;
+  --yellow-rgb: 245 196 81;
+
+  /* Overlay ink: white over a dark surface, black over a light one. Every
+     hairline and translucent fill in the app is mixed from this, which is
+     what makes the light theme a change of one value rather than of two
+     hundred. */
+  --ink-rgb: 255 255 255;
+  --shadow-rgb: 0 0 0;
+
+  /* ---- surfaces ---- */
+  --bg: #0b0d12;
+  --surface-rgb: 23 26 34;
+  --overlay-rgb: 17 20 27;
+  --scrim-rgb: 6 7 10;
+  /* Translucent, so the warm and cool washes behind the app glow faintly
+     through every panel. */
+  --panel: rgb(var(--surface-rgb) / 0.72);
+  --panel-alt: rgb(var(--ink-rgb) / 0.035);
+  /* A neutral raised step, for the few places that mark a state without
+     claiming the accent (a toggled icon button such as sound or help). */
+  --active-fill: rgb(var(--ink-rgb) / 0.1);
+  --active-edge: rgb(var(--ink-rgb) / 0.16);
+  --border: rgb(var(--ink-rgb) / 0.08);
+  --border-strong: rgb(var(--ink-rgb) / 0.14);
+  --text: #edebe6;
+  --text-dim: #8b90a0;
+  /* Text that sits *on* a primary-filled button, which has to invert with
+     the theme or the label disappears into its own background. */
+  --on-primary: #14100b;
+
+  /* ---- derived hue colours (kept for everything that just wants a hue) -- */
+  --primary: rgb(var(--primary-rgb));
+  --primary-dim: rgb(var(--primary-rgb) / 0.16);
+  --blue: rgb(var(--blue-rgb));
+  --red: rgb(var(--red-rgb));
+  --green: rgb(var(--green-rgb));
+  --purple: rgb(var(--purple-rgb));
+  --yellow: rgb(var(--yellow-rgb));
+
+  /* ---- what the colours MEAN ------------------------------------------
+     These are the tokens the canvases read. A palette re-points them; it
+     never touches the components. */
+  --state-idle-rgb: var(--primary-rgb);
+  --state-compare-rgb: var(--blue-rgb);
+  --state-swap-rgb: var(--red-rgb);
+  --state-sorted-rgb: var(--green-rgb);
+  --state-pivot-rgb: var(--purple-rgb);
+  --state-probe-rgb: var(--primary-rgb);
+  --state-found-rgb: var(--green-rgb);
+  --state-muted-rgb: var(--ink-rgb);
+
+  /* Fill strengths, as bare numbers so high contrast can raise all of them
+     at once without every component knowing about contrast. */
+  --fill-soft: 0.14;
+  --fill-mid: 0.32;
+  --fill-strong: 0.5;
+  --glow-alpha: 0.35;
+  --stroke-width: 1.5px;
+
+  /* Duration of step-driven animations. App.jsx overrides it from the current
+     playback speed so fast runs snap instead of smearing into each other. */
+  --step-anim: 240ms;
+
+  /* ---- interface motion (not the run's) ----
+     The built-in keywords are too soft to read as a response: these start
+     fast, so a press or an opening menu answers on its first frame. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur-press: 140ms;
+  --dur-ui: 160ms;
+  --dur-overlay: 200ms;
+  /* The one set of properties a control transitions. `all` would also
+     animate layout the moment anything about the control changes. */
+  --control-transition: color var(--dur-ui) ease, background-color var(--dur-ui) ease,
+    border-color var(--dur-ui) ease, box-shadow var(--dur-ui) ease,
+    transform var(--dur-press) var(--ease-out);
+}
+
+/* ---------- light ---------- */
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --ink-rgb: 0 0 0;
+  --shadow-rgb: 90 100 120;
+
+  --bg: #f2f3f6;
+  --surface-rgb: 255 255 255;
+  --overlay-rgb: 255 255 255;
+  --scrim-rgb: 22 26 34;
+  --panel: rgb(var(--surface-rgb) / 0.92);
+  --panel-alt: rgb(var(--ink-rgb) / 0.045);
+  --active-fill: rgb(var(--ink-rgb) / 0.08);
+  --active-edge: rgb(var(--ink-rgb) / 0.14);
+  --border: rgb(var(--ink-rgb) / 0.12);
+  --border-strong: rgb(var(--ink-rgb) / 0.24);
+  --text: #14171d;
+  --text-dim: #596070;
+  --on-primary: #ffffff;
+  /* A 16% tint of the accent reads as a gentle wash on near-black and as a
+     solid block on white — heavy enough that accent-coloured text sitting on
+     it drops under 4.5:1. The two move together because both are the accent,
+     so the tint is what has to give. */
+  --primary-dim: rgb(var(--primary-rgb) / 0.1);
+
+  /* The hues themselves are the palettes' business — see below. The dark
+     set is tuned to glow on near-black and washes out to pastel on white, so
+     each palette carries a darkened light variant rather than being dimmed.
+
+     Ink over a light surface is nearly black, which would make a dimmed
+     element the loudest thing on screen. */
+  --state-muted-rgb: 130 138 155;
+
+  --glow-alpha: 0.22;
+}
+
+/* ---------- palettes ---------- */
+
+/* The hues live in attribute-scoped blocks rather than only on :root so a
+   palette can be applied to a *subtree* — which is what lets the appearance
+   menu show real swatches of the palette you are not currently using. The
+   default block repeats the values in :root above for that reason: without
+   it, a "default" preview sitting inside a safe-palette page would inherit
+   the safe hues and show you the wrong thing. */
+
+[data-palette="default"] {
+  --primary-rgb: 255 138 61;
+  --blue-rgb: 79 184 224;
+  --green-rgb: 95 214 160;
+  --red-rgb: 255 107 107;
+  --purple-rgb: 177 140 255;
+  --yellow-rgb: 245 196 81;
+
+  --state-idle-rgb: var(--primary-rgb);
+  --state-probe-rgb: var(--primary-rgb);
+  --state-found-rgb: var(--green-rgb);
+}
+
+/* Okabe-Ito supplies the hues, but the *state* colours below are not simply
+   six entries taken off that list. Six categories is past what hue alone can
+   separate under dichromacy, so these were chosen by measurement: each
+   candidate set was simulated for protanopia, deuteranopia and tritanopia and
+   scored on its weakest pair, with a floor on contrast against the surface.
+   Straight Okabe-Ito assignments scored 3.8 at worst — idle collapsing onto
+   pivot under protanopia, which is worse than the palette it replaces. These
+   score 19.4 here and 9.2 in the hardest combination (light, high contrast),
+   where every colour must be dark enough to hold contrast on white and the
+   lightness range there is nearly spent.
+
+   Tritanopia is the binding constraint throughout and is left binding on
+   purpose: it is vanishingly rare next to the red-green deficiencies, and the
+   glyphs carry the meaning when the hue cannot. */
+[data-palette="safe"] {
+  --primary-rgb: 230 159 0;
+  --blue-rgb: 86 180 233;
+  --green-rgb: 0 158 115;
+  --red-rgb: 213 94 0;
+  --purple-rgb: 204 121 167;
+  --yellow-rgb: 240 228 66;
+
+  --state-idle-rgb: 118 128 150;
+  --state-compare-rgb: 86 180 233;
+  --state-swap-rgb: 213 94 0;
+  --state-sorted-rgb: 0 140 102;
+  --state-pivot-rgb: 240 168 208;
+  --state-probe-rgb: 230 159 0;
+  --state-found-rgb: 0 114 178;
+}
+
+/* On a light surface the same hues have to darken to keep their contrast.
+   The descendant form is what makes the menu's swatches correct inside a
+   light page; the compound form is the page itself. */
+:root[data-theme="light"] [data-palette="default"],
+:root[data-theme="light"][data-palette="default"] {
+  --primary-rgb: 176 72 4;
+  --blue-rgb: 20 110 152;
+  --green-rgb: 12 126 85;
+  --red-rgb: 193 42 42;
+  --purple-rgb: 106 62 190;
+  --yellow-rgb: 140 98 6;
+}
+
+:root[data-theme="light"] [data-palette="safe"],
+:root[data-theme="light"][data-palette="safe"] {
+  --primary-rgb: 168 116 0;
+  --blue-rgb: 21 105 143;
+  --green-rgb: 0 110 80;
+  --red-rgb: 170 75 0;
+  --purple-rgb: 150 68 114;
+  --yellow-rgb: 133 112 0;
+
+  --state-idle-rgb: 130 140 160;
+  --state-compare-rgb: 30 120 160;
+  --state-swap-rgb: 170 75 0;
+  --state-sorted-rgb: 0 92 66;
+  --state-pivot-rgb: 150 68 114;
+  --state-probe-rgb: 168 116 0;
+  --state-found-rgb: 0 87 136;
+}
+
+/* ---------- high contrast ---------- */
+
+/* A modifier rather than a third theme, so there is a light high-contrast as
+   well as a dark one. It pushes the things contrast actually lives in —
+   hairlines, dimmed text, fill strength and stroke weight — instead of only
+   swapping the background. */
+:root[data-contrast="high"] {
+  --panel-alt: rgb(var(--ink-rgb) / 0.1);
+  --border: rgb(var(--ink-rgb) / 0.45);
+  --border-strong: rgb(var(--ink-rgb) / 0.8);
+  --fill-soft: 0.26;
+  --fill-mid: 0.5;
+  --fill-strong: 0.72;
+  --glow-alpha: 0;
+  --stroke-width: 2px;
+}
+
+/* The hue overrides are scoped per palette. An unscoped block here would set
+   the default hues on top of whatever palette was chosen, so turning high
+   contrast on while using the colour-blind-safe palette silently threw that
+   palette away — the two settings are meant to compose, not to fight. Each
+   variant below raises luminance against its surface while keeping the hue
+   angle the palette picked. */
+
+:root[data-contrast="high"]:not([data-theme="light"]) {
+  --bg: #000000;
+  --surface-rgb: 12 14 19;
+  --text: #ffffff;
+  --text-dim: #c6cbd8;
+}
+
+:root[data-contrast="high"]:not([data-theme="light"])[data-palette="default"] {
+  --primary-rgb: 255 166 92;
+  --blue-rgb: 122 205 240;
+  --green-rgb: 116 232 176;
+  --red-rgb: 255 140 140;
+  --purple-rgb: 198 170 255;
+  --yellow-rgb: 255 214 105;
+}
+
+:root[data-contrast="high"]:not([data-theme="light"])[data-palette="safe"] {
+  --primary-rgb: 255 188 41;
+  --blue-rgb: 130 209 247;
+  --green-rgb: 26 205 154;
+  --red-rgb: 255 122 36;
+  --purple-rgb: 240 158 202;
+  --yellow-rgb: 245 236 120;
+
+  --state-idle-rgb: 150 160 182;
+  --state-compare-rgb: 130 209 247;
+  --state-swap-rgb: 255 122 36;
+  --state-sorted-rgb: 0 186 138;
+  --state-pivot-rgb: 247 186 222;
+  --state-probe-rgb: 255 188 41;
+  --state-found-rgb: 90 170 226;
+}
+
+:root[data-contrast="high"][data-theme="light"] {
+  --bg: #ffffff;
+  --surface-rgb: 255 255 255;
+  --text: #000000;
+  --text-dim: #2c313c;
+}
+
+:root[data-contrast="high"][data-theme="light"][data-palette="default"] {
+  --primary-rgb: 160 62 0;
+  --blue-rgb: 12 84 120;
+  --green-rgb: 0 94 62;
+  --red-rgb: 160 20 20;
+  --purple-rgb: 82 40 160;
+  --yellow-rgb: 110 76 0;
+}
+
+:root[data-contrast="high"][data-theme="light"][data-palette="safe"] {
+  --primary-rgb: 132 90 0;
+  --blue-rgb: 13 79 110;
+  --green-rgb: 0 86 62;
+  --red-rgb: 138 58 0;
+  --purple-rgb: 120 48 90;
+  --yellow-rgb: 104 88 0;
+
+  --state-idle-rgb: 96 106 128;
+  --state-compare-rgb: 20 100 140;
+  --state-swap-rgb: 138 58 0;
+  --state-sorted-rgb: 0 70 50;
+  --state-pivot-rgb: 132 54 100;
+  --state-probe-rgb: 132 90 0;
+  --state-found-rgb: 0 68 108;
+}
+
+/* Glows are decoration that costs contrast; high contrast drops them
+   outright rather than trying to make them work. */
+:root[data-contrast="high"] .panel {
+  border-color: var(--border);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "IBM Plex Sans", sans-serif;
+  /* Keeps text edges crisp while panels animate over the gradient backdrop. */
+  -webkit-font-smoothing: antialiased;
+  /* Every figure in the app changes as a run plays: counters, values, step
+     numbers. Fixed-width digits keep them from jittering as they count. */
+  font-variant-numeric: tabular-nums;
+  /* A phone must never be able to scroll sideways: every wide element
+     (matrices, trees) gets its own scroll container instead. */
+  overflow-x: hidden;
+  /* Stops iOS from inflating text when the device is turned to landscape. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* The parts of the page the browser draws itself, themed from the palette so
+   a selection or a scrollbar doesn't arrive in the OS's own blue and grey. */
+::selection {
+  background: rgb(var(--primary-rgb) / 0.32);
+  color: var(--text);
+}
+
+input,
+textarea {
+  caret-color: var(--primary);
+}
+
+html {
+  scrollbar-color: rgb(var(--ink-rgb) / 0.22) transparent;
+}
+
+* {
+  scrollbar-width: thin;
+}
+
+/* Grey flash on tap looks broken next to the app's own :active states. */
+button,
+a,
+summary {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* A single, consistent keyboard focus ring — nothing was focusable-looking
+   before, which made the app unusable without a mouse. */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Respect the OS "reduce motion" setting: keep the app usable, drop the
+   decorative movement. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.mono {
+  font-family: "JetBrains Mono", monospace;
+}
+
+/* ---------- layout ---------- */
+
+.app {
+  min-height: 100vh;
+  /* Dynamic viewport units account for the mobile URL bar sliding away. */
+  min-height: 100dvh;
+  padding: 18px 24px 24px;
+  background:
+    radial-gradient(circle at 15% -10%, rgb(var(--primary-rgb) / 0.10), transparent 45%),
+    radial-gradient(circle at 85% 0%, rgb(var(--blue-rgb) / 0.08), transparent 40%),
+    radial-gradient(circle at 50% 110%, rgb(var(--purple-rgb) / 0.06), transparent 45%),
+    var(--bg);
+}
+
+/* The title on the left, every category beside it. Eight of them do not fit
+   on one line next to the title, so the strip wraps to a second — every
+   category stays visible and reachable, which a scrolling strip could not
+   promise. SHARE is not here at all; it sits in the canvas's top-right corner,
+   which is what keeps this to two rows rather than three. */
+.topbar {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.topbar__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  /* Matches a single row of pills, so the title sits on the first line rather
+     than floating against the top of a two-line nav. */
+  height: 34px;
+  padding-right: 14px;
+  margin-right: 2px;
+  border-right: 1px solid var(--border);
+}
+
+/* Between the phone layout and a wide window, the wordmark beside the tabs
+   took a quarter of every row, and the eleven categories wrapped to four or
+   five lines. Given the full width under the wordmark, they take two or three. */
+@media (min-width: 761px) and (max-width: 1100px) {
+  .topbar {
+    flex-wrap: wrap;
+  }
+
+  .topbar__tabs {
+    flex-basis: 100%;
+    order: 3;
+  }
+
+  .topbar__title {
+    border-right: none;
+  }
+}
+
+.topbar__wordmark {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.topbar__home {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  /* The hit area grows past the text without moving it. */
+  padding: 6px 8px;
+  margin: -6px -8px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+button.topbar__home {
+  cursor: pointer;
+  transition: background-color var(--dur-ui) ease;
+}
+
+button.topbar__home:hover {
+  background: var(--panel-alt);
+}
+
+.topbar__mark {
+  color: var(--primary);
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 8px rgb(var(--primary-rgb) / 0.6));
+}
+
+/* No container of its own. A bubble drawn around the categories has to be as
+   wide as the widest line, which on two rows leaves a large empty box beside
+   the short one; the categories read better as a plain row against the page. */
+.topbar__tabs {
+  display: flex;
+  column-gap: 4px;
+  row-gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.topbar__dropdown {
+  flex-shrink: 0;
+}
+
+/* Qualified by the strip on purpose: `.btn` is defined further down this file
+   and would otherwise win on source order at equal specificity, leaving every
+   rule here dead. */
+.topbar__tabs .topbar__category {
+  gap: 7px;
+  white-space: nowrap;
+  background: none;
+  padding: 7px 12px;
+  letter-spacing: 0.02em;
+}
+
+.topbar__tabs .topbar__category:hover:not(.active) {
+  background: var(--panel-alt);
+  color: var(--text);
+}
+
+/* The one that is open keeps the filled treatment, so it reads as the current
+   place rather than as one more button. */
+.topbar__tabs .topbar__category.active {
+  color: var(--on-primary);
+  background: var(--primary);
+  box-shadow: 0 0 14px rgb(var(--primary-rgb) / 0.28);
+}
+
+.topbar__category-sub {
+  color: inherit;
+  opacity: 0.75;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.topbar__chevron {
+  transition: transform 0.15s ease;
+  opacity: 0.7;
+}
+
+.topbar__chevron.open {
+  transform: rotate(180deg);
+}
+
+/* Fixed, with coordinates from the trigger's rect: the tab strip scrolls, and
+   an overflow ancestor clips absolutely-positioned children on both axes. */
+.topbar__menu {
+  position: fixed;
+  /* fallback so a menu never pushes the page sideways */
+  max-width: calc(100vw - 32px);
+  min-width: 180px;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 1px 0 rgb(var(--ink-rgb) / 0.03) inset, 0 14px 32px rgb(var(--shadow-rgb) / 0.4);
+  padding: 6px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* Grows out of the tab that opened it: the menu hangs from its top-left
+     corner, so that is where it scales from. */
+  transform-origin: top left;
+  animation: menu-in var(--dur-overlay) var(--ease-out) both;
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+}
+
+.topbar__menu-item {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color var(--dur-ui) ease, background-color var(--dur-ui) ease;
+  /* rendered as a <button> so it is reachable by keyboard */
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+}
+
+.topbar__menu-item:hover {
+  color: var(--text);
+  background: rgb(var(--ink-rgb) / 0.06);
+}
+
+.topbar__menu-item.active {
+  color: var(--on-primary);
+  background: var(--primary);
+}
+
+.layout {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    flex-direction: column;
+    /* Without this the flex-start alignment above shrinks the stacked
+       columns to their content width instead of filling the screen. */
+    align-items: stretch;
+  }
+
+  /* Stacked, the visualization goes first — otherwise the sidebar pushes
+     the thing you came to watch below the fold. (On a phone the sidebar
+     leaves the flow entirely; this covers large phones in landscape and
+     small tablets, where the two columns simply stack.) */
+  .layout > .main-col {
+    order: -1;
+  }
+}
+
+.main-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+  position: relative;
+  /* How much of the first panel's top-right corner the floating EXPORT and
+     SHARE cluster occupies. A canvas header that runs the full width of the
+     panel keeps out of it; most headers are centred or left-aligned and never
+     come close. (It was 96px from when SHARE stood alone, which let the hash
+     table's load bar and the expression input run under EXPORT.) */
+  --share-safe: 196px;
+  /* And how far down it reaches. Content that scrolls sideways cannot dodge
+     the button by reserving a right-hand strip — scrolling would carry it
+     underneath anyway — so it clears the button vertically instead. */
+  --share-clear: 30px;
+}
+
+/* Sits in the first panel's top-right corner rather than taking a row of its
+   own. Every canvas keeps that corner clear — notes and headings run from the
+   left — and the button is opaque, so it reads as part of the panel's chrome.
+   The wrapper is what gets positioned: ShareButton's own class prop lands on
+   the inner <button>, and its `.share` wrapper is `position: relative` for the
+   copy-by-hand fallback that drops out of it. */
+.main-col__share {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 5;
+  display: flex;
+  gap: 6px;
+}
+
+.main-col__share .btn {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  /* Opaque rather than the usual 3.5%-white button fill: this one floats over
+     whatever the canvas is drawing, so it has to stay legible on top of it. */
+  background: var(--panel);
+}
+
+/* ---------- shared panel / button ---------- */
+
+/* No backdrop-filter here on purpose. .panel is the canvas and the sidebar —
+   the two largest elements on the page — and everything behind them is a static
+   gradient, so blurring it is invisible. It is not free, though: a backdrop
+   filter forces the compositor to re-blur that region on every frame the panel
+   or its contents change, which is every step of every animation. Blur is kept
+   for the overlays (menus, the mobile sheet, the action bar) where it sits over
+   real content and actually reads. */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 1px 0 rgb(var(--ink-rgb) / 0.03) inset, 0 10px 30px rgb(var(--shadow-rgb) / 0.25);
+}
+
+.btn {
+  font-family: "JetBrains Mono", monospace;
+  border: 1px solid transparent;
+  background: var(--panel-alt);
+  color: var(--text-dim);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: var(--control-transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn:hover:not(:disabled) {
+  color: var(--text);
+  background: rgb(var(--ink-rgb) / 0.07);
+}
+
+/* Scale rather than nudge: the whole control answers the press, label and
+   icon together, and it reads the same on a pill and on a square. */
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Legible, and visibly off: 35% opacity made a disabled label unreadable,
+   which hid what the control would do once it was available. */
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* A chosen option, filled with the accent. Pinned through hover so the
+   general hover fill doesn't wash out the choice under the pointer. */
+.btn.active,
+.btn.active:hover:not(:disabled) {
+  color: var(--on-primary);
+  background: var(--primary);
+  border-color: transparent;
+  box-shadow: 0 0 16px rgb(var(--primary-rgb) / 0.4);
+}
+
+/* The control in a panel that starts a run: the same fill, set heavier. */
+.btn.active[type="submit"] {
+  color: var(--on-primary);
+  background: var(--primary);
+  border-color: transparent;
+  font-weight: 600;
+}
+
+.btn.active[type="submit"]:hover:not(:disabled) {
+  color: var(--on-primary);
+  background: rgb(var(--primary-rgb) / 0.88);
+}
+
+/* Something finished: a link copied, code on the clipboard. Green, because
+   it reports a result rather than a choice, and the tick arrives with a
+   small scale so the change registers even out of the corner of an eye. */
+.btn.is-done,
+.btn.is-done:hover:not(:disabled) {
+  color: var(--green);
+  background: rgb(var(--green-rgb) / 0.1);
+  border-color: rgb(var(--green-rgb) / 0.4);
+}
+
+.btn.is-done svg {
+  animation: done-in var(--dur-overlay) var(--ease-out) both;
+}
+
+@keyframes done-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+.btn.icon {
+  padding: 9px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.btn.accent {
+  border: 1px solid rgb(var(--primary-rgb) / 0.4);
+  color: var(--primary);
+  border-radius: 10px;
+}
+
+.btn.accent.is-ready,
+.btn.accent.is-ready:hover:not(:disabled) {
+  color: var(--on-primary);
+  background: var(--primary);
+  border-color: transparent;
+}
+
+.btn--block {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.btn--block-flat {
+  width: 100%;
+}
+
+.btn--tight {
+  margin-top: 6px;
+}
+
+input[type="range"] {
+  accent-color: var(--primary);
+  width: 100%;
+}
+
+.text-input {
+  font-family: "JetBrains Mono", monospace;
+  width: 100%;
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  color: var(--text);
+  transition: border-color var(--dur-ui) ease, box-shadow var(--dur-ui) ease;
+}
+
+.text-input::placeholder {
+  color: var(--text-dim);
+  opacity: 0.8;
+}
+
+/* A ring as well as the border colour: a 1px hue change alone is easy to
+   miss on a projector, which is exactly where someone is typing live. */
+.text-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgb(var(--primary-rgb) / 0.18);
+}
+
+.textarea-input {
+  resize: vertical;
+  line-height: 1.5;
+  min-height: 44px;
+}
+
+.build-error {
+  font-size: 11px;
+  color: var(--red);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.label {
+  display: block;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+/* ---------- sidebar ---------- */
+
+.sidebar {
+  padding: 16px;
+  width: 232px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    width: 100%;
+  }
+}
+
+.type-toggle {
+  display: flex;
+  gap: 4px;
+}
+
+.type-toggle .btn {
+  flex: 1;
+  padding: 6px 4px;
+  font-size: 11px;
+  border-radius: 8px;
+}
+
+/* Three long labels (SEPARATE CHAINING, LINEAR, QUADRATIC) don't survive
+   being squeezed onto one row at sidebar width. */
+.type-toggle--stacked {
+  flex-direction: column;
+  gap: 5px;
+}
+
+.type-toggle--stacked .btn {
+  padding: 9px 8px;
+}
+
+/* Four tree types are one label too many for a single row, so they wrap into
+   a 2x2 grid rather than shrinking to an unreadable width. */
+.type-toggle--grid {
+  flex-wrap: wrap;
+}
+
+.type-toggle--grid .btn {
+  flex: 1 1 calc(50% - 4px);
+}
+
+.sidebar__hint {
+  margin-top: 8px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.algo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.algo-group {
+  margin-bottom: 4px;
+}
+
+.algo-group__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 8px 10px;
+  border-radius: 6px;
+  user-select: none;
+  transition: background 0.15s ease;
+  /* rendered as a <button> so it is reachable by keyboard */
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+}
+
+.algo-group__header:hover {
+  background: rgb(var(--ink-rgb) / 0.04);
+}
+
+.algo-group__header:hover .algo-group__label {
+  color: var(--text);
+}
+
+.algo-group__header svg {
+  color: var(--text-dim);
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+/* A group heading in the sidebar. It was 9.5px at 80% opacity — smaller and
+   fainter than the rows it heads, which read upside down. */
+.algo-group__label {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+.algo-group__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 4px;
+}
+
+/* Names of things are set in the text face; JetBrains Mono is kept for what
+   the instrument measures and for the controls that drive it. */
+.algo-row {
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 14px;
+  color: var(--text-dim);
+  padding: 7px 10px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: color var(--dur-ui) ease, background-color var(--dur-ui) ease;
+  /* rendered as a <button> so it is reachable by keyboard */
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+}
+
+.algo-row:hover {
+  color: var(--text);
+  background: rgb(var(--ink-rgb) / 0.05);
+}
+
+.algo-row.active,
+.algo-row.active:hover {
+  color: var(--primary);
+  font-weight: 500;
+  background: var(--primary-dim);
+}
+
+.sidebar__section {
+  margin: 22px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.target-value {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 28px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--primary);
+  padding: 6px 0;
+}
+
+.target-row {
+  display: flex;
+  gap: 6px;
+}
+
+.target-row .btn {
+  flex: 1;
+  border-radius: 8px;
+}
+
+/* ---------- canvas ---------- */
+
+/* A column so the band ruler and the auxiliary row take their height off the
+   bars rather than pushing them out of a fixed-height panel. */
+.canvas {
+  height: 340px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.canvas__note {
+  /* A sentence of help, so it is set as one: the text face, no tracking. */
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+  /* EXPORT and SHARE float over this row from the panel's top-right corner,
+     so the note has to stop before them or its last words are read through a
+     button. Reserved rather than measured: the cluster's width is fixed by
+     two labels that do not change, and a note long enough to reach it simply
+     wraps a line earlier. */
+  padding-right: 190px;
+}
+
+@media (max-width: 760px) {
+  /* The share cluster is desktop-only — a phone gets these in the nav sheet —
+     so the note takes the full width back rather than wrapping around a gap
+     with nothing in it. */
+  .canvas__note {
+    padding-right: 0;
+  }
+}
+
+.bars {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  position: relative;
+  /* Room above the bars for the state glyph and, stacked over it, the value
+     label. Both hang outside the bar because a short bar has no room inside
+     it, and the marker on a two-pixel bar is exactly the one you need to
+     see. */
+  padding-top: 38px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.bar {
+  flex: 1;
+  min-width: 2px;
+  border-radius: 4px 4px 2px 2px;
+  position: relative;
+  transition: height var(--step-anim) cubic-bezier(0.4, 0, 0.2, 1),
+    background-color var(--step-anim) ease, transform var(--step-anim) ease,
+    border-color var(--step-anim) ease, box-shadow var(--step-anim) ease;
+}
+
+.bar.swap {
+  transform: scaleY(1.02) translateY(-2px);
+}
+
+/* Outside the subrange the current recursive call owns. Faded rather than
+   recoloured, so a sorted or pivot bar keeps its meaning. */
+.bar--outside {
+  opacity: 0.25;
+}
+
+.bar--outside .bar__value {
+  opacity: 0;
+}
+
+/* ---------- region ruler & auxiliary array ---------- */
+
+/* Segments line up with the bars above because both are flex rows over the
+   same indices: a band spanning k indices grows k times as much as one
+   spanning one. */
+.bands {
+  display: flex;
+  gap: 3px;
+  height: 18px;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+.band {
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  min-width: 0;
+  transition: flex-grow var(--step-anim) ease, background-color var(--step-anim) ease;
+}
+
+.band__label {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: var(--text);
+  opacity: 0.85;
+}
+
+.band--gap {
+  background: transparent;
+}
+
+.band--lt,
+.band--runA,
+.band--desc {
+  background: rgb(var(--blue-rgb) / 0.22);
+}
+
+.band--eq,
+.band--ins {
+  background: rgb(var(--green-rgb) / 0.24);
+}
+
+.band--gt,
+.band--runB,
+.band--heap {
+  background: rgb(var(--purple-rgb) / 0.24);
+}
+
+.band--asc,
+.band--merge,
+.band--quick {
+  background: rgb(var(--primary-rgb) / 0.22);
+}
+
+.band--bucket,
+.band--extend {
+  background: rgb(var(--yellow-rgb) / 0.2);
+}
+
+/* The unexamined middle of a Dutch-flag partition — deliberately the quietest
+   band, since it is the one that is about to disappear. */
+.band--unseen {
+  background: rgb(var(--ink-rgb) / 0.05);
+}
+
+.aux {
+  margin-top: 8px;
+  flex-shrink: 0;
+  min-height: 0;
+}
+
+.aux__label {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+/* A counting sort over a wide value range needs one cell per value, which can
+   be far more cells than bars — so this scrolls itself rather than the page. */
+.aux__cells {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.aux__cell {
+  flex: 1 0 auto;
+  min-width: 20px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--panel-alt);
+  padding: 2px 3px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: "JetBrains Mono", monospace;
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease;
+}
+
+.aux__cell--active {
+  border-color: var(--primary);
+  background: rgb(var(--primary-rgb) / 0.18);
+}
+
+.aux__cell-key {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.aux__cell-value {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.bar__value {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* The non-colour half of the state encoding. Sized and weighted to stay a
+   readable silhouette at the width of a single bar. */
+.bar__state {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 700;
+  position: absolute;
+  top: -19px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* The value label steps up to make room rather than overlapping the glyph. */
+.bar--marked .bar__value {
+  top: -34px;
+}
+
+.bar--outside .bar__state {
+  opacity: 0;
+}
+
+.bar__pointer {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Without this the glyphs are decoration: a second channel is only a channel
+   if it is documented on screen. */
+.canvas__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 10px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.canvas__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.canvas__legend-glyph {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Solid rather than outlined: the chip is here to show the fill a bar of
+   this state actually gets, and a hairline outline of the same colour reads
+   as an empty box at this size. */
+.canvas__legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.not-found {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  text-align: center;
+  margin-top: 10px;
+  color: var(--red);
+}
+
+/* ---------- recursion tree ---------- */
+
+.recursion {
+  padding: 14px 20px 16px;
+}
+
+.recursion__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.recursion__head .canvas__note {
+  margin-bottom: 0;
+}
+
+.recursion__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  /* A degenerate quicksort can recurse as deep as the array is long; let it
+     scroll rather than pushing the transport bar off screen. */
+  max-height: 210px;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+/* One row per depth. Calls are positioned by percentage, so the tree lines
+   up with the bars above it at any width. */
+.recursion__row {
+  position: relative;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.recursion__call {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 4px;
+  border: 1px solid var(--border-strong);
+  background: rgb(var(--ink-rgb) / 0.04);
+  transition: background-color var(--step-anim) ease, border-color var(--step-anim) ease,
+    opacity var(--step-anim) ease;
+}
+
+/* The call whose frame is on screen. */
+.recursion__call.is-active {
+  border-color: var(--primary);
+  background: rgb(var(--primary-rgb) / 0.28);
+  box-shadow: 0 0 10px rgb(var(--primary-rgb) / var(--glow-alpha));
+}
+
+/* Its ancestors — the rest of the live call stack. */
+.recursion__call.is-ancestor {
+  border-color: rgb(var(--primary-rgb) / 0.45);
+  background: var(--primary-dim);
+}
+
+.recursion__label {
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.recursion__call.is-active .recursion__label {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ---------- controls ---------- */
+
+.controls {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.controls__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+}
+
+.controls__transport {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.controls__speed {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 160px;
+  cursor: pointer;
+}
+
+.controls__speed .label {
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+.controls__rate {
+  min-width: 42px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.controls__step {
+  white-space: nowrap;
+}
+
+.controls__help-btn {
+  /* Pushed to the end when the row has slack, and never shrunk when it does
+     not — an icon button that loses width becomes an unhittable sliver. */
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* A rule between the run's controls and the two that are about the page
+   rather than the run. Without it the volume slider and the shortcuts button
+   read as one cluster, which is what made them look jammed together even
+   before the slider was overrunning its box. */
+.controls__sound + .controls__help-btn,
+.controls__sound {
+  position: relative;
+}
+
+.controls__sound::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+}
+
+/* ---------- timeline scrubber ---------- */
+
+.timeline {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.timeline__range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 18px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.timeline__range:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.timeline__range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient( /* taste-skill-ignore: hard-stop progress fill, not a blend */
+    to right,
+    var(--primary) 0%,
+    var(--primary) var(--progress, 0%),
+    rgb(var(--ink-rgb) / 0.08) var(--progress, 0%),
+    rgb(var(--ink-rgb) / 0.08) 100%
+  );
+}
+
+.timeline__range::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgb(var(--ink-rgb) / 0.08);
+}
+
+.timeline__range::-moz-range-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--primary);
+}
+
+.timeline__range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -4px;
+  border-radius: 999px;
+  background: var(--text);
+  border: 2px solid var(--primary);
+  box-shadow: 0 0 10px rgb(var(--primary-rgb) / 0.5);
+  transition: transform 0.12s ease;
+}
+
+.timeline__range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--text);
+  border: 2px solid var(--primary);
+  box-shadow: 0 0 10px rgb(var(--primary-rgb) / 0.5);
+}
+
+.timeline__range:hover::-webkit-slider-thumb,
+.timeline__range:active::-webkit-slider-thumb {
+  transform: scale(1.18);
+}
+
+/* ---------- shortcut help ---------- */
+
+.controls__help {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  animation: help-in var(--dur-overlay) var(--ease-out) both;
+}
+
+@keyframes help-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.controls__help-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.controls__help-item kbd {
+  font-size: 11px;
+  color: var(--text);
+  background: var(--panel-alt);
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  padding: 3px 7px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 62px;
+  text-align: center;
+}
+
+.lcd {
+  font-family: "JetBrains Mono", monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.lcd strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.metrics {
+  display: flex;
+  gap: 18px;
+}
+
+/* ---------- info panel ---------- */
+
+.info {
+  padding: 18px;
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.info__summary {
+  flex: 1;
+  min-width: 240px;
+}
+
+.info__title {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--primary);
+  margin: 0 0 8px;
+}
+
+.info__desc {
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.info__complexity {
+  display: flex;
+  gap: 18px;
+  margin-top: 14px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  flex-wrap: wrap;
+}
+
+.info__complexity span {
+  color: var(--text-dim);
+}
+
+.info__code {
+  flex: 1;
+  min-width: 220px;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.info__code-line {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--text-dim);
+  white-space: pre;
+  /* Bled past the panel padding so the active row reads as a full-width
+     band rather than a box around the text. */
+  margin: 0 -8px;
+  padding: 1px 8px 1px 6px;
+  border-left: 2px solid transparent;
+  border-radius: 4px;
+  transition: color var(--step-anim) ease, background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease;
+}
+
+/* The line the current step is executing. */
+.info__code-line.is-active {
+  color: var(--text);
+  background: var(--primary-dim);
+  border-left-color: var(--primary);
+}
+
+/* ---------- source panel (pseudocode + real implementations) ---------- */
+
+.source__bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.source__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+.source__tab {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 4px 9px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.source__tab:hover {
+  color: var(--text);
+  background: var(--panel-alt);
+}
+
+.source__tab.is-active {
+  color: var(--primary);
+  border-color: rgb(var(--primary-rgb) / 0.4);
+  background: var(--primary-dim);
+}
+
+.source__copy {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+/* Real code is wider than pseudocode, so the listing scrolls sideways inside
+   the panel rather than pushing the page about. The rows are sized to the
+   widest line so the active row's band still runs the full width of what has
+   been scrolled to, instead of stopping at the fold. */
+.source__code {
+  overflow-x: auto;
+  margin: 0 -8px;
+}
+
+.source__code .info__code-line {
+  margin: 0;
+  width: max-content;
+  min-width: 100%;
+}
+
+.source__note {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+/* ---------- topic panel (detailed explanations) ---------- */
+
+.topic-panel {
+  padding: 16px 18px;
+}
+
+.topic-panel--inline {
+  flex-basis: 100%;
+  margin-top: 4px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.topic-panel__summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 4px;
+  border-top: 1px solid var(--border);
+  user-select: none;
+}
+
+.topic-panel--inline .topic-panel__summary {
+  padding: 10px 0 0;
+}
+
+.topic-panel .topic-panel__summary {
+  border-top: none;
+}
+
+.topic-panel__summary::-webkit-details-marker {
+  display: none;
+}
+
+.topic-panel__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.topic-panel__hint {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  opacity: 0.7;
+}
+
+.topic-panel[open] .topic-panel__hint,
+.topic-panel--inline[open] .topic-panel__hint {
+  opacity: 0.4;
+}
+
+.topic-panel__body {
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.topic-section {
+  min-width: 0;
+}
+
+.topic-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.topic-list li {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-dim);
+}
+
+.topic-proscons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+@media (max-width: 640px) {
+  .topic-proscons {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- linked list ---------- */
+
+.ll-canvas {
+  height: auto;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 32px 20px 20px;
+}
+
+.ll-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+  row-gap: 36px;
+}
+
+.ll-row-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+/* The flex item the row wraps between. It holds the link *arriving* at its
+   node, not the one leaving, so a line can only break after a node — an arrow
+   pointing off the end of a line at nothing was the alternative. */
+.ll-node-wrap {
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding-top: 22px;
+}
+
+/* The positioning context for the HEAD and prev/curr/next tags. They name the
+   node, so they hang off the node rather than off the wrap — centring on the
+   wrap would offset every tag by half the width of the arrow beside it. */
+.ll-node-box {
+  position: relative;
+  display: flex;
+}
+
+/* The struct, not a bubble: one rectangle divided into the fields the node
+   actually has — `data | next`, or `prev | data | next` when the list is
+   doubly linked. `overflow: hidden` is what lets the dividers run edge to edge
+   and still be cut by the rounded corners. */
+.ll-node {
+  height: 52px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border-strong);
+  background: var(--panel-alt);
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease,
+    color var(--step-anim) ease,
+    box-shadow var(--step-anim) ease,
+    opacity var(--step-anim) ease,
+    transform var(--step-anim) ease;
+}
+
+.ll-node__cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color var(--step-anim) ease;
+}
+
+.ll-node__cell + .ll-node__cell {
+  border-left: 1.5px solid var(--ll-node-border, var(--border-strong));
+}
+
+/* A minimum rather than a width: the same node draws a two-digit list value
+   and a polynomial term like `-5x^10`, and a fixed field would crop the one to
+   fit the other. The node grows sideways instead. */
+.ll-node__cell--data {
+  min-width: 46px;
+  padding: 0 8px;
+}
+
+/* Narrower than the payload: a pointer field holds a mark, not a number, and
+   giving it equal width would make the node read as two values. */
+.ll-node__cell--ptr {
+  width: 26px;
+}
+
+/* A pointer that points somewhere. Takes the node's state colour, so following
+   a highlighted node's link doesn't mean first finding a grey dot inside it. */
+.ll-node__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ll-node-border, var(--border-strong));
+  transition: background-color var(--step-anim) ease;
+}
+
+/* Struck through rather than left empty: an empty box is indistinguishable
+   from one whose mark hasn't been drawn yet, and the whole point of showing
+   the field is that null is a value. */
+.ll-node__cell--null {
+  background-image: linear-gradient( /* taste-skill-ignore: the diagonal strike that marks a null field */
+    to top right,
+    transparent calc(50% - 0.75px),
+    var(--ll-node-border, var(--border-strong)) calc(50% - 0.75px),
+    var(--ll-node-border, var(--border-strong)) calc(50% + 0.75px),
+    transparent calc(50% + 0.75px)
+  );
+  opacity: 0.55;
+}
+
+.ll-node--removing {
+  opacity: 0.4;
+  transform: scale(0.85);
+}
+
+.ll-node--pending {
+  animation: ll-pulse 0.9s ease-in-out infinite;
+}
+
+@keyframes ll-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
+.ll-node__value {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.ll-head-tag {
+  position: absolute;
+  top: -26px;
+  left: 8px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--primary);
+  background: var(--primary-dim);
+  border: 1px solid rgb(var(--primary-rgb) / 0.4);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.ll-head-tag--static {
+  position: static;
+  margin-right: 8px;
+}
+
+.ll-pointer-tag {
+  position: absolute;
+  top: -42px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.ll-pointer-prev {
+  color: var(--purple);
+  background: rgb(var(--purple-rgb) / 0.14);
+}
+
+.ll-pointer-curr {
+  color: var(--primary);
+  background: var(--primary-dim);
+}
+
+.ll-pointer-next {
+  color: var(--blue);
+  background: rgb(var(--blue-rgb) / 0.14);
+}
+
+.ll-arrow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 18px;
+  color: var(--text-dim);
+}
+
+.ll-arrow--back {
+  color: var(--primary);
+}
+
+.ll-arrow--empty {
+  font-size: 12px;
+  opacity: 0.4;
+  letter-spacing: 2px;
+}
+
+.ll-arrow--col {
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 8px;
+}
+
+.ll-arrow--sub {
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+/* The lane the wrap-around link swings through. Only a circular list reserves
+   it — an empty 44px band under every other list would push the message away
+   from the row it belongs to. */
+.ll-row-wrap {
+  position: relative;
+}
+
+.ll-row-wrap--looped {
+  padding-bottom: 44px;
+}
+
+/* Sized and positioned from the measured path, and never a hit target: the
+   canvas underneath it stays clickable. */
+.ll-loop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  pointer-events: none;
+  color: var(--purple);
+}
+
+.ll-loop path {
+  stroke: var(--purple);
+  stroke-width: 1.5;
+  /* Dashed, because this one link runs backwards under the row rather than
+     between two adjacent nodes, and reading it as an ordinary forward arrow
+     would put the head after the tail. */
+  stroke-dasharray: 5 4;
+}
+
+.result-badge {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  margin-top: 10px;
+  color: var(--green);
+  letter-spacing: 0.04em;
+  /* A badge that reports two results — the two orders a doubly linked list
+     can be walked in — puts one per line, and the monospace column keeps them
+     comparable. Every other badge is a single line and is unaffected: only a
+     string that already contains a newline breaks. */
+  white-space: pre-line;
+}
+
+.ll-null {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  border: 1px dashed var(--border-strong);
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+.ll-empty {
+  display: flex;
+  align-items: center;
+  color: var(--text-dim);
+}
+
+.ll-empty--sentence {
+  font-size: 14px;
+  text-align: center;
+}
+
+/* What the step just did, in a sentence. It is the line a lecturer reads
+   aloud and a student reads between steps, so it is set at reading size in
+   the text face, in full ink — not as a dim caption under the drawing. */
+.ll-message {
+  margin-top: 24px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  text-align: center;
+  min-height: 21px;
+  text-wrap: balance;
+}
+
+/* ---------- Stack / Queue ---------- */
+
+.sq-canvas {
+  height: auto;
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 20px 20px;
+}
+
+.sq-cap-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin-bottom: 18px;
+}
+
+.sq-slot-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 22px 6px 0;
+}
+
+.sq-slot {
+  width: 64px;
+  height: 48px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border-strong);
+  background: var(--panel-alt);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease,
+    color var(--step-anim) ease,
+    box-shadow var(--step-anim) ease,
+    opacity var(--step-anim) ease,
+    transform var(--step-anim) ease;
+}
+
+.sq-slot--removing {
+  opacity: 0.4;
+  transform: scale(0.85);
+}
+
+.sq-slot--pending {
+  animation: ll-pulse 0.9s ease-in-out infinite;
+}
+
+.sq-slot__value {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.sq-tag {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: var(--primary);
+  background: var(--primary-dim);
+  border: 1px solid rgb(var(--primary-rgb) / 0.4);
+}
+
+.sq-tag--top {
+  color: var(--primary);
+  background: var(--primary-dim);
+  border-color: rgb(var(--primary-rgb) / 0.4);
+}
+
+.sq-tag--front {
+  color: var(--blue);
+  background: rgb(var(--blue-rgb) / 0.14);
+  border-color: rgb(var(--blue-rgb) / 0.4);
+}
+
+.sq-tag--rear {
+  color: var(--purple);
+  background: rgb(var(--purple-rgb) / 0.14);
+  border-color: rgb(var(--purple-rgb) / 0.4);
+}
+
+.sq-stack-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sq-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-height: 60px;
+}
+
+.sq-base {
+  margin-top: 10px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  opacity: 0.7;
+}
+
+.sq-queue-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sq-queue {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+  min-width: 120px;
+}
+
+.sq-side-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.05em;
+}
+
+.sq-empty {
+  font-size: 12px;
+  color: var(--text-dim);
+  border: 1px dashed var(--border-strong);
+  border-radius: 8px;
+  padding: 12px 20px;
+}
+
+/* ---------- union-find ---------- */
+
+.uf-canvas {
+  align-items: center;
+}
+
+.uf-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.uf-head__count {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+.uf-node circle {
+  transition: fill var(--step-anim) ease, stroke var(--step-anim) ease, filter var(--step-anim) ease;
+}
+
+.uf-node__size {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  fill: var(--green);
+  opacity: 0.8;
+}
+
+.uf-array-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.uf-array__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.uf-array {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  padding-bottom: 2px;
+}
+
+.uf-cell-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.uf-cell {
+  min-width: 34px;
+  height: 30px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--panel-alt);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease,
+    color var(--step-anim) ease,
+    box-shadow var(--step-anim) ease,
+    opacity var(--step-anim) ease,
+    transform var(--step-anim) ease;
+}
+
+/* A cell holding its own label is a root — the walk stops there. */
+.uf-cell--root {
+  color: var(--green);
+}
+
+.uf-cell__index {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  opacity: 0.8;
+}
+
+/* ---------- trie ---------- */
+
+.tr-canvas {
+  align-items: center;
+}
+
+.tr-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 4px;
+  min-height: 20px;
+}
+
+.tr-head__count {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+/* The prefix spelled out so far, as the walk descends. */
+.tr-head__prefix {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  letter-spacing: 0.04em;
+}
+
+.tr-node circle {
+  transition: fill var(--step-anim) ease, stroke var(--step-anim) ease, filter var(--step-anim) ease;
+}
+
+.tr-node__root {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  fill: var(--text-dim);
+  opacity: 0.7;
+}
+
+.tr-collected {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  width: 100%;
+}
+
+.tr-chip {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--green);
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgb(var(--green-rgb) / 0.12);
+  border: 1px solid rgb(var(--green-rgb) / 0.35);
+  animation: fade-in-up 0.25s ease both;
+}
+
+/* ---------- heap ---------- */
+
+.hp-canvas {
+  align-items: center;
+}
+
+.hp-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.hp-head__kind {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--green);
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: rgb(var(--green-rgb) / 0.12);
+  border: 1px solid rgb(var(--green-rgb) / 0.35);
+}
+
+.hp-head__rule {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.hp-node circle {
+  transition: fill var(--step-anim) ease, stroke var(--step-anim) ease, filter var(--step-anim) ease;
+}
+
+/* The array index, under each node — the tie between the picture and the
+   flat array below it. */
+.hp-node__index {
+  font-size: 11px;
+  fill: var(--text-dim);
+  opacity: 0.75;
+}
+
+.hp-node__tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  fill: var(--primary);
+}
+
+.hp-array-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.hp-array__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.hp-array {
+  display: flex;
+  align-items: flex-start;
+  gap: 3px;
+  padding-bottom: 2px;
+}
+
+.hp-cell-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.hp-cell {
+  min-width: 40px;
+  height: 32px;
+  padding: 0 6px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--panel-alt);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease,
+    color var(--step-anim) ease,
+    box-shadow var(--step-anim) ease,
+    opacity var(--step-anim) ease,
+    transform var(--step-anim) ease;
+}
+
+.hp-cell__index {
+  font-size: 11px;
+  color: var(--text-dim);
+  opacity: 0.75;
+}
+
+/* The index arithmetic for whatever the current step is touching. */
+.hp-formula {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.hp-formula span {
+  white-space: nowrap;
+}
+
+/* ---------- hash table ---------- */
+
+.ht-canvas {
+  height: auto;
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 18px 16px;
+}
+
+.ht-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  /* The load factor read-out ends at the panel's right edge, which is exactly
+     where the SHARE button floats — without this it disappears underneath. */
+  padding-right: var(--share-safe, 0);
+}
+
+.ht-head__strategy {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--yellow);
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: rgb(var(--yellow-rgb) / 0.13);
+  border: 1px solid rgb(var(--yellow-rgb) / 0.35);
+  white-space: nowrap;
+}
+
+.ht-head__stat {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* The load factor, drawn as a bar against the limit that triggers a resize —
+   the tick is the moment the next insert grows the table. */
+.ht-load {
+  position: relative;
+  flex: 1;
+  min-width: 40px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgb(var(--ink-rgb) / 0.06);
+}
+
+.ht-load__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--blue);
+  transition: width var(--step-anim) ease, background-color var(--step-anim) ease;
+}
+
+.ht-load__fill--over {
+  background: var(--primary);
+}
+
+.ht-load__limit {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--text-dim);
+}
+
+.ht-head__alpha {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.ht-head__alpha--over {
+  color: var(--primary);
+}
+
+.ht-subhead {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 26px;
+  padding: 6px 0 8px;
+}
+
+.ht-hash {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.ht-hash--idle {
+  color: var(--text-dim);
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+.ht-resizing {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--yellow);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgb(var(--yellow-rgb) / 0.13);
+  border: 1px solid rgb(var(--yellow-rgb) / 0.4);
+  animation: ll-pulse 0.9s ease-in-out infinite;
+}
+
+.ht-grid {
+  display: flex;
+  /* Past a resize or two the array is taller than the panel. Rather than
+     scrolling a single narrow column past the empty half of the canvas, the
+     buckets fill one column top-to-bottom and start another beside it. Column
+     order, not row order: a probe walks consecutive indices, and those have to
+     stay next to each other. */
+  flex-flow: column wrap;
+  align-content: flex-start;
+  gap: 2px 22px;
+  max-height: 380px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+}
+
+.ht-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  transition: background var(--step-anim) ease, border-color var(--step-anim) ease;
+}
+
+.ht-row--probed {
+  background: rgb(var(--ink-rgb) / 0.035);
+}
+
+.ht-row--probe {
+  border-color: var(--primary);
+  background: var(--primary-dim);
+}
+
+.ht-row--collision {
+  border-color: var(--red);
+  background: rgb(var(--red-rgb) / 0.1);
+}
+
+.ht-row__marker {
+  width: 9px;
+  font-size: 11px;
+  color: var(--primary);
+}
+
+.ht-row__index {
+  width: 20px;
+  text-align: right;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.ht-row__index--home {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.ht-row__slots {
+  display: flex;
+  align-items: center;
+  min-height: 34px;
+}
+
+.ht-chain-link {
+  display: flex;
+  align-items: center;
+}
+
+/* SlotBox is shared with the stack and queue canvases for its colour
+   language; inside a bucket row it just needs to be smaller. */
+.ht-row .sq-slot-wrap {
+  padding: 0;
+}
+
+.ht-row .sq-slot {
+  width: 54px;
+  height: 32px;
+  border-radius: 8px;
+}
+
+.ht-row .sq-slot__value {
+  font-size: 13px;
+}
+
+.ht-slot {
+  width: 54px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ht-slot--empty {
+  border: 1.5px dashed var(--border);
+}
+
+/* A deleted slot in an open-addressed table. It still blocks the bucket, and
+   it still has to be walked past, so it stays on screen. */
+.ht-slot--tomb {
+  border: 1.5px dashed rgb(var(--red-rgb) / 0.5);
+  background: rgb(var(--red-rgb) / 0.06);
+}
+
+.ht-slot--fresh-tomb {
+  animation: ll-pulse 0.9s ease-in-out infinite;
+}
+
+.ht-slot__tomb-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--red);
+  opacity: 0.75;
+}
+
+.ht-arrow {
+  padding: 0 5px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.ht-tag {
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.ht-tag--home {
+  color: var(--primary);
+  background: var(--primary-dim);
+  border: 1px solid rgb(var(--primary-rgb) / 0.4);
+}
+
+/* Robin Hood's probe distance, shown per slot because the invariant it keeps
+   is a comparison between two of these numbers. */
+.ht-tag--dist {
+  color: var(--blue);
+  background: rgb(var(--blue-rgb) / 0.12);
+  border: 1px solid rgb(var(--blue-rgb) / 0.35);
+}
+
+/* Cuckoo hashing's two tables sit side by side — a key is in one or the
+   other, never spread across both, so neither reads as an overflow area. */
+.ht-tables {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.ht-tables .ht-table {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.ht-table__caption {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  padding-left: 22px;
+}
+
+.ht-canvas .ll-message {
+  margin-top: 14px;
+}
+
+/* ---------- dynamic hashing (extendible / linear) ---------- */
+
+.dh-canvas {
+  height: auto;
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px 20px;
+}
+
+/* The directory is a column of pointers beside the buckets rather than lines
+   drawn between them: several entries share one bucket, and a list of "→ B0"
+   says that more legibly than four arrows converging would. */
+.dh-cols {
+  display: flex;
+  gap: 26px;
+  align-items: flex-start;
+  /* Bounded so the panel keeps the header, the hash line and the message in
+     one screen. The lists below wrap into columns before this bites, so the
+     scrollbar is a fallback rather than the normal way to read the table. */
+  max-height: 440px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-bottom: 4px;
+}
+
+/* A directory doubles every few splits — 32 entries by global depth 5 — and
+   the buckets grow with it. Each list fills a column and then starts another
+   one beside it, so the canvas grows sideways into the space it already has
+   instead of turning into a long scroll. */
+.dh-list {
+  display: flex;
+  flex-flow: column wrap;
+  align-content: flex-start;
+  gap: 0 18px;
+  max-height: 400px;
+}
+
+.dh-col__caption {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.dh-dir {
+  flex: 0 0 auto;
+}
+
+.dh-dir__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 7px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  transition: background var(--step-anim) ease, border-color var(--step-anim) ease;
+}
+
+.dh-dir__row--active {
+  border-color: var(--primary);
+  background: var(--primary-dim);
+}
+
+.dh-dir__bits {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.08em;
+}
+
+.dh-dir__arrow {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.dh-dir__target {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--yellow);
+}
+
+.dh-buckets {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.dh-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 6px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  transition: background var(--step-anim) ease, border-color var(--step-anim) ease;
+}
+
+.dh-row--active {
+  border-color: var(--primary);
+  background: var(--primary-dim);
+}
+
+.dh-row--full {
+  border-color: var(--red);
+  background: rgb(var(--red-rgb) / 0.1);
+}
+
+.dh-row__marker {
+  width: 9px;
+  font-size: 11px;
+  color: var(--primary);
+}
+
+.dh-row__label {
+  width: 24px;
+  text-align: right;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+/* Local depth under extendible hashing, and which hash a bucket answers to
+   under linear hashing — the same slot, because it is the same question. */
+.dh-row__depth {
+  min-width: 52px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--blue);
+  background: rgb(var(--blue-rgb) / 0.1);
+  border: 1px solid rgb(var(--blue-rgb) / 0.3);
+  border-radius: 4px;
+  padding: 1px 5px;
+  text-align: center;
+}
+
+.dh-bucket {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 5px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  transition: border-color var(--step-anim) ease, box-shadow var(--step-anim) ease;
+}
+
+.dh-bucket--split-from {
+  border-color: var(--yellow);
+  box-shadow: 0 0 0 1px rgb(var(--yellow-rgb) / 0.25);
+}
+
+.dh-bucket--split-to {
+  border-color: var(--green);
+  box-shadow: 0 0 0 1px rgb(var(--green-rgb) / 0.25);
+}
+
+.dh-slot {
+  width: 46px;
+  height: 30px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--panel-alt);
+  border: 1.5px solid var(--border-strong);
+}
+
+.dh-slot--empty {
+  border: 1.5px dashed var(--border);
+  background: none;
+}
+
+/* An overflow block is not extra capacity — it is a separate block hanging
+   off a bucket that had none left, so it is drawn as one. */
+.dh-slot--overflow {
+  border-style: dashed;
+  border-color: rgb(var(--yellow-rgb) / 0.55);
+  background: rgb(var(--yellow-rgb) / 0.08);
+}
+
+.dh-slot--active {
+  border-color: var(--primary);
+  background: var(--primary-dim);
+  color: var(--primary);
+}
+
+.dh-overflow {
+  display: flex;
+  gap: 4px;
+}
+
+.dh-kind__tag {
+  margin-left: 7px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  opacity: 0.65;
+}
+
+/* ---------- graph ---------- */
+
+.graph-canvas {
+  height: auto;
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px 20px;
+}
+
+.graph-svg {
+  width: 100%;
+  height: 300px;
+  flex-shrink: 0;
+  /* Shared with the tree, trie, heap and union-find canvases, which lay their
+     own contents out at a fixed size — only the graph view below claims the
+     full box. */
+  /* Dragging a vertex must not sweep a text selection across the page. The
+     canvas can't do this with preventDefault on the press, because the click
+     that follows one is what connects two vertices. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* The graph draws itself into whatever box it is given — its viewBox is
+   measured from this element — so it is given a tall one, and the vertices
+   spread across the whole panel instead of sitting in a 640px column with the
+   rest of the canvas letterboxed away either side. Scoped to the graph view,
+   and standing aside for the phone's portrait rule, which sets its own shape.
+   `dvh` rather than `vh` so a phone's collapsing address bar doesn't leave the
+   canvas taller than the screen. */
+.graph-canvas .graph-svg:not(.graph-svg--portrait) {
+  height: clamp(300px, 46dvh, 480px);
+}
+
+/* Wraps the canvas so the empty-state message can sit over it rather than
+   replace it — pressing the canvas is how the first vertex gets made. */
+.graph-canvas__stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.graph-canvas__empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 16px;
+  font-size: 14px;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+
+.graph-node {
+  cursor: grab;
+  /* A long press on a vertex picks it up, so the phone must not answer it with
+     a selection handle or the iOS callout menu instead. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.graph-node:active,
+.graph-node--moving {
+  cursor: grabbing;
+}
+
+/* Ring around the vertex being repositioned — kept separate from the node's
+   own stroke, which is busy carrying algorithm state. */
+.graph-node__halo {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 4;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.graph-canvas__note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* The hint spells out four gestures, so it has to be able to fall onto a
+     second line rather than overflowing. */
+  flex-wrap: wrap;
+}
+
+.graph-node__label {
+  font-size: 13px;
+  font-weight: 700;
+  fill: var(--text);
+  pointer-events: none;
+  user-select: none;
+}
+
+.graph-edge-label {
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--text-dim);
+  pointer-events: none;
+  user-select: none;
+}
+
+.graph-node__dist {
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--green);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ---------- threaded tree ---------- */
+
+/* Threads are dashed curves in two colours, which needs saying once — the
+   legend sits under the canvas so it doesn't compete with the tree itself. */
+.thread-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px 16px;
+  margin-top: 12px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+.thread-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.thread-legend__swatch {
+  width: 18px;
+  height: 0;
+  border-top: 2px dashed var(--purple);
+}
+
+.thread-legend__swatch--left {
+  border-top-color: var(--yellow);
+}
+
+.thread-legend__note {
+  flex-basis: 100%;
+  text-align: center;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.75;
+}
+
+.graph-repr {
+  padding: 16px 20px;
+}
+
+.graph-matrix-wrap {
+  overflow-x: auto;
+}
+
+.graph-matrix {
+  border-collapse: collapse;
+  font-size: 12px;
+  width: 100%;
+}
+
+.graph-matrix th,
+.graph-matrix td {
+  border: 1px solid var(--border);
+  text-align: center;
+  padding: 6px 10px;
+  min-width: 28px;
+  color: var(--text-dim);
+}
+
+.graph-matrix th {
+  color: var(--text);
+  font-weight: 700;
+  background: var(--panel-alt);
+}
+
+.graph-matrix td.gm-edge {
+  color: var(--primary);
+  font-weight: 700;
+  background: var(--primary-dim);
+}
+
+/* Editable cells. The button fills the cell so the whole thing is the target,
+   and inherits its colour so the matrix still reads as a matrix rather than a
+   grid of buttons. */
+.graph-matrix .gm-cell,
+.graph-matrix .gm-input {
+  font: inherit;
+  color: inherit;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: center;
+}
+
+.graph-matrix .gm-cell {
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s ease;
+}
+
+.graph-matrix .gm-cell:hover {
+  background: rgb(var(--ink-rgb) / 0.07);
+}
+
+.graph-matrix .gm-cell:focus-visible {
+  outline: 1px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.graph-matrix .gm-input {
+  color: var(--primary);
+  font-weight: 700;
+  outline: 1px solid var(--primary);
+  outline-offset: 1px;
+  border-radius: 4px;
+  /* Chrome's number spinners would not fit in a 28px cell. */
+  appearance: textfield;
+}
+
+.graph-matrix th.gm-active {
+  color: var(--blue);
+  background: rgb(var(--blue-rgb) / 0.14);
+}
+
+.graph-matrix th.gm-visited {
+  color: var(--green);
+  background: rgb(var(--green-rgb) / 0.14);
+}
+
+.graph-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.graph-list__row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+}
+
+.graph-list__row.gl-active {
+  color: var(--blue);
+  background: rgb(var(--blue-rgb) / 0.1);
+  border-color: rgb(var(--blue-rgb) / 0.3);
+}
+
+.graph-list__row.gl-visited {
+  color: var(--green);
+  background: rgb(var(--green-rgb) / 0.1);
+  border-color: rgb(var(--green-rgb) / 0.3);
+}
+
+.graph-list__head {
+  font-weight: 700;
+  color: var(--text);
+  min-width: 18px;
+}
+
+.graph-list__arrow {
+  opacity: 0.6;
+}
+
+.graph-list__node {
+  color: var(--primary);
+}
+
+.graph-list__empty {
+  opacity: 0.5;
+  font-style: italic;
+}
+
+
+
+/* ---------- share link ---------- */
+
+.share {
+  position: relative;
+}
+
+/* Fallback for when the clipboard isn't available: the link, selected and
+   ready to copy by hand. */
+.share__manual {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: min(360px, 78vw);
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 1px 0 rgb(var(--ink-rgb) / 0.03) inset, 0 14px 32px rgb(var(--shadow-rgb) / 0.4);
+}
+
+.share__manual .text-input {
+  font-size: 11px;
+}
+
+.topbar__nav-share {
+  height: 44px;
+  margin-bottom: 14px;
+  border: 1px solid rgb(var(--primary-rgb) / 0.4);
+  border-radius: 12px;
+  color: var(--primary);
+  background: var(--primary-dim);
+}
+
+/* In the mobile menu the popover has no room to the side — sit it inline. */
+.topbar--mobile .share {
+  display: block;
+}
+
+.topbar--mobile .share__manual {
+  position: static;
+  width: auto;
+  margin-bottom: 6px;
+}
+
+/* ---------- topbar home click ---------- */
+
+
+
+/* ---------- category landing ---------- */
+
+.landing {
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  padding: 60px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background:
+    radial-gradient(circle at 15% -10%, rgb(var(--primary-rgb) / 0.10), transparent 45%),
+    radial-gradient(circle at 85% 0%, rgb(var(--blue-rgb) / 0.08), transparent 40%),
+    radial-gradient(circle at 50% 110%, rgb(var(--purple-rgb) / 0.06), transparent 45%),
+    var(--bg);
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* The landing shell carrying one message rather than a grid of cards — the
+   not-found screen. Centred, because there is nothing below it to scroll to. */
+.landing--message {
+  justify-content: center;
+}
+
+/* Text on the left, the live run on the right: the claim and its proof on
+   one line of sight. */
+.landing__header {
+  width: min(1120px, 100%);
+  margin-bottom: 40px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+  gap: 40px;
+  align-items: end;
+}
+
+@media (max-width: 900px) {
+  .landing__header {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+}
+
+/* ---------- the live run on the landing page ---------- */
+
+.live-trace {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 16px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--dur-ui) ease, transform var(--dur-press) var(--ease-out);
+}
+
+.live-trace:active {
+  transform: scale(0.99);
+}
+
+.live-trace__head,
+.live-trace__open {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.live-trace__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.live-trace__step {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.live-trace__bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 104px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--border);
+}
+
+.live-trace__bar {
+  flex: 1;
+  min-width: 2px;
+  border: 1.5px solid;
+  border-radius: 3px 3px 1px 1px;
+  /* Shorter than the gap between frames, so a swap reads as a move rather
+     than a cut, and never smears into the next frame. */
+  transition: height 70ms var(--ease-out), background-color 120ms ease, border-color 120ms ease;
+}
+
+.live-trace__open {
+  justify-content: flex-start;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-dim);
+  transition: color var(--dur-ui) ease;
+}
+
+.live-trace__open svg {
+  transition: transform var(--dur-ui) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .live-trace:hover {
+    border-color: var(--border-strong);
+  }
+
+  .live-trace:hover .live-trace__open {
+    color: var(--text);
+  }
+
+  .live-trace:hover .live-trace__open svg {
+    transform: translateX(3px);
+  }
+}
+
+.live-trace:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
+/* ---------- first open ----------
+   Once per page load. The header settles in line by line, the cards rise in
+   order, and each family's drawing is traced like a beam crossing the
+   screen — the instrument switching on. Under reduced motion the global rule
+   collapses every one of these to its end state. */
+
+.landing--intro .landing__intro > *,
+.landing--intro .live-trace {
+  animation: rise-in 520ms var(--ease-out) backwards;
+}
+
+.landing--intro .landing__intro > :nth-child(2) {
+  animation-delay: 50ms;
+}
+
+.landing--intro .landing__intro > :nth-child(3) {
+  animation-delay: 100ms;
+}
+
+.landing--intro .live-trace {
+  animation-delay: 120ms;
+}
+
+.landing--intro .landing__card {
+  animation: rise-in 520ms var(--ease-out) backwards;
+  animation-delay: calc(150ms + var(--i, 0) * 35ms);
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+/* Every shape in a drawing is shorter than 160 units, so one dash that long
+   hides it entirely before the trace and shows it entirely after. The cut
+   branch keeps its own dashes and only fades in. */
+.landing--intro .glyph *:not(.glyph__cut) {
+  stroke-dasharray: 160;
+  animation: trace-draw 900ms var(--ease-out) backwards;
+  animation-delay: calc(260ms + var(--i, 0) * 35ms);
+}
+
+.landing--intro .glyph .glyph__on {
+  animation: trace-draw 900ms var(--ease-out) backwards, trace-fill 360ms ease backwards;
+  animation-delay: calc(260ms + var(--i, 0) * 35ms), calc(700ms + var(--i, 0) * 35ms);
+}
+
+.landing--intro .glyph .glyph__cut {
+  animation: trace-fill-stroke 400ms ease backwards;
+  animation-delay: calc(780ms + var(--i, 0) * 35ms);
+}
+
+.landing--intro .landing__mark path {
+  stroke-dasharray: 48;
+  animation: trace-draw-mark 800ms var(--ease-out) backwards;
+}
+
+@keyframes trace-draw {
+  from {
+    stroke-dashoffset: 160;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes trace-draw-mark {
+  from {
+    stroke-dashoffset: 48;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes trace-fill {
+  from {
+    fill-opacity: 0;
+  }
+}
+
+@keyframes trace-fill-stroke {
+  from {
+    stroke-opacity: 0;
+  }
+}
+
+.landing__title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0 0 14px;
+}
+
+.landing__mark {
+  color: var(--primary);
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 8px rgb(var(--primary-rgb) / 0.6));
+}
+
+/* What the product is, in the reader's words, at reading size and in full
+   ink — the line a student or a lecturer reads first and decides on. */
+.landing__subtitle {
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--text);
+  max-width: 34em;
+  margin: 0 0 10px;
+}
+
+.landing__meta {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.landing__grid {
+  width: min(1120px, 100%);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  /* Cards keep their own height instead of stretching to the tallest in the
+     row. Without this, opening one card pads out the two beside it with empty
+     space to match — which reads as three cards having opened, not one. */
+  align-items: start;
+}
+
+.landing__card--wide {
+  grid-column: span 2;
+}
+
+/* Dense packing lets the card after the wide one rise into the hole beside
+   the first card when there are only two columns, so twelve cells fill six
+   whole rows there as they fill four on three columns. */
+.landing__grid {
+  grid-auto-flow: row dense;
+}
+
+@media (max-width: 1000px) {
+  .landing__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.landing__card {
+  position: relative;
+  /* The whole card toggles, so the whole card looks like it does. The topic
+     buttons inside set their own cursor back. */
+  cursor: pointer;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 20px 20px;
+  transition: border-color var(--dur-ui) ease, transform var(--dur-ui) var(--ease-out),
+    box-shadow var(--dur-ui) ease;
+}
+
+/* Lift and edge only under a real pointer: on a touch screen :hover sticks
+   after the tap and leaves the card raised for no reason. */
+@media (hover: hover) and (pointer: fine) {
+  .landing__card:hover {
+    border-color: var(--accent);
+    transform: translateY(-3px);
+    box-shadow: 0 14px 32px rgb(var(--shadow-rgb) / 0.35);
+  }
+
+  .landing__card:hover .landing__card-chevron {
+    color: var(--accent);
+  }
+}
+
+.landing__card--open {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+}
+
+.landing__card-top {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.landing__card-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.landing__card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* How many topics are behind a card, with its noun: a bare "7" left the
+   reader asking seven of what. */
+.landing__card-count {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.landing__card-chevron {
+  color: var(--text-dim);
+  transform: rotate(-90deg);
+  transition: transform var(--dur-overlay) var(--ease-out), color var(--dur-ui) ease;
+}
+
+.landing__card--open .landing__card-chevron {
+  color: var(--accent);
+  transform: rotate(0deg);
+}
+
+.landing__card-top:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 6px;
+  border-radius: 8px;
+}
+
+.landing__card-label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text);
+}
+
+/* The family's own picture, in its accent. Every drawing shares one stroke
+   and one 64x28 frame; the filled marks are where a run would be working. */
+.glyph {
+  display: block;
+  color: var(--accent);
+  overflow: visible;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 45%, transparent));
+}
+
+.glyph * {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.glyph .glyph__on {
+  fill: currentColor;
+  fill-opacity: 0.35;
+}
+
+.glyph .glyph__faint {
+  stroke-opacity: 0.4;
+}
+
+.glyph .glyph__cut {
+  stroke-dasharray: 2 3;
+  stroke-opacity: 0.6;
+}
+
+.landing__card-blurb {
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Two lines reserved for the blurb and two for the topics, so every closed
+   card in a row ends on the same line whatever its copy runs to. A single
+   column on a phone has no row to line up with, so it drops them. */
+@media (min-width: 761px) {
+  .landing__card-blurb {
+    min-height: 3em;
+  }
+
+  .landing__card-topics {
+    min-height: 3em;
+  }
+}
+
+.landing__card-topics {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  opacity: 0.82;
+  margin: 12px 0 0;
+  /* Two lines at most, so a closed card is about as tall as its neighbours
+     whatever the family holds; the full list is one click away. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.landing__card-items {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  margin-top: 16px;
+  transform-origin: top center;
+  animation: items-in var(--dur-overlay) var(--ease-out) both;
+}
+
+.landing__card--wide .landing__card-items {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@keyframes items-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.landing__item-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+  color: var(--text);
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--control-transition);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .landing__item-btn:hover {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+
+  .landing__item-btn:hover svg {
+    opacity: 1;
+    transform: translateX(2px);
+  }
+}
+
+.landing__item-btn:active {
+  transform: scale(0.98);
+}
+
+.landing__item-btn svg {
+  opacity: 0.6;
+  flex-shrink: 0;
+  transition: opacity var(--dur-ui) ease, transform var(--dur-ui) var(--ease-out);
+}
+
+.landing__item-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.landing__item-head svg {
+  margin-left: auto;
+}
+
+/* The description is the only place a view says what is actually inside it,
+   so it wraps under the label rather than sharing the line. */
+.landing__item-desc {
+  font-size: 12.5px;
+  color: var(--text-dim);
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+/* =====================================================================
+   PHONE LAYOUT
+
+   The desktop view is a two-column workspace. On a phone (<= 760px, the
+   same breakpoint useMediaQuery watches) the sidebar moves into a bottom
+   sheet, the visualization gets the whole screen, and the controls you
+   reach for most sit in a fixed action bar inside thumb range.
+   ===================================================================== */
+
+/* Wide diagrams (trees, matrices) scroll inside their own panel so the
+   page itself never scrolls sideways. */
+.canvas-scroll {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* The node inspector: what the drawing cannot say about the node you picked.
+   A wrapping row of label/value pairs rather than a fixed table, so it reflows
+   onto a phone instead of demanding a column that isn't there. */
+.tree-inspect {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  margin-top: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-alt);
+}
+
+.tree-inspect__value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary);
+  padding-right: 4px;
+  border-right: 1px solid var(--border);
+}
+
+.tree-inspect__fact {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.tree-inspect__label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+.tree-inspect__datum {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* An AVL node outside [-1, 1] is the whole reason the next rotation happens,
+   so it is called out rather than left to be spotted. */
+.tree-inspect__datum--warn {
+  color: var(--red);
+}
+
+.tree-inspect__clear {
+  margin-left: auto;
+  padding: 2px 8px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.tree-inspect__clear:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+/* The tree's own stage. It replaces the sideways scroll container the tree
+   used to sit in: a wide tree is now navigated by dragging and pinching, which
+   reaches the same places without a scrollbar and works the same way on a
+   laptop as on a phone. It still clips, so nothing here can scroll the page
+   sideways. */
+.tree-canvas__stage {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  /* The browser's own pan and zoom are declined, because the canvas
+     implements both itself and the two fighting over one finger is what makes
+     a gesture feel broken. */
+  touch-action: none;
+}
+
+/* The canvas is draggable everywhere except on a node, which is a target. */
+.graph-svg--grab {
+  cursor: grab;
+}
+
+.graph-svg--grab:active {
+  cursor: grabbing;
+}
+
+.tree-node--hit {
+  cursor: pointer;
+}
+
+/* Sits over the point that was pressed, so the value is typed where the node
+   is about to appear — though where it actually lands is decided by the tree's
+   ordering, not by where the press was. */
+.tree-canvas__insert {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+}
+
+.tree-canvas__insert .input {
+  width: 84px;
+  text-align: center;
+  padding: 5px 8px;
+  font-size: 12px;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.28);
+}
+
+/* Floated over the canvas rather than sat in the hint row, which already ends
+   in the export and share controls — a third button there lands on top of
+   them. Bottom-left is the one corner of a tree that is reliably empty: the
+   root is centred at the top and the deepest nodes spread from the middle. */
+.tree-canvas__reset {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 2;
+  padding: 4px 10px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+/* A tree laid out at its natural size instead of squeezed to fit. */
+.graph-svg--fixed {
+  width: auto;
+  height: auto;
+  max-width: none;
+  display: block;
+}
+
+/* A vertex is tapped to connect and held to move in the phone layout, so it
+   never reads as the grab handle a cursor drags. */
+.graph-svg--portrait .graph-node {
+  cursor: pointer;
+}
+
+.graph-svg--portrait .graph-node--moving {
+  cursor: grabbing;
+}
+
+/* The graph's ring of vertices goes tall-and-narrow on a phone. */
+.graph-svg--portrait {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 33 / 37;
+  max-height: 62dvh;
+}
+
+/* ---------- bottom sheet (mobile sidebar) ---------- */
+
+.sheet__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  padding: 0;
+  border: none;
+  background: rgb(var(--scrim-rgb) / 0.62);
+  backdrop-filter: blur(2px);
+  animation: sheet-fade var(--dur-overlay) ease both;
+}
+
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  /* Capped so a slice of the canvas stays visible: picking an algorithm
+     updates the visualization behind the sheet, and you can see it. */
+  max-height: 74dvh;
+  background: rgb(var(--overlay-rgb) / 0.97);
+  border-top: 1px solid var(--border-strong);
+  border-radius: 20px 20px 0 0;
+  backdrop-filter: blur(18px);
+  box-shadow: 0 -16px 44px rgb(var(--shadow-rgb) / 0.55);
+  padding-bottom: env(safe-area-inset-bottom);
+  animation: sheet-up 0.32s var(--ease-drawer) both;
+}
+
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes sheet-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.sheet__head {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px 14px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sheet__grip {
+  position: absolute;
+  top: 7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 38px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border-strong);
+}
+
+.sheet__title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+}
+
+.sheet__body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 14px 14px 20px;
+}
+
+/* The sidebar is already a panel; inside the sheet it is just content. */
+.sheet__body .sidebar {
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+/* ---------- fixed action bar ---------- */
+
+.actionbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px calc(9px + env(safe-area-inset-bottom));
+  background: rgb(var(--overlay-rgb) / 0.94);
+  border-top: 1px solid var(--border);
+  backdrop-filter: blur(16px);
+}
+
+.actionbar .btn.icon {
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  flex-shrink: 0;
+  border-radius: 12px;
+}
+
+.actionbar__play {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.actionbar__main {
+  flex: 1;
+  height: 46px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--primary);
+  background: var(--primary-dim);
+  border: 1px solid rgb(var(--primary-rgb) / 0.4);
+}
+
+/* ---------- mobile top bar ---------- */
+
+/* Layering, from the back: page content, the top bar (40), a sheet backdrop
+   (55), the sheet itself (60). The top bar sits *below* the backdrop on
+   purpose — while the operations sheet is open, tapping where the menu
+   button is just dismisses the sheet instead of opening a second panel on
+   top of it. The bar's own controls are lifted back above its own backdrop
+   further down. */
+.topbar--mobile {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  flex-wrap: nowrap;
+  /* The desktop row pushes SHARE right with the flexible tab strip between
+     them; this one has only a title and a menu button, so it needs saying. */
+  justify-content: space-between;
+  gap: 8px;
+  margin: -12px -12px 12px;
+  padding: calc(10px + env(safe-area-inset-top)) 12px 10px;
+  background: rgb(var(--overlay-rgb) / 0.88);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Above the nav sheet and its backdrop, so the title and the close button
+   stay legible and tappable while the menu is open. */
+.topbar--mobile .topbar__title,
+.topbar--mobile > .btn {
+  position: relative;
+  z-index: 57;
+}
+
+.topbar--mobile .topbar__title {
+  min-width: 0;
+  gap: 8px;
+  cursor: pointer;
+  /* The desktop header rules the wordmark off from the categories beside it;
+     there are no categories here, so there is nothing to divide. */
+  height: auto;
+  padding-right: 0;
+  margin-right: 0;
+  border-right: none;
+}
+
+.topbar--mobile .topbar__wordmark {
+  font-size: 15px;
+}
+
+.topbar__now {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--primary);
+  background: var(--primary-dim);
+  border: 1px solid rgb(var(--primary-rgb) / 0.35);
+  border-radius: 999px;
+  padding: 3px 9px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar__nav-sheet {
+  position: absolute;
+  top: calc(100% + 1px);
+  left: 0;
+  right: 0;
+  z-index: 56;
+  max-height: 74dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 14px;
+  background: rgb(var(--overlay-rgb) / 0.97);
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--border-strong);
+  border-radius: 0 0 18px 18px;
+  box-shadow: 0 20px 44px rgb(var(--shadow-rgb) / 0.55);
+  animation: nav-down 0.26s var(--ease-drawer) both;
+}
+
+@keyframes nav-down {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.topbar__nav-group {
+  margin-bottom: 14px;
+}
+
+.topbar__nav-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--accent, var(--text-dim));
+  margin: 0 0 7px 2px;
+}
+
+.topbar__nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: 11px 12px;
+  margin-bottom: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.topbar__nav-item.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.topbar__nav-item-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.topbar__nav-item-desc {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-dim);
+}
+
+.topbar__nav-home {
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+}
+
+/* ---------- phone-sized adjustments ---------- */
+
+@media (max-width: 760px) {
+  .app {
+    padding: 12px 12px 0;
+  }
+
+  /* SHARE is in the nav sheet on a phone, so the corner is not spoken for. */
+  .main-col {
+    --share-safe: 0px;
+    --share-clear: 0px;
+  }
+
+  .layout {
+    gap: 12px;
+  }
+
+  .main-col {
+    gap: 12px;
+  }
+
+  /* Room for the fixed action bar at the bottom of the scroll. */
+  .layout--mobile .main-col {
+    padding-bottom: calc(74px + env(safe-area-inset-bottom));
+  }
+
+  .panel {
+    border-radius: 12px;
+  }
+
+  /* canvases — only the bar chart has a fixed height; the structure views
+     grow with their content and must keep `height: auto`, or this rule
+     clips them. */
+  .canvas {
+    height: clamp(190px, 34dvh, 300px);
+    padding: 20px 10px 14px;
+  }
+
+  .ll-canvas,
+  .sq-canvas,
+  .ht-canvas,
+  .hp-canvas,
+  .tr-canvas,
+  .uf-canvas,
+  .dp-canvas,
+  .bt-canvas,
+  .grid-canvas,
+  .rq-canvas,
+  .hf-canvas,
+  .graph-canvas {
+    height: auto;
+  }
+
+  .bars {
+    gap: 2px;
+  }
+
+  .bar__value {
+    font-size: 11px;
+    top: -17px;
+  }
+
+  .ll-canvas {
+    padding: 28px 12px 14px;
+    min-height: 190px;
+  }
+
+  /* A 9-wide sudoku at 34px is 320px, which just fits a phone; the row boards
+     are wider per cell and get their own scroll box. */
+  .bt-canvas {
+    padding: 14px 10px 16px;
+    min-height: 260px;
+  }
+
+  /* The grid already scrolls inside its own box; narrower cells mean fewer
+     strings need it at all. */
+  .grid-canvas {
+    padding: 14px 10px 16px;
+    min-height: 240px;
+  }
+
+  .grid-row__cells {
+    grid-template-columns: repeat(var(--cols), var(--cell-w, 22px));
+  }
+
+  .grid-cell {
+    height: 22px;
+    font-size: 11px;
+  }
+
+  .grid-row__label {
+    width: 46px;
+  }
+
+  .rq-canvas {
+    padding: 14px 10px 16px;
+    min-height: 240px;
+  }
+
+  .rq-cells {
+    grid-template-columns: repeat(var(--cols), 36px);
+  }
+
+  .rq-row__label {
+    width: 40px;
+  }
+
+  .bt-board {
+    grid-template-columns: repeat(var(--cols), 30px);
+  }
+
+  .bt-cell {
+    height: 30px;
+  }
+
+  .bt-cell__value {
+    font-size: 13px;
+  }
+
+  .tree-panel__scroll {
+    max-height: 180px;
+  }
+
+  /* The table already scrolls inside its own box; shrinking the cells is what
+     keeps a capacity-20 knapsack from being a scroll from the first column. */
+  .dp-canvas {
+    padding: 14px 12px 16px;
+    min-height: 260px;
+  }
+
+  .dp-cell {
+    min-width: 26px;
+    height: 26px;
+  }
+
+  .dp-cell__value {
+    font-size: 11px;
+  }
+
+  .dp-head {
+    font-size: 11px;
+  }
+
+  .ll-row {
+    row-gap: 30px;
+  }
+
+  .ll-arrow {
+    padding: 0 6px;
+    font-size: 16px;
+  }
+
+  .ll-node {
+    height: 46px;
+  }
+
+  .ll-node__cell--data {
+    min-width: 34px;
+    padding: 0 6px;
+  }
+
+  .ll-node__cell--ptr {
+    width: 22px;
+  }
+
+  .ll-node__value,
+  .sq-slot__value {
+    font-size: 14px;
+  }
+
+  .sq-canvas {
+    min-height: 250px;
+    padding: 20px 12px 14px;
+  }
+
+  .sq-slot {
+    width: 56px;
+    height: 44px;
+  }
+
+  .ht-canvas,
+  .hp-canvas,
+  .tr-canvas,
+  .uf-canvas {
+    min-height: 0;
+    padding: 14px 12px 12px;
+  }
+
+  .uf-array__label {
+    display: none;
+  }
+
+  .uf-cell {
+    min-width: 30px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .tr-head {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  /* The label would eat a third of the row; the cells are self-explanatory. */
+  .hp-array__label {
+    display: none;
+  }
+
+  .hp-cell {
+    min-width: 34px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .hp-formula {
+    font-size: 11px;
+  }
+
+  /* The bucket rows are the one part worth keeping full-size; the header
+     wraps instead of shrinking the array. */
+  .ht-head {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .ht-load {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  /* A phone has no spare width to wrap into, so the buckets stay one column
+     and scroll the way they always did. */
+  .ht-grid {
+    flex-wrap: nowrap;
+    max-height: 46dvh;
+  }
+
+  /* Two tables won't sit side by side on a phone without shrinking the slots
+     past reading size, so cuckoo's second table goes underneath. */
+  .ht-tables {
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* The directory and the buckets stay side by side — reading one against the
+     other is the point — and scroll together inside the panel instead. */
+  .dh-canvas {
+    min-height: 0;
+    padding: 14px 12px 12px;
+  }
+
+  .dh-cols {
+    gap: 14px;
+    max-height: 46dvh;
+  }
+
+  /* Same as the bucket array: no spare width on a phone, so the lists stay
+     single columns and scroll. */
+  .dh-list {
+    flex-wrap: nowrap;
+    max-height: none;
+  }
+
+  .dh-slot {
+    width: 40px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .ht-tables .ht-grid {
+    max-height: 30dvh;
+  }
+
+  .ht-row .sq-slot,
+  .ht-slot {
+    width: 48px;
+    height: 30px;
+  }
+
+  .graph-canvas {
+    min-height: 0;
+    padding: 14px 12px 12px;
+  }
+
+  .graph-repr {
+    padding: 14px 12px;
+  }
+
+  .recursion {
+    padding: 12px;
+  }
+
+  .recursion__head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .recursion__rows {
+    max-height: 150px;
+  }
+
+  .recursion__row {
+    height: 14px;
+  }
+
+  .canvas__note {
+    font-size: 12px;
+  }
+
+  /* The graph hint is long enough on a phone that the reset button needs its
+     own line rather than squeezing the text. */
+  .graph-canvas__note {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* transport: buttons on one row, slider on the next, read-outs last */
+  .controls {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .controls__row {
+    gap: 10px 14px;
+  }
+
+  .controls__transport {
+    flex: 1 0 100%;
+    justify-content: space-between;
+  }
+
+  .controls__speed {
+    flex: 1 0 100%;
+    min-width: 0;
+  }
+
+  .controls__step {
+    flex: 0 0 auto;
+  }
+
+  .metrics {
+    flex: 1;
+    justify-content: flex-end;
+    gap: 14px;
+  }
+
+  /* No physical keyboard to explain. */
+  .controls__help-btn {
+    display: none;
+  }
+
+  /* info + topic panels */
+  .info {
+    padding: 14px;
+    gap: 14px;
+  }
+
+  .info__summary,
+  .info__code {
+    flex-basis: 100%;
+    min-width: 0;
+  }
+
+  .info__code {
+    padding: 12px;
+    overflow-x: auto;
+  }
+
+  .info__code-line {
+    font-size: 11.5px;
+  }
+
+  .info__desc {
+    font-size: 12.5px;
+  }
+
+  .topic-panel {
+    padding: 14px;
+  }
+
+  /* landing */
+  .landing {
+    padding: 34px 16px calc(28px + env(safe-area-inset-bottom));
+  }
+
+  .landing__header {
+    margin-bottom: 24px;
+  }
+
+  /* Clear of the appearance button pinned to the top-right corner. Only the
+     text needs to dodge it; the live run below it takes the full width. */
+  .landing__intro {
+    padding-right: 44px;
+  }
+
+  .landing__title {
+    font-size: 24px;
+    gap: 10px;
+  }
+
+  .landing__subtitle {
+    font-size: 16px;
+  }
+
+  .landing__grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .landing__card--wide {
+    grid-column: auto;
+  }
+
+  .landing__card--wide .landing__card-items {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .landing__card {
+    padding: 16px;
+    border-radius: 14px;
+  }
+
+}
+
+/* ---------- touch targets ----------
+   Applies to any coarse pointer (phone or tablet), independent of width:
+   a 12px pill is fine under a cursor and much too small under a thumb. */
+
+@media (pointer: coarse) {
+  .btn {
+    padding: 10px 16px;
+    font-size: 12.5px;
+  }
+
+  .btn.icon {
+    padding: 12px;
+  }
+
+  .type-toggle .btn {
+    padding: 11px 6px;
+    font-size: 11.5px;
+  }
+
+  .algo-row {
+    padding: 12px 12px;
+    font-size: 13.5px;
+  }
+
+  .algo-group__header {
+    padding: 12px 10px;
+  }
+
+  .topbar__menu-item {
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  /* 16px is the threshold below which iOS Safari zooms in on focus. */
+  .text-input,
+  .textarea-input {
+    font-size: 16px;
+    padding: 11px 12px;
+  }
+
+  select.text-input {
+    height: 46px;
+  }
+
+  input[type="range"] {
+    height: 30px;
+  }
+
+  .timeline__range {
+    height: 32px;
+  }
+
+  .timeline__range::-webkit-slider-thumb {
+    width: 20px;
+    height: 20px;
+    margin-top: -7px;
+  }
+
+  .timeline__range::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+  }
+}
+/* ---------- comparison: shared form bits ---------- */
+
+/* A native select inherits the OS popup, which is white on every platform
+   here. Styling the closed control is ours; the open list is the browser's,
+   so the option colours are set too. */
+select.text-input {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  padding-right: 30px;
+  /* A drawn chevron in the dim ink. A data URI cannot read a custom property,
+     so each theme carries its own copy of the stroke colour. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%238b90a0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5'/%3E%3C/svg%3E");
+  background-position: right 10px center;
+  background-size: 12px 12px;
+  background-repeat: no-repeat;
+}
+
+:root[data-theme="light"] select.text-input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23596070' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5'/%3E%3C/svg%3E");
+}
+
+/* From the surface token, not a fixed hex: a dark fill here left the light
+   theme's open list as dark text on near-black. */
+select.text-input option {
+  background: rgb(var(--surface-rgb));
+  color: var(--text);
+}
+
+.label--tight {
+  margin-bottom: 5px;
+}
+
+/* Explains what a control means without making the sidebar a wall of prose:
+   small, dim, and only ever one short paragraph. */
+.sidebar__note {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-dim);
+  margin: 8px 0 0;
+}
+
+.sidebar__section--first {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.algo-row:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.algo-row:disabled:hover {
+  color: var(--text-dim);
+  background: transparent;
+}
+
+/* A segmented two-or-three-way switch. Used wherever the choice is between
+   named modes rather than a value on a range. */
+.seg {
+  display: flex;
+  gap: 4px;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 3px;
+}
+
+.seg__btn {
+  flex: 1;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  padding: 6px 4px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color var(--dur-ui) ease, background-color var(--dur-ui) ease,
+    transform var(--dur-press) var(--ease-out);
+  white-space: nowrap;
+}
+
+.seg__btn:hover {
+  color: var(--text);
+}
+
+.seg__btn.active {
+  background: var(--primary-dim);
+  color: var(--primary);
+}
+
+/* A tie that came out reordered. Marked on the bar rather than only in the
+   scoreboard, so the claim points at the elements it is about. */
+.bar--unstable {
+  outline: 1.5px dashed var(--red);
+  outline-offset: 1px;
+}
+
+.canvas__verdict {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  margin-top: 12px;
+  color: var(--text-dim);
+}
+
+.canvas__verdict.ok {
+  color: var(--green);
+}
+
+.canvas__verdict.bad {
+  color: var(--red);
+}
+
+/* ---------- race track ---------- */
+
+.race {
+  padding: 16px 18px 18px;
+}
+
+.race__note {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.race__note-sep {
+  opacity: 0.4;
+}
+
+/* Two lanes sit side by side; three or four wrap into a 2x2. Below 900px
+   they stack, because a bar chart squeezed into a quarter of a phone is not
+   a comparison of anything. */
+.race__grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.race__grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .race__grid,
+  .race__grid--2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.lane {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px 8px;
+  background: var(--panel-alt);
+  min-width: 0;
+  transition: border-color var(--step-anim) ease;
+}
+
+.lane--leader {
+  border-color: rgb(var(--primary-rgb) / 0.45);
+}
+
+.lane--done {
+  background: rgb(var(--green-rgb) / 0.05);
+}
+
+.lane__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  min-height: 20px;
+}
+
+.lane__name {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lane__variant {
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lane__spacer {
+  flex: 1;
+}
+
+.lane__badge {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--green);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.lane__badge--leader {
+  color: var(--primary);
+}
+
+.lane__bars {
+  height: 150px;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Past about 28 elements the gaps are wider than the bars. */
+.lane__bars--compact {
+  gap: 1px;
+}
+
+.lane__foot {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.lane__foot .lcd {
+  font-size: 11px;
+}
+
+.lane__total {
+  margin-left: auto;
+  opacity: 0.7;
+}
+
+/* ---------- scoreboard ---------- */
+
+.scoreboard {
+  padding: 16px 18px 14px;
+}
+
+.scoreboard__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.scoreboard__head .label {
+  margin-bottom: 0;
+}
+
+.scoreboard__hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* One grid so the header and every row line up without a real table, which
+   would fight the phone layout below. The column count varies by comparison,
+   so StatBoard sets grid-template-columns inline. */
+.scoreboard__table {
+  display: grid;
+  gap: 2px 8px;
+  min-width: 0;
+}
+
+.scoreboard__row {
+  display: contents;
+}
+
+.scoreboard__cell {
+  position: relative;
+  padding: 7px 6px;
+  overflow: hidden;
+  border-radius: 6px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.scoreboard__row--head .scoreboard__cell {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  padding-bottom: 4px;
+  padding-top: 0;
+}
+
+.scoreboard__cell--name {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  line-height: 1.9;
+}
+
+.scoreboard__row--leader .scoreboard__cell--name {
+  color: var(--primary);
+}
+
+/* The magnitude bar sits behind the number rather than beside it: the value
+   is the thing being read, the fill is the thing being compared. */
+.scoreboard__fill {
+  position: absolute;
+  inset: 2px auto 2px 0;
+  border-radius: 4px;
+  opacity: 0.16;
+  transition: width var(--step-anim) ease;
+}
+
+.scoreboard__value {
+  position: relative;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.scoreboard__value em {
+  font-style: normal;
+  opacity: 0.45;
+}
+
+.scoreboard__cell--stable {
+  justify-content: flex-end;
+}
+
+.scoreboard__stable {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.scoreboard__stable--pending {
+  opacity: 0.5;
+}
+
+.scoreboard__stable--ok {
+  color: var(--green);
+}
+
+.scoreboard__stable--bad {
+  color: var(--red);
+}
+
+/* On a phone the grid becomes one block per algorithm: a seven-column table
+   at 360px would either scroll sideways (forbidden) or be unreadable. */
+@media (max-width: 760px) {
+  .scoreboard__table {
+    display: block;
+  }
+
+  .scoreboard__row--head {
+    display: none;
+  }
+
+  .scoreboard__row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    padding: 8px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .scoreboard__cell--name {
+    flex-basis: 100%;
+  }
+
+  .scoreboard__cell {
+    padding: 4px 6px;
+    background: var(--panel-alt);
+  }
+}
+
+/* Stacked, a cell has lost its column header, so it carries its own. */
+@media (max-width: 760px) {
+  .scoreboard__cell[data-label]::before {
+    content: attr(data-label);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+    margin-right: 5px;
+    position: relative;
+  }
+}
+
+/* A treap node's random priority, above the key. Dim, because the key is what
+   you are looking for and the priority is only why the tree has this shape. */
+.tree-priority {
+  font-size: 11px;
+  fill: var(--purple);
+  opacity: 0.85;
+}
+
+/* ---------- Huffman ---------- */
+
+.hf-canvas {
+  height: auto;
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 20px 20px;
+}
+
+.hf-wrap {
+  display: flex;
+  justify-content: center;
+  padding-top: var(--share-clear, 0);
+}
+
+/* The B+ leaf chain: dashed so it reads as a shortcut across the bottom
+   rather than as another parent-child edge. */
+.mw-leaflink {
+  stroke: var(--green);
+  stroke-width: 1.6;
+  stroke-dasharray: 4 3;
+  opacity: 0.8;
+}
+
+.hf-svg {
+  display: block;
+  margin: 0 auto;
+}
+
+.hf-empty {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 30px 0;
+}
+
+.hf-link {
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+}
+
+/* The bit a branch contributes. The code for a symbol is the path to it. */
+.hf-bit {
+  fill: var(--text-dim);
+  font-size: 11px;
+}
+
+.hf-node {
+  fill: var(--panel-alt);
+  stroke: var(--border-strong);
+  stroke-width: 2;
+  transition: fill var(--step-anim) ease, stroke var(--step-anim) ease;
+}
+
+/* Leaves are the symbols; internal nodes are only sums of what is below. */
+.hf-node.is-leaf {
+  fill: rgb(var(--blue-rgb) / 0.18);
+  stroke: var(--blue);
+}
+
+.hf-node.is-active {
+  fill: var(--primary-dim);
+  stroke: var(--primary);
+  filter: drop-shadow(0 0 6px rgb(var(--primary-rgb) / 0.5));
+}
+
+.hf-node__label {
+  fill: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.hf-node__weight {
+  fill: var(--text-dim);
+  font-size: 11px;
+}
+
+.sidebar__note {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  margin: 8px 0 0;
+}
+
+/* ---------- range queries (segment tree / Fenwick) ---------- */
+
+.rq-canvas {
+  height: auto;
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 20px 20px;
+}
+
+.rq-wrap {
+  display: flex;
+  justify-content: flex-start;
+  padding-top: var(--share-clear, 0);
+}
+
+.rq-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 auto;
+}
+
+.rq-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rq-row__label {
+  width: 54px;
+  flex-shrink: 0;
+  text-align: right;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: linear-gradient(to right, var(--panel) 70%, transparent); /* taste-skill-ignore: scrim keeping a sticky label legible over cells */
+}
+
+/* Every row shares the array's columns, so a span physically covers the cells
+   it stands for — which is the entire reason this diagram reads. */
+.rq-cells {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 46px);
+  gap: 3px;
+}
+
+.rq-cells--index {
+  height: 14px;
+}
+
+.rq-index {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.rq-cell {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+  color: var(--text);
+  transition: background-color var(--step-anim) ease, border-color var(--step-anim) ease,
+    color var(--step-anim) ease;
+}
+
+/* One stored partial answer, drawn across the cells it summarises. */
+.rq-span {
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: rgb(var(--ink-rgb) / 0.04);
+  color: var(--text-dim);
+  overflow: hidden;
+  transition: background-color var(--step-anim) ease, border-color var(--step-anim) ease,
+    color var(--step-anim) ease;
+}
+
+.rq-cell.is-active,
+.rq-span.is-active {
+  border-color: var(--primary);
+  background: var(--primary-dim);
+  color: var(--primary);
+}
+
+/* The range the query asked about, marked on the array itself. */
+.rq-cell.is-range {
+  border-color: var(--blue);
+  background: rgb(var(--blue-rgb) / 0.14);
+  color: var(--blue);
+}
+
+/* A stored value taken whole — the span that made the query cheap. */
+.rq-span.is-take,
+.rq-cell.is-take {
+  border-color: var(--green);
+  background: rgb(var(--green-rgb) / 0.22);
+  color: var(--green);
+  font-weight: 700;
+}
+
+/* Fenwick subtracts a prefix it never wanted; worth a colour of its own. */
+.rq-span.is-subtract {
+  border-color: var(--red);
+  background: rgb(var(--red-rgb) / 0.18);
+  color: var(--red);
+}
+
+/* Overlaps the range but is not contained by it, so it had to be split. */
+.rq-span.is-partial {
+  border-color: var(--yellow);
+  background: rgb(var(--yellow-rgb) / 0.14);
+  color: var(--yellow);
+}
+
+.rq-span.is-skip {
+  opacity: 0.3;
+}
+
+.rq-span.is-read {
+  border-color: var(--border-strong);
+  background: rgb(var(--ink-rgb) / 0.08);
+  color: var(--text);
+}
+
+/* Where a Fenwick build hands its running total. */
+.rq-span.is-target {
+  border-color: var(--purple);
+  background: rgb(var(--purple-rgb) / 0.16);
+  color: var(--purple);
+}
+
+/* A stacked segmented control, for choices whose labels are too long to sit
+   side by side. */
+.seg--stack {
+  flex-direction: column;
+}
+
+/* ---------- string algorithms ---------- */
+
+.grid-canvas {
+  height: auto;
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 20px 20px;
+}
+
+.grid-wrap {
+  display: flex;
+  justify-content: flex-start;
+  padding-bottom: 4px;
+  /* A long text scrolls sideways under the floating SHARE button, so the grid
+     starts below it rather than trying to keep out of its column. */
+  padding-top: var(--share-clear, 0);
+}
+
+.grid-board {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0 auto;
+}
+
+.grid-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Every row shares one set of columns, which is what makes an offset row read
+   as "aligned here" rather than as a separate picture. */
+.grid-row__cells {
+  display: grid;
+  /* A frame holding numbers rather than single characters asks for wider
+     columns through --cell-w; the default suits one character. */
+  grid-template-columns: repeat(var(--cols), var(--cell-w, 26px));
+  gap: 2px;
+}
+
+/* Pinned, because a long string scrolls sideways and a row you cannot name is
+   a row you have to work out from its contents. */
+.grid-row__label {
+  width: 62px;
+  flex-shrink: 0;
+  text-align: right;
+  padding-right: 6px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: linear-gradient(to right, var(--panel) 70%, transparent); /* taste-skill-ignore: scrim keeping a sticky label legible over cells */
+}
+
+.grid-cell {
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+  color: var(--text);
+  transition: background-color var(--step-anim) ease, border-color var(--step-anim) ease,
+    color var(--step-anim) ease;
+}
+
+/* An empty slot in a number row — the failure function before it is filled in. */
+.grid-cell.is-blank {
+  border-style: dashed;
+  background: none;
+}
+
+/* The ruler. Present because alignment is the thing being taught, and an index
+   you have to count to is an index you get wrong. */
+.grid-row--index .grid-cell {
+  border: none;
+  background: none;
+  font-size: 11px;
+  height: 14px;
+  color: var(--text-dim);
+}
+
+.grid-cell.is-active {
+  border-color: var(--primary);
+  background: var(--primary-dim);
+  color: var(--primary);
+}
+
+.grid-cell.is-match {
+  border-color: var(--green);
+  background: rgb(var(--green-rgb) / 0.16);
+  color: var(--green);
+}
+
+.grid-cell.is-mismatch {
+  border-color: var(--red);
+  background: rgb(var(--red-rgb) / 0.18);
+  color: var(--red);
+}
+
+/* A confirmed occurrence — stays lit once found. */
+/* A column header in a table-shaped frame — the Euclidean descent, the item
+   table of a fractional knapsack. Quiet, because it never changes. */
+.grid-cell.is-head {
+  border-color: transparent;
+  background: none;
+  color: var(--text-dim);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+/* Neither yet-decided nor ruled out — 0 and 1 in the sieve, which are neither
+   prime nor composite, and the columns of a row that has not been reached. */
+.grid-cell.is-dim {
+  border-color: var(--border);
+  background: none;
+  color: var(--text-dim);
+  opacity: 0.45;
+}
+
+/* A second value inside a cell: the value/weight ratio under an item, the
+   quotient under a step. Stacked rather than beside, so the column width is
+   still set by the number above it. */
+.grid-cell {
+  flex-direction: column;
+  gap: 0;
+  line-height: 1.05;
+}
+
+.grid-cell__sub {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-dim);
+  opacity: 0.9;
+}
+
+.grid-cell.is-found {
+  border-color: var(--green);
+  background: rgb(var(--green-rgb) / 0.3);
+  color: var(--green);
+  font-weight: 700;
+}
+
+/* The span that is being reused rather than recompared: KMP's border, Z's
+   mirror, Manacher's reflected radius. The blue is the whole idea. */
+.grid-cell.is-border {
+  border-color: var(--blue);
+  background: rgb(var(--blue-rgb) / 0.18);
+  color: var(--blue);
+}
+
+/* The current [l, r] window or the sliding window under inspection. */
+.grid-cell.is-window {
+  border-color: var(--border-strong);
+  background: rgb(var(--ink-rgb) / 0.08);
+}
+
+/* Z's separator and Manacher's interleaved padding — structural, not content. */
+.grid-cell.is-sep {
+  color: var(--text-dim);
+  background: none;
+  border-style: dotted;
+}
+
+.grid-row--pointers .grid-row__cells {
+  align-items: end;
+}
+
+.grid-pointer {
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.grid-pointer.is-window,
+.grid-pointer.is-border {
+  color: var(--blue);
+}
+
+.grid-pointer.is-match,
+.grid-pointer.is-found {
+  color: var(--green);
+}
+
+.grid-pointer.is-mismatch {
+  color: var(--red);
+}
+
+.str-input {
+  font-family: "JetBrains Mono", monospace;
+  letter-spacing: 0.08em;
+}
+
+/* ---------- backtracking ---------- */
+
+.bt-canvas {
+  height: auto;
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 18px 20px 20px;
+}
+
+.bt-board-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.bt-board {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 34px);
+  gap: 2px;
+  margin: 0 auto;
+}
+
+/* A list of candidates rather than a board: wider cells, because the values
+   are numbers with two digits rather than one piece. */
+.bt-board--row {
+  grid-template-columns: repeat(var(--cols), 46px);
+  gap: 6px;
+}
+
+.bt-cell {
+  position: relative;
+  height: 34px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel-alt);
+  color: var(--text-dim);
+  transition: background-color var(--step-anim) ease, border-color var(--step-anim) ease,
+    color var(--step-anim) ease, transform var(--step-anim) ease;
+}
+
+.bt-board--row .bt-cell {
+  height: 44px;
+}
+
+.bt-cell__value {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.bt-cell__label {
+  font-size: 10px;
+  color: var(--text-dim);
+  opacity: 0.7;
+  margin-top: 3px;
+}
+
+/* The puzzle's own digits: settled before the search started, and never
+   touched by it. */
+.bt-cell.is-given {
+  color: var(--text);
+  font-weight: 700;
+  background: rgb(var(--ink-rgb) / 0.07);
+}
+
+.bt-cell.is-placed {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+/* What the constraint has already ruled out. Shaded rather than outlined,
+   because it is the absence of a choice rather than a choice. */
+.bt-cell.is-attacked {
+  background: rgb(var(--red-rgb) / 0.08);
+  border-color: rgb(var(--red-rgb) / 0.18);
+}
+
+.bt-cell.is-conflict {
+  border-color: var(--red);
+  background: rgb(var(--red-rgb) / 0.2);
+  color: var(--red);
+}
+
+.bt-cell.is-current {
+  border-color: var(--primary);
+  background: var(--primary-dim);
+  color: var(--primary);
+  transform: scale(1.06);
+}
+
+/* A choice being taken back. Yellow rather than red: nothing was wrong with
+   it, it just didn't lead anywhere. */
+.bt-cell.is-undo {
+  border-color: var(--yellow);
+  background: rgb(var(--yellow-rgb) / 0.16);
+  color: var(--yellow);
+}
+
+.bt-cell.is-solution {
+  border-color: var(--green);
+  background: rgb(var(--green-rgb) / 0.18);
+  color: var(--green);
+}
+
+.bt-cell.is-in {
+  border-color: var(--green);
+  background: rgb(var(--green-rgb) / 0.14);
+  color: var(--green);
+}
+
+.bt-cell.is-out {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+
+/* Sudoku's 3x3 rules, drawn on the cells that start a block rather than as
+   lines over the grid. They have to be brighter than every other border in
+   the app to be seen at all: at this size the 2px gaps between cells swamp a
+   subtle one, and without the boxes a sudoku is just a 9x9 grid. */
+.bt-cell--bx {
+  border-left: 2px solid var(--text-dim);
+}
+
+.bt-cell--by {
+  border-top: 2px solid var(--text-dim);
+}
+
+.bt-puzzles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.bt-puzzle {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.bt-puzzle:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.bt-puzzle.active {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--primary-dim);
+}
+
+.bt-grid-input {
+  font-size: 11px;
+  line-height: 1.5;
+  letter-spacing: 0.08em;
+}
+
+/* ---------- the state space tree ---------- */
+
+.tree-panel__body {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  /* A thirty-row sudoku tree is taller than the gutter's box, and the gutter
+     is absolutely positioned — without this its numbers spill out over the
+     transport bar below. */
+  overflow: hidden;
+}
+
+/* Sits over the scroll box rather than inside it, so the depth numbers stay
+   put while a tree several thousand pixels wide scrolls under them. */
+.tree-panel__gutter {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 18px;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(to right, var(--panel) 60%, transparent); /* taste-skill-ignore: scrim keeping a sticky label legible over cells */
+}
+
+.tree-panel__depth {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: left;
+  flex-shrink: 0;
+}
+
+.tree-panel__scroll {
+  flex: 1;
+  min-width: 0;
+  padding-left: 22px;
+  max-height: 264px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tree-panel__scroll svg {
+  display: block;
+}
+
+.tree-edge {
+  fill: none;
+  stroke: rgb(var(--ink-rgb) / 0.14);
+  stroke-width: 1;
+}
+
+/* The path from the root to the E-node — the partial solution the board is
+   showing, drawn as the one thick line through the tree. */
+.tree-edge--stack {
+  stroke: var(--primary);
+  stroke-width: 1.8;
+  opacity: 0.75;
+}
+
+.tree-rect {
+  stroke-width: 1;
+}
+
+/* Generated but not yet reached by the walk. */
+.tree-rect--open {
+  fill: rgb(var(--ink-rgb) / 0.1);
+  stroke: none;
+}
+
+.tree-rect--live {
+  fill: var(--primary-dim);
+  stroke: rgb(var(--primary-rgb) / 0.5);
+}
+
+/* Rejected before its children were ever generated. On most searches this is
+   the bulk of the picture, which is the argument for backtracking. */
+.tree-rect--pruned {
+  fill: rgb(var(--red-rgb) / 0.4);
+  stroke: none;
+}
+
+.tree-rect--dead {
+  fill: rgb(var(--yellow-rgb) / 0.45);
+  stroke: none;
+}
+
+.tree-rect--solution {
+  fill: rgb(var(--green-rgb) / 0.55);
+  stroke: none;
+}
+
+.tree-rect--enode {
+  fill: var(--primary);
+  stroke: var(--text);
+  stroke-width: 1;
+}
+
+.tree-label {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  fill: var(--text-dim);
+  pointer-events: none;
+}
+
+.tree-label--enode {
+  fill: var(--bg);
+  font-weight: 700;
+}
+
+.tree-label--live {
+  fill: var(--primary);
+}
+
+.tree-label--solution {
+  fill: var(--bg);
+}
+
+.tree-panel__path {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.tree-path {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.tree-path__node {
+  color: var(--text);
+}
+
+.tree-path__node.is-enode {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.tree-path__arrow {
+  opacity: 0.5;
+}
+
+.tree-panel__key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.tree-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.tree-key__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.tree-key__dot.is-enode {
+  background: var(--primary);
+}
+
+.tree-key__dot.is-live {
+  background: rgb(var(--primary-rgb) / 0.4);
+  border: 1px solid rgb(var(--primary-rgb) / 0.6);
+}
+
+.tree-key__dot.is-pruned {
+  background: rgb(var(--red-rgb) / 0.5);
+}
+
+.tree-key__dot.is-dead {
+  background: rgb(var(--yellow-rgb) / 0.5);
+}
+
+.tree-key__dot.is-solution {
+  background: rgb(var(--green-rgb) / 0.6);
+}
+
+/* ---------- dynamic programming ---------- */
+
+/* The table decides the height, and a wide one (capacity 20 is 21 columns)
+   scrolls inside its own box rather than pushing the page sideways. */
+.dp-canvas {
+  height: auto;
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px 20px;
+}
+
+.dp-table-wrap {
+  margin-bottom: 4px;
+}
+
+.dp-table {
+  border-collapse: separate;
+  border-spacing: 3px;
+  font-size: 12px;
+  margin: 0 auto;
+}
+
+.dp-head {
+  color: var(--text);
+  font-weight: 700;
+  font-size: 11px;
+  padding: 4px 6px;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.dp-head--row {
+  text-align: right;
+  padding-right: 8px;
+}
+
+/* The index under a header letter — which prefix, which item, which position.
+   Half the confusion in a DP table is off-by-one between "character 3" and
+   "column 3", so both are always on screen. */
+.dp-sub {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+
+.dp-corner {
+  padding: 0;
+}
+
+.dp-cell {
+  position: relative;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 4px;
+  text-align: center;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+  color: var(--text-dim);
+  transition: background-color var(--step-anim) ease, border-color var(--step-anim) ease,
+    color var(--step-anim) ease, transform var(--step-anim) ease;
+}
+
+.dp-cell.is-empty {
+  background: none;
+  border-style: dashed;
+  border-color: var(--border);
+}
+
+/* Not "not filled yet" but "not part of this table" — the lower triangle of a
+   matrix chain. Flat and borderless, so it reads as absent rather than
+   pending. */
+.dp-cell.is-void {
+  background: none;
+  border-color: transparent;
+}
+
+.dp-cell.is-filled {
+  color: var(--text);
+}
+
+.dp-cell.is-read {
+  border-color: var(--border-strong);
+  background: rgb(var(--ink-rgb) / 0.06);
+}
+
+/* The cell this step's answer actually came from. This is the recurrence made
+   visible, so it is the loudest thing on the table after the cursor. */
+.dp-cell.is-chosen {
+  border-color: var(--blue);
+  background: rgb(var(--blue-rgb) / 0.16);
+  color: var(--blue);
+}
+
+.dp-cell.is-path {
+  border-color: var(--green);
+  background: rgb(var(--green-rgb) / 0.16);
+  color: var(--green);
+}
+
+.dp-cell.is-cur {
+  border-color: var(--primary);
+  background: var(--primary-dim);
+  color: var(--primary);
+  font-weight: 700;
+  transform: scale(1.06);
+}
+
+.dp-cell__value {
+  font-size: 12px;
+}
+
+/* The arrow or split a cell remembers about how it got its value. Small and
+   dim: it is the backtrack's data, not the fill's answer. */
+.dp-cell__mark {
+  position: absolute;
+  top: 0;
+  right: 2px;
+  font-size: 10px;
+  line-height: 1;
+  opacity: 0.65;
+}
+
+.dp-aux {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.dp-aux__items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.dp-aux__empty {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.dp-chip {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+  color: var(--text);
+}
+
+.dp-chip--take {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.dp-chip--skip {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.dp-chip--plain {
+  color: var(--text-dim);
+}
+
+.dp-field {
+  margin-bottom: 10px;
+}
+
+.dp-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.dp-error {
+  font-size: 11px;
+  color: var(--yellow);
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+/* ---------- empirical complexity ---------- */
+
+.complexity {
+  padding: 0;
+}
+
+.complexity__toggle {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 16px 18px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+}
+
+.complexity__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.complexity__sub {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.complexity__chev {
+  margin-left: auto;
+  color: var(--text-dim);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.complexity__chev.open {
+  transform: rotate(180deg);
+}
+
+.complexity__body {
+  padding: 0 18px 18px;
+}
+
+/* What a panel knows without measuring anything, above the controls. Ruled
+   off, because it and the sweep below it are two different measurements and
+   running them together would read as one. */
+.complexity__summary {
+  padding-bottom: 6px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.complexity__controls {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.complexity__control {
+  min-width: 170px;
+}
+
+.complexity__control--run {
+  min-width: 0;
+  margin-left: auto;
+}
+
+.complexity__progress {
+  margin-top: 12px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--panel-alt);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+}
+
+.complexity__progress::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--fraction);
+  background: var(--primary-dim);
+  transition: width 0.15s linear;
+}
+
+.complexity__progress .lcd {
+  position: relative;
+  font-size: 11px;
+}
+
+.complexity__stale,
+.complexity__empty {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  margin: 14px 0 0;
+}
+
+.complexity__stale {
+  color: var(--yellow);
+}
+
+/* The plot keeps its aspect ratio and scales down; it never forces the page
+   sideways. Shared by every comparison view through LineChart. */
+.chart {
+  margin-top: 14px;
+}
+
+.chart svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.chart__grid {
+  stroke: rgb(var(--ink-rgb) / 0.07);
+  stroke-width: 1;
+}
+
+.chart__tick {
+  fill: var(--text-dim);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+}
+
+.chart__axis {
+  fill: var(--text-dim);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.chart__series {
+  fill: none;
+  stroke-width: 2;
+}
+
+.chart__overlay {
+  fill: none;
+  stroke-width: 1.2;
+  stroke-dasharray: 5 5;
+  opacity: 0.45;
+}
+
+.complexity__legend {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.complexity__legend-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  flex-wrap: wrap;
+}
+
+.complexity__legend-row:hover {
+  background: rgb(var(--ink-rgb) / 0.04);
+}
+
+.complexity__legend-row.active {
+  border-color: var(--border-strong);
+  background: var(--panel-alt);
+}
+
+.complexity__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.complexity__legend-name {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  color: var(--text);
+  min-width: 130px;
+}
+
+.complexity__legend-row .lcd {
+  font-size: 11px;
+}
+
+.complexity__legend-claim {
+  margin-left: auto;
+  opacity: 0.6;
+}
+
+.complexity__footnote {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  margin: 10px 0 0;
+}
+
+.complexity__footnote strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* The edge orders under Prim vs Kruskal. A wrapping row of chips rather than
+   a list, because the two sequences are read against each other and a column
+   each would put them a scroll apart. */
+.mst-seq {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 0 8px 0 30px;
+}
+
+.mst-seq__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+  font-size: 11px;
+  color: var(--text);
+}
+
+/* Numbered in the algorithm's own colour: the order is the whole point, and
+   the two lists hold the same edges. */
+.mst-seq__n {
+  color: var(--seq-color, var(--text-dim));
+  font-size: 11px;
+}
+
+.mst-seq__w {
+  color: var(--text-dim);
+  font-size: 11px;
+  padding-left: 6px;
+  border-left: 1px solid var(--border);
+}
+
+@media (max-width: 760px) {
+  .complexity__control {
+    min-width: 100%;
+  }
+
+  .mst-seq {
+    padding-left: 8px;
+  }
+
+  .complexity__control--run {
+    margin-left: 0;
+  }
+
+  .complexity__legend-claim {
+    margin-left: 0;
+  }
+
+  /* A 820-wide plot at 360px is unreadable; it gets its own scroll box rather
+     than shrinking to nothing or pushing the page sideways. */
+  .chart {
+    overflow-x: auto;
+  }
+
+  .chart svg {
+    min-width: 520px;
+  }
+}
+
+/* The canvas is a fixed height with a flexible middle: notes above the bars
+   and the stability verdict below them used to be clipped by the panel's
+   overflow, because the bars claimed the full height regardless of what else
+   was in the box. */
+.canvas {
+  display: flex;
+  flex-direction: column;
+}
+
+.bars {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+
+.canvas__note,
+.canvas__verdict {
+  flex-shrink: 0;
+}
+
+/* Three lanes fit on one row on a desktop; the 2x2 fallback would leave a
+   conspicuous empty quarter. */
+.race__grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .race__grid--3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .race__grid--3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- tree comparison ---------- */
+
+.treecmp {
+  padding: 16px 18px 18px;
+}
+
+.treecmp__note {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.treecmp__note strong {
+  color: var(--primary);
+}
+
+/* The sequence itself, with the cursor on it — the insertion order is the
+   independent variable here, so it belongs on screen rather than only in the
+   sidebar. */
+.treecmp__keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 11px;
+  margin-bottom: 14px;
+}
+
+.treecmp__key {
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: var(--panel-alt);
+  color: var(--text-dim);
+  border: 1px solid transparent;
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease,
+    color var(--step-anim) ease,
+    box-shadow var(--step-anim) ease,
+    opacity var(--step-anim) ease,
+    transform var(--step-anim) ease;
+}
+
+.treecmp__key.done {
+  color: var(--text);
+  background: rgb(var(--ink-rgb) / 0.07);
+}
+
+.treecmp__key.next {
+  color: var(--primary);
+  border-color: rgb(var(--primary-rgb) / 0.45);
+  background: var(--primary-dim);
+}
+
+.treecmp__grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .treecmp__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.treecmp__hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin: 12px 0 0;
+}
+
+.treelane {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px 4px;
+  background: var(--panel-alt);
+  min-width: 0;
+  transition: border-color var(--step-anim) ease;
+}
+
+.treelane--best {
+  border-color: rgb(var(--primary-rgb) / 0.45);
+}
+
+.treelane__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 20px;
+}
+
+/* A lane wraps the real tree canvas rather than redrawing the tree, so the
+   picture is guaranteed to be the one the tree view would give you. The
+   canvas is a whole panel in its own right, which inside a lane has to stop
+   looking like one. */
+.treelane__canvas .panel {
+  background: none;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  border-radius: 0;
+  padding: 0;
+  height: auto;
+}
+
+.treelane__canvas .ll-message {
+  display: none;
+}
+
+.treelane__canvas .ll-empty {
+  min-height: 120px;
+  font-size: 11px;
+}
+
+
+/* ---------- export ---------- */
+
+/* Held for the length of a capture. A transition still running when a frame
+   is rasterised smears one step's colours into the next one's picture, and
+   the exported run comes out looking like a double exposure. */
+.is-exporting *,
+.is-exporting *::before,
+.is-exporting *::after {
+  transition: none !important;
+  animation: none !important;
+}
+
+.export-dialog__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  border: none;
+  padding: 0;
+  background: rgb(var(--scrim-rgb) / 0.66);
+  backdrop-filter: blur(3px);
+  cursor: pointer;
+  animation: sheet-fade var(--dur-overlay) ease both;
+}
+
+.export-dialog {
+  position: fixed;
+  z-index: 61;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(420px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  /* It floats over the page, so unlike a resting panel it casts a shadow.
+     A modal is not anchored to its trigger, so it grows from its centre. */
+  box-shadow: 0 24px 56px rgb(var(--shadow-rgb) / 0.5);
+  animation: dialog-in var(--dur-overlay) var(--ease-out) both;
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+}
+
+.export-dialog__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.export-dialog__head .label {
+  margin-bottom: 0;
+}
+
+.export-dialog__formats {
+  display: flex;
+  gap: 6px;
+}
+
+.export-dialog__format {
+  flex: 1;
+  font-size: 11px;
+  padding: 8px 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.export-dialog__options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.export-dialog__field {
+  display: block;
+}
+
+.export-dialog__field .text-input {
+  width: 100%;
+}
+
+.export-dialog__check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.export-dialog__note,
+.export-dialog__hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-dim);
+}
+
+.export-dialog__hint:empty {
+  display: none;
+}
+
+.export-dialog__estimate {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.export-dialog__warn {
+  color: var(--yellow);
+}
+
+.export-dialog__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.export-dialog__bar {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--panel-alt);
+  overflow: hidden;
+}
+
+.export-dialog__bar > div {
+  height: 100%;
+  background: var(--primary);
+  transition: width 0.15s linear;
+}
+
+.export-dialog__error {
+  font-size: 12px;
+  color: var(--red);
+}
+
+.export-dialog__result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-alt);
+}
+
+/* ---------- printable step table ---------- */
+
+/* Off screen rather than `display: none`: a hidden table has no layout, and
+   some browsers will not paginate what they never laid out. */
+.step-table {
+  position: absolute;
+  left: -10000px;
+  top: 0;
+  width: 190mm;
+}
+
+@media print {
+  /* The app is hidden rather than unmounted so a cancelled print leaves the
+     user exactly where they were, mid-run. The table is portalled outside
+     `.app` for exactly this reason — hidden ancestors hide their children. */
+  .app {
+    display: none !important;
+  }
+
+  /* The dark theme is set on <body>, and a reader who has switched background
+     graphics on would otherwise get a page of ink with pale text on it. */
+  body {
+    background: #fff !important;
+    color: #000;
+  }
+
+  .step-table {
+    position: static;
+    left: auto;
+    width: auto;
+    color: #000;
+    background: #fff;
+    font-family: "IBM Plex Sans", sans-serif;
+  }
+
+  @page {
+    margin: 14mm;
+  }
+
+  .step-table__title {
+    font-size: 18pt;
+    margin: 0 0 4px;
+  }
+
+  .step-table__subtitle {
+    margin: 0;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 7.5pt;
+    color: #555;
+    word-break: break-all;
+  }
+
+  .step-table__meta {
+    margin: 4px 0 0;
+    font-size: 9pt;
+    color: #333;
+  }
+
+  .step-table__section {
+    font-size: 11pt;
+    margin: 14px 0 6px;
+    border-bottom: 1px solid #999;
+    padding-bottom: 3px;
+  }
+
+  .step-table__lines {
+    margin: 0;
+    padding-left: 22px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 8.5pt;
+    line-height: 1.5;
+  }
+
+  .step-table__lines code {
+    white-space: pre-wrap;
+  }
+
+  .step-table__grid {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8pt;
+    font-family: "JetBrains Mono", monospace;
+  }
+
+  /* Repeats the header at the top of every page — the only thing that keeps a
+     hundred-page table readable. */
+  .step-table__grid thead {
+    display: table-header-group;
+  }
+
+  .step-table__grid tr {
+    break-inside: avoid;
+  }
+
+  .step-table__grid th,
+  .step-table__grid td {
+    border: 1px solid #bbb;
+    padding: 2px 4px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .step-table__grid th {
+    background: #eee;
+    font-size: 7.5pt;
+    letter-spacing: 0.04em;
+  }
+
+  .step-table__n {
+    text-align: right;
+    color: #666;
+  }
+}
+
+
+/* ---------- appearance menu ---------- */
+
+.thememenu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.landing__footer {
+  display: flex;
+  gap: 10px;
+  margin-top: 48px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.landing__footer a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid var(--border-strong);
+  padding-bottom: 2px;
+}
+
+.landing__footer a:hover {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+/* ---------- not found ---------- */
+
+.notfound {
+  max-width: 560px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Big enough to be the first thing read, and dimmed rather than coloured: the
+   error is the sentence under it, not the number. */
+.notfound__code {
+  font-size: clamp(64px, 14vw, 104px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  opacity: 0.13;
+}
+
+.notfound__title {
+  font-size: clamp(15px, 3.4vw, 19px);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text);
+  margin: 2px 0 14px;
+}
+
+.notfound__blurb {
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text-dim);
+  margin: 0 0 22px;
+}
+
+.notfound__asked {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 26px;
+  max-width: 100%;
+}
+
+.notfound__asked-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  opacity: 0.7;
+}
+
+/* The one place a hand-written hash is shown back. It wraps rather than
+   scrolls the page sideways, and breaks anywhere — a hash has no spaces in it
+   to break at. */
+.notfound__asked-value {
+  font-size: 11px;
+  color: var(--text-dim);
+  background: rgb(var(--ink-rgb) / 0.05);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 9px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.notfound__home {
+  gap: 8px;
+}
+
+.landing__appearance {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+}
+
+.thememenu__panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: 260px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* The bar it hangs from can be scrolled sideways on a narrow window, so the
+     panel is opaque rather than translucent: a menu you can read the tabs
+     through is a menu you cannot read. */
+  background: rgb(var(--overlay-rgb) / 0.99);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 18px 40px rgb(var(--shadow-rgb) / 0.45);
+  /* Hangs from the button at its top-right corner, so it grows from there. */
+  transform-origin: top right;
+  animation: menu-in var(--dur-overlay) var(--ease-out) both;
+}
+
+.thememenu__row {
+  display: flex;
+  gap: 4px;
+}
+
+.thememenu__choice {
+  flex: 1;
+  font-size: 11px;
+  padding: 6px 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.thememenu__toggle {
+  font-size: 11px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-top: 2px;
+}
+
+.thememenu__section {
+  margin-top: 6px;
+}
+
+.thememenu__palette {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  text-align: left;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.thememenu__palette:hover {
+  background: var(--panel-alt);
+}
+
+.thememenu__palette.is-active {
+  border-color: var(--primary);
+  background: var(--primary-dim);
+}
+
+.thememenu__palette-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--text);
+}
+
+.thememenu__palette-name {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11.5px;
+}
+
+.thememenu__palette-desc {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+
+.thememenu__swatches {
+  display: flex;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+/* Each swatch shows both channels at once — the colour it would use and the
+   glyph that survives when the colour doesn't. */
+.thememenu__swatch {
+  width: 30px;
+  height: 22px;
+  border-radius: 5px;
+  border: 1.5px solid;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: "JetBrains Mono", monospace;
+}
+
+.thememenu__note {
+  margin: 4px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+
+/* ---------- editable bars ---------- */
+
+.bars--editable {
+  /* The whole strip is the target: a click lands on whichever column it is
+     over, at whatever height, so there is nothing to aim at precisely. */
+  cursor: crosshair;
+  /* The canvas is a third of a phone screen tall, so refusing the scroll here
+     outright would leave a dead band the page cannot be swiped past. A finger
+     picks a bar up by holding it instead, and the hook refuses the scroll from
+     that moment on. Sideways is refused throughout: nothing in the app scrolls
+     that way, and a reorder drag is exactly sideways. */
+  touch-action: pan-y;
+  /* A long press on a phone otherwise raises the selection handles and the
+     callout, both of which cancel the pointer mid-hold. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.bar--editable {
+  cursor: grab;
+}
+
+/* Heights follow the pointer during a drag, so the easing that makes a step
+   look smooth would make a drag feel like it is on elastic. */
+.bars--editing .bar {
+  transition: none;
+}
+
+.bar--dragging {
+  z-index: 3;
+  cursor: grabbing;
+}
+
+/* Picked up, but not yet moved anywhere. Invisible on a cursor, which passes
+   through this state in a frame; on a finger it is the whole confirmation that
+   the hold landed, alongside the buzz. */
+.bar--drag-hold {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgb(var(--shadow-rgb) / 0.45) !important;
+}
+
+.bar--drag-reorder {
+  /* Lifted out of the row so it reads as being carried rather than as having
+     already landed somewhere. */
+  transform: translateY(-4px) scale(1.04);
+  box-shadow: 0 6px 18px rgb(var(--shadow-rgb) / 0.5) !important;
+}
+
+/* The scrub badge replaces the ordinary label rather than stacking above it:
+   the same number twice, one boxed and one not, reads as two numbers. */
+.bar--drag-value .bar__value,
+.bar--drag-hold .bar__value {
+  opacity: 0;
+}
+
+.bar__scrub {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  padding: 1px 5px;
+  position: absolute;
+  top: -26px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.bar--editable:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.canvas__hint {
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+@media (max-width: 760px) {
+  /* Two of the three gestures are worth spelling out on a phone; the third is
+     the same drag with a different axis and does not need its own sentence. */
+  .canvas__hint {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+}
+
+
+/* ---------- sound ---------- */
+
+.controls__sound {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* The group keeps its size while the speed slider takes the slack, so the
+     volume never gets squeezed into a control too small to aim at. */
+  flex-shrink: 0;
+}
+
+/* `input` carries the tag, and `[type="range"]` weighs the same as a class, so
+   the generic `input[type="range"] { width: 100% }` above scores (0,1,1) and
+   beats a lone class at (0,1,0). A bare `.controls__volume` therefore lost,
+   the slider stretched to its parent's full width, and it ran underneath the
+   keyboard button beside it. Matching the tag here restores the intended
+   order rather than reaching for `!important`. */
+input.controls__volume {
+  width: 76px;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 760px) {
+  /* The transport is already tight on a phone; the toggle stays, the slider
+     goes — the system volume is right there. */
+  input.controls__volume {
+    display: none;
+  }
+}
+
+/* ---------- expression notation (infix / postfix / prefix) ---------- */
+
+/* A group whose contents are always shown: the expression sidebar filters its
+   operations by notation, which leaves two or three, and a disclosure per
+   operation would be all furniture and no choice. */
+.algo-group__header--static {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  cursor: default;
+}
+
+.expr-input-error {
+  margin: 6px 0 2px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--red);
+}
+
+.expr-prec {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 8px;
+}
+
+.expr-prec__row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-alt);
+  font-size: 11px;
+}
+
+.expr-prec__ops {
+  color: var(--primary);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.expr-prec__prec {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.expr-prec__assoc {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.expr-canvas {
+  /* `.canvas` is a fixed 340px; every canvas whose content grows
+     overrides it the same way. */
+  height: auto;
+  min-height: 340px;
+  align-items: stretch;
+}
+
+.expr-strip-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  padding-right: var(--share-safe, 0);
+}
+
+.expr-strip__label,
+.expr-stack__label,
+.expr-out__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.expr-strip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-bottom: 2px;
+}
+
+.expr-token {
+  min-width: 30px;
+  padding: 5px 8px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 7px;
+  background: var(--panel-alt);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text);
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease,
+    color var(--step-anim) ease,
+    opacity var(--step-anim) ease,
+    box-shadow var(--step-anim) ease;
+}
+
+.expr-token--operator {
+  color: var(--primary);
+}
+
+.expr-token--lparen,
+.expr-token--rparen {
+  color: var(--text-dim);
+  border-style: dashed;
+}
+
+.expr-token--bad {
+  color: var(--red);
+  border-color: var(--red);
+}
+
+/* Read already, and kept in place rather than removed: the strip is the ruler
+   the scan position is read against, so it must not shrink. */
+.expr-token.is-consumed {
+  opacity: 0.35;
+}
+
+.expr-token.is-cursor {
+  border-color: var(--primary);
+  background: rgb(var(--primary-rgb) / 0.16);
+  box-shadow: 0 0 10px rgb(var(--primary-rgb) / var(--glow-alpha));
+  opacity: 1;
+}
+
+/* The precedence comparison the current step is making, spelled out. */
+.expr-note {
+  margin-top: 10px;
+  padding: 4px 9px;
+  align-self: center;
+  border: 1px solid rgb(var(--blue-rgb) / 0.35);
+  border-radius: 6px;
+  background: rgb(var(--blue-rgb) / 0.1);
+  font-size: 11px;
+  color: var(--blue);
+}
+
+.expr-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  margin-top: 14px;
+  min-height: 150px;
+}
+
+.expr-stack-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.expr-stack {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 3px;
+  min-width: 92px;
+}
+
+.expr-slot {
+  position: relative;
+  padding: 6px 10px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 7px;
+  background: var(--panel-alt);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text);
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease,
+    box-shadow var(--step-anim) ease;
+}
+
+.expr-slot.is-top {
+  border-color: var(--blue);
+  background: rgb(var(--blue-rgb) / 0.14);
+}
+
+.expr-slot--wall {
+  border-style: dashed;
+  color: var(--text-dim);
+}
+
+.expr-slot--result {
+  border-color: var(--green);
+  background: rgb(var(--green-rgb) / 0.16);
+}
+
+.expr-slot__tag {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 6px);
+  transform: translateY(-50%);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--blue);
+}
+
+.expr-stack__empty {
+  padding: 6px 10px;
+  border: 1.5px dashed var(--border);
+  border-radius: 7px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.expr-stack__base {
+  margin-top: 3px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.expr-out {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.expr-out__items {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-bottom: 2px;
+}
+
+.expr-out__items--wrap {
+  flex-wrap: wrap;
+}
+
+.expr-out__empty {
+  font-size: 11px;
+  color: var(--text-dim);
+  opacity: 0.8;
+}
+
+.expr-chip {
+  padding: 4px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--panel-alt);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  /* Both stacks and the output cannot sit in a row on a phone; the stacks stay
+     beside each other and the output drops below them. */
+  .expr-body {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .expr-out {
+    flex-basis: 100%;
+  }
+
+  .expr-strip-wrap {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+}
+
+/* ---------- sparse matrix ---------- */
+
+.sm-stat {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.sm-stat span {
+  padding: 2px 7px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--panel-alt);
+  font-size: 11px;
+  color: var(--text);
+}
+
+.sm-textarea {
+  font-size: 11.5px;
+  line-height: 1.5;
+  white-space: pre;
+}
+
+.sm-cell-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.sm-canvas {
+  /* `.canvas` is a fixed 340px; every canvas whose content grows
+     overrides it the same way. */
+  height: auto;
+  min-height: 340px;
+  align-items: stretch;
+}
+
+/* The grid, its triplet list, and any second matrix, in a row that wraps
+   rather than scrolling the page sideways. */
+.sm-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.sm-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* The grid and its own triplet list, beside each other. Stacked, a 6x6 with a
+   dozen terms is taller than the panel. */
+.sm-block__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* `.canvas-scroll` is width:100% by default, which would take the whole row
+   and push the triplet list onto the next line. Here it should be only as
+   wide as the grid inside it. */
+.sm-block__body > .canvas-scroll {
+  width: auto;
+  max-width: 100%;
+  flex: 0 1 auto;
+}
+
+.sm-block__head {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+}
+
+.sm-grid {
+  display: grid;
+  gap: 2px;
+}
+
+.sm-grid__corner {
+  min-width: 16px;
+}
+
+.sm-grid__head {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+  align-self: center;
+  min-width: 16px;
+}
+
+.sm-grid__head.is-scan {
+  color: var(--blue);
+  font-weight: 700;
+}
+
+.sm-cell {
+  min-width: 30px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease,
+    box-shadow var(--step-anim) ease;
+}
+
+/* Empty rather than "0": in the representation beside it, the cell is not
+   there at all. */
+.sm-cell.is-zero {
+  background: transparent;
+  border-style: dashed;
+  border-color: rgb(var(--ink-rgb) / 0.09);
+}
+
+.sm-cell.is-set {
+  background: var(--panel-alt);
+  border-color: var(--border-strong);
+}
+
+.sm-cell.is-scan {
+  background: rgb(var(--blue-rgb) / 0.07);
+}
+
+.sm-cell.is-cur {
+  border-color: var(--primary);
+  background: rgb(var(--primary-rgb) / 0.18);
+  box-shadow: 0 0 9px rgb(var(--primary-rgb) / var(--glow-alpha));
+}
+
+.sm-triples {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 128px;
+}
+
+.sm-triples__head,
+.sm-triple {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.4fr;
+  gap: 2px;
+  text-align: center;
+}
+
+.sm-triples__head span {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.sm-triple span {
+  padding: 3px 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel-alt);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease,
+    opacity var(--step-anim) ease;
+}
+
+.sm-triple.is-active span {
+  border-color: var(--primary);
+  background: rgb(var(--primary-rgb) / 0.16);
+}
+
+.sm-triple.is-probe span {
+  border-color: var(--blue);
+  background: rgb(var(--blue-rgb) / 0.16);
+}
+
+/* Outside the half a binary search has narrowed to — the absence of a state
+   rather than one of its own, so no border colour, just recession. */
+.sm-triple.is-muted {
+  opacity: 0.3;
+}
+
+.sm-triples__empty {
+  padding: 4px;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.sm-counts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.sm-counts__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sm-counts__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  min-width: 108px;
+}
+
+.sm-counts__cells {
+  display: flex;
+  gap: 3px;
+}
+
+.sm-count {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 32px;
+  padding: 3px 5px;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  background: var(--panel-alt);
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease;
+}
+
+.sm-count b {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.sm-count i {
+  font-style: normal;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.sm-count.is-cur {
+  border-color: var(--primary);
+  background: rgb(var(--primary-rgb) / 0.16);
+}
+
+@media (max-width: 760px) {
+  .sm-row {
+    gap: 14px;
+  }
+
+  .sm-counts__label {
+    min-width: 0;
+  }
+
+  .sm-counts__row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}
+
+/* ---------- multidimensional arrays ---------- */
+
+/* A small inline button for a set of mutually exclusive choices that will not
+   fit a row of equal-width toggles — seven array layouts, in two groups. */
+.btn--chip {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+.md-layouts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.md-layouts__label {
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.md-layouts__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.md-formula-chip {
+  margin-top: 8px;
+  padding: 5px 9px;
+  border: 1px solid rgb(var(--blue-rgb) / 0.3);
+  border-radius: 6px;
+  background: rgb(var(--blue-rgb) / 0.08);
+  font-size: 11px;
+  color: var(--blue);
+  overflow-wrap: anywhere;
+}
+
+.md-canvas {
+  /* `.canvas` is a fixed 340px; every canvas whose content grows
+     overrides it the same way. */
+  height: auto;
+  min-height: 340px;
+  align-items: stretch;
+}
+
+.md-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.md-head__layout {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--yellow);
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: rgb(var(--yellow-rgb) / 0.12);
+  border: 1px solid rgb(var(--yellow-rgb) / 0.35);
+}
+
+.md-head__formula,
+.md-head__shape {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.md-slices {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 2px;
+}
+
+.md-slice {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.md-slice__label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+.md-grid {
+  display: grid;
+  gap: 3px;
+}
+
+/* Each cell shows the slot it maps to, with its own index underneath — the
+   mapping in both directions, without stepping through anything. */
+.md-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  padding: 4px 3px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease,
+    box-shadow var(--step-anim) ease;
+}
+
+.md-cell b {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.md-cell i {
+  font-style: normal;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.md-cell.is-stored {
+  background: var(--panel-alt);
+  border-color: var(--border-strong);
+}
+
+.md-cell.is-shared {
+  background: rgb(var(--purple-rgb) / 0.1);
+  border-color: rgb(var(--purple-rgb) / 0.4);
+  border-style: dashed;
+}
+
+/* Not an element holding zero — no element. */
+.md-cell.is-hole {
+  background: transparent;
+  border-style: dashed;
+  border-color: rgb(var(--ink-rgb) / 0.09);
+}
+
+.md-cell.is-hole b {
+  color: var(--text-dim);
+  opacity: 0.5;
+}
+
+.md-cell.is-visited {
+  background: rgb(var(--green-rgb) / 0.08);
+}
+
+.md-cell.is-redirect {
+  border-color: var(--purple);
+  background: rgb(var(--purple-rgb) / 0.18);
+}
+
+.md-cell.is-cur {
+  border-color: var(--primary);
+  background: rgb(var(--primary-rgb) / 0.18);
+  box-shadow: 0 0 10px rgb(var(--primary-rgb) / var(--glow-alpha));
+}
+
+.md-formula {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--panel-alt);
+}
+
+.md-formula__line {
+  font-size: 11.5px;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.md-formula__line.is-zero {
+  color: var(--text-dim);
+}
+
+.md-formula__line.is-redirect {
+  color: var(--purple);
+}
+
+.md-tally {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.md-tally__item {
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+  color: var(--text);
+}
+
+.md-tally__item.is-stored {
+  border-color: rgb(var(--green-rgb) / 0.4);
+  color: var(--green);
+}
+
+.md-tally__item.is-shared {
+  border-color: rgb(var(--purple-rgb) / 0.4);
+  color: var(--purple);
+}
+
+.md-tally__item.is-zero {
+  color: var(--text-dim);
+}
+
+.md-memory-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.md-memory__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.md-memory {
+  display: flex;
+  gap: 2px;
+  padding-bottom: 2px;
+}
+
+.md-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 34px;
+  padding: 3px 4px;
+  border: 1px dashed var(--border);
+  border-radius: 5px;
+  transition:
+    background-color var(--step-anim) ease,
+    border-color var(--step-anim) ease;
+}
+
+.md-slot b {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  min-height: 13px;
+}
+
+.md-slot i {
+  font-style: normal;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.md-slot.is-filled {
+  border-style: solid;
+  border-color: var(--border-strong);
+  background: var(--panel-alt);
+}
+
+.md-slot.is-cur {
+  border-color: var(--primary);
+  background: rgb(var(--primary-rgb) / 0.18);
+}
+
+.md-jump {
+  align-self: center;
+  margin-top: 10px;
+  padding: 3px 9px;
+  border-radius: 5px;
+  font-size: 11px;
+  border: 1px solid var(--border);
+}
+
+.md-jump.is-near {
+  border-color: rgb(var(--green-rgb) / 0.4);
+  background: rgb(var(--green-rgb) / 0.1);
+  color: var(--green);
+}
+
+.md-jump.is-far {
+  border-color: rgb(var(--red-rgb) / 0.4);
+  background: rgb(var(--red-rgb) / 0.1);
+  color: var(--red);
+}
+
+@media (max-width: 760px) {
+  .md-memory-wrap {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+}
+
+/* ---------- leftist tree ---------- */
+
+.lt-canvas {
+  align-items: center;
+}
+
+/* Two trees side by side during a meld; they wrap rather than scrolling the
+   page sideways. */
+.lt-trees {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 20px;
+  width: 100%;
+}
+
+.lt-tree {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.lt-tree__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+.lt-edge {
+  stroke: var(--border-strong);
+  stroke-width: 1.6;
+  transition: stroke var(--step-anim) ease;
+}
+
+/* The only path any operation walks, so it is the only one drawn heavily. */
+.lt-edge.is-spine {
+  stroke: var(--blue);
+  stroke-width: 2.6;
+}
+
+.lt-node circle {
+  fill: var(--panel-alt);
+  stroke: var(--border-strong);
+  stroke-width: 2;
+  transition: fill var(--step-anim) ease, stroke var(--step-anim) ease, filter var(--step-anim) ease;
+}
+
+.lt-node.is-spine circle {
+  stroke: rgb(var(--blue-rgb) / 0.6);
+  fill: rgb(var(--blue-rgb) / 0.07);
+}
+
+.lt-node.is-active circle {
+  stroke: var(--blue);
+  fill: rgb(var(--blue-rgb) / 0.18);
+  filter: drop-shadow(0 0 6px rgb(var(--blue-rgb) / 0.4));
+}
+
+.lt-node.is-compare circle {
+  stroke: var(--blue);
+  fill: rgb(var(--blue-rgb) / 0.2);
+  filter: drop-shadow(0 0 7px rgb(var(--blue-rgb) / 0.45));
+}
+
+.lt-node.is-swap circle {
+  stroke: var(--primary);
+  fill: rgb(var(--primary-rgb) / 0.24);
+  filter: drop-shadow(0 0 8px rgb(var(--primary-rgb) / 0.55));
+}
+
+.lt-node.is-removing circle {
+  stroke: var(--red);
+  fill: rgb(var(--red-rgb) / 0.22);
+  filter: drop-shadow(0 0 8px rgb(var(--red-rgb) / 0.5));
+}
+
+/* The null-path length, beside the node rather than in it — the value is
+   still the thing you read first. */
+.lt-node__s {
+  font-size: 10px;
+  font-weight: 700;
+  fill: var(--yellow);
+}
+
+.lt-spine-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.lt-spine__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.lt-spine {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-bottom: 2px;
+}
+
+.lt-spine__item {
+  min-width: 32px;
+  padding: 4px 7px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--panel-alt);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text);
+  transition: opacity var(--step-anim) ease, border-color var(--step-anim) ease;
+}
+
+/* Which tree the spine node came from — the merge is the only place that
+   distinction is visible at all. */
+.lt-spine__item.is-a {
+  border-color: rgb(var(--blue-rgb) / 0.5);
+}
+
+.lt-spine__item.is-b {
+  border-color: rgb(var(--purple-rgb) / 0.5);
+}
+
+/* Not linked back up yet. */
+.lt-spine__item.is-pending {
+  opacity: 0.4;
+}
+
+.lt-forest__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 34px;
+  padding: 3px 6px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--panel-alt);
+}
+
+.lt-forest__item b {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.lt-forest__item i {
+  font-style: normal;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+@media (max-width: 760px) {
+  .lt-spine-wrap {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+}
+
+/* ---------- priority queues (single- and double-ended) ---------- */
+
+.dq-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* What each end costs to find, stated up front — it is the reason all three
+   kinds share one view. */
+.dq-cost {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 10px;
+}
+
+.dq-cost__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-alt);
+}
+
+.dq-cost__row span {
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+}
+
+.dq-cost__row b {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.dq-cost__row b.is-cheap {
+  color: var(--green);
+}
+
+.dq-cost__row b.is-dear {
+  color: var(--red);
+}
+
+.algo-row__note {
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--red);
+  background: rgb(var(--red-rgb) / 0.12);
+}
+
+.dq-canvas {
+  align-items: center;
+}
+
+.dq-node circle {
+  fill: var(--panel-alt);
+  stroke: var(--border-strong);
+  stroke-width: 2;
+  transition: fill var(--step-anim) ease, stroke var(--step-anim) ease, filter var(--step-anim) ease;
+}
+
+.dq-node.is-swap circle,
+.dq-half.is-swap {
+  stroke: var(--primary);
+  fill: rgb(var(--primary-rgb) / 0.24);
+  filter: drop-shadow(0 0 7px rgb(var(--primary-rgb) / 0.55));
+}
+
+.dq-node.is-pending circle,
+.dq-half.is-pending {
+  stroke: var(--primary);
+  fill: rgb(var(--primary-rgb) / 0.18);
+}
+
+.dq-node.is-compare circle,
+.dq-half.is-compare {
+  stroke: var(--blue);
+  fill: rgb(var(--blue-rgb) / 0.18);
+}
+
+.dq-node.is-active circle,
+.dq-half.is-active {
+  stroke: var(--blue);
+  fill: rgb(var(--blue-rgb) / 0.2);
+  filter: drop-shadow(0 0 6px rgb(var(--blue-rgb) / 0.4));
+}
+
+.dq-node.is-current circle,
+.dq-half.is-current {
+  stroke: var(--primary);
+  fill: rgb(var(--primary-rgb) / 0.12);
+}
+
+.dq-node.is-removing circle,
+.dq-half.is-removing {
+  stroke: var(--red);
+  fill: rgb(var(--red-rgb) / 0.22);
+  filter: drop-shadow(0 0 7px rgb(var(--red-rgb) / 0.5));
+}
+
+/* Being searched through — the min heap's hunt for its maximum. */
+.dq-node.is-scan circle,
+.dq-half.is-scan {
+  stroke: var(--yellow);
+  fill: rgb(var(--yellow-rgb) / 0.12);
+}
+
+.dq-node.is-path circle,
+.dq-half.is-path {
+  stroke: rgb(var(--blue-rgb) / 0.5);
+}
+
+/* Which level of a min-max heap is which — the alternation is the invariant
+   and nothing else in the picture shows it. */
+.dq-level {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.dq-level.is-min {
+  fill: var(--blue);
+}
+
+.dq-level.is-max {
+  fill: var(--red);
+}
+
+.dq-end {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  fill: var(--green);
+}
+
+.dq-half {
+  fill: var(--panel-alt);
+  stroke: var(--border-strong);
+  stroke-width: 1.6;
+  transition: fill var(--step-anim) ease, stroke var(--step-anim) ease, filter var(--step-anim) ease;
+}
+
+/* The empty upper half of a node holding a single element. */
+.dq-half.is-vacant {
+  fill: transparent;
+  stroke: rgb(var(--ink-rgb) / 0.12);
+  stroke-dasharray: 3 3;
+}
+
+.dq-cell.is-hi {
+  border-left-style: dashed;
+}
+
+.dq-cell.is-swap {
+  border-color: var(--primary);
+  background: rgb(var(--primary-rgb) / 0.24);
+}
+
+.dq-cell.is-compare {
+  border-color: var(--blue);
+  background: rgb(var(--blue-rgb) / 0.18);
+}
+
+.dq-cell.is-active,
+.dq-cell.is-pending {
+  border-color: var(--primary);
+  background: rgb(var(--primary-rgb) / 0.18);
+}
+
+.dq-cell.is-current {
+  border-color: var(--primary);
+}
+
+.dq-cell.is-removing {
+  border-color: var(--red);
+  background: rgb(var(--red-rgb) / 0.22);
+}
+
+.dq-cell.is-scan {
+  border-color: var(--yellow);
+  background: rgb(var(--yellow-rgb) / 0.12);
+}
+
+.dq-formula {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+/* ---------- selection trees (winner / loser) ---------- */
+
+.st-canvas {
+  align-items: center;
+}
+
+/* A loser tree's overall winner lives at position 0, outside the tree — so it
+   is drawn outside the tree. */
+.st-champion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 4px 10px;
+  border: 1.5px dashed rgb(var(--green-rgb) / 0.45);
+  border-radius: 7px;
+  background: rgb(var(--green-rgb) / 0.08);
+  transition: background-color var(--step-anim) ease, border-color var(--step-anim) ease;
+}
+
+.st-champion.is-active {
+  border-style: solid;
+  border-color: var(--green);
+  background: rgb(var(--green-rgb) / 0.18);
+}
+
+.st-champion__tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+.st-champion__value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green);
+}
+
+.st-node circle {
+  fill: var(--panel-alt);
+  stroke: var(--border-strong);
+  stroke-width: 2;
+  transition: fill var(--step-anim) ease, stroke var(--step-anim) ease, filter var(--step-anim) ease;
+}
+
+.st-node.is-compare circle {
+  stroke: var(--blue);
+  fill: rgb(var(--blue-rgb) / 0.18);
+  filter: drop-shadow(0 0 6px rgb(var(--blue-rgb) / 0.4));
+}
+
+.st-node.is-active circle {
+  stroke: var(--primary);
+  fill: rgb(var(--primary-rgb) / 0.2);
+  filter: drop-shadow(0 0 7px rgb(var(--primary-rgb) / 0.5));
+}
+
+.st-node.is-path circle {
+  stroke: rgb(var(--blue-rgb) / 0.55);
+}
+
+.st-node__run {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  fill: var(--text-dim);
+}
+
+.st-node__key {
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--text);
+}
+
+.st-node__pos {
+  font-size: 10px;
+  fill: var(--text-dim);
+  opacity: 0.7;
+}
+
+.st-leaf rect {
+  fill: var(--panel-alt);
+  stroke: var(--border-strong);
+  stroke-width: 1.6;
+  transition: fill var(--step-anim) ease, stroke var(--step-anim) ease;
+}
+
+.st-leaf.is-hot rect {
+  stroke: var(--blue);
+  fill: rgb(var(--blue-rgb) / 0.16);
+}
+
+.st-leaf.is-winner rect {
+  stroke: var(--green);
+  fill: rgb(var(--green-rgb) / 0.18);
+}
+
+/* A run with nothing left offers ∞ and loses every match from then on. */
+.st-leaf.is-spent rect {
+  stroke-dasharray: 3 3;
+  fill: transparent;
+}
+
+.st-leaf.is-spent .st-leaf__label {
+  fill: var(--text-dim);
+}
+
+.st-leaf__label {
+  font-size: 12px;
+  font-weight: 600;
+  fill: var(--text);
+}
+
+.st-leaf__run {
+  font-size: 10px;
+  fill: var(--text-dim);
+}
+
+.st-runs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.st-run {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 4px;
+  border-radius: 6px;
+  transition: background-color var(--step-anim) ease;
+}
+
+.st-run.is-hot {
+  background: rgb(var(--blue-rgb) / 0.08);
+}
+
+.st-run__label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  min-width: 38px;
+}
+
+.st-run__cells {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.st-run__cell {
+  min-width: 28px;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--panel-alt);
+  font-size: 11.5px;
+  text-align: center;
+  color: var(--text);
+}
+
+/* The head is the only value in a run the tree can see. */
+.st-run__cell.is-head {
+  border-color: var(--border-strong);
+  font-weight: 700;
+}
+
+.st-run__spent {
+  font-size: 11px;
+  color: var(--text-dim);
+  opacity: 0.8;
+}
+
+.st-output-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.st-output__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.st-output {
+  display: flex;
+  gap: 3px;
+  padding-bottom: 2px;
+}
+
+.st-output__cell {
+  min-width: 28px;
+  padding: 3px 6px;
+  border: 1px solid rgb(var(--green-rgb) / 0.4);
+  border-radius: 5px;
+  background: rgb(var(--green-rgb) / 0.1);
+  font-size: 11.5px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text);
+}
+
+.st-output__empty {
+  font-size: 11px;
+  color: var(--text-dim);
+  opacity: 0.8;
+}
+
+@media (max-width: 760px) {
+  .st-output-wrap {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+}

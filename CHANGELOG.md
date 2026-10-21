@@ -1,0 +1,1649 @@
+# Changelog
+
+All notable changes to this project are documented here.
+
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
+project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [Unreleased]
+
+Usability and playback-smoothness pass across every visualizer, five new structures — hash
+tables, dynamic hashing, heaps, tries and union-find — and two new comparison views: Race &
+Compare, which puts sorting algorithms against each other on real, self-reported operation
+counts, and Balance & Height, which builds a BST, an AVL tree and a 2-3 tree from one key
+sequence. Dynamic programming arrives as a family of its own: seven problems that fill a
+table cell by cell and then walk it backwards to recover the answer the number alone
+never gives you. Backtracking arrives as another: four searches drawn beside the tree they
+explore, with the branches pruning cut away marked as such. The TREES section grows the
+most: red-black trees, splay trees and treaps alongside AVL, segment and Fenwick trees over
+one array, B-trees and B+ trees, and Huffman coding — four different answers to "what
+should a tree be shaped by", none of them the same as balance. A MATRICES & ARRAYS family
+arrives with nothing algorithmic in it at all — sparse matrices and array addressing are
+both about representation, and what a structure costs to store against what that costs
+back on every access. Expression notation joins STACKS & QUEUES; priority queues that
+answer both ends, leftist trees that meld, and selection trees for a k-way merge join
+TREES; and optimal binary search trees join the dynamic programming family.
+
+### Added
+
+- **A new family: MATRICES & ARRAYS.** Two views, and neither of them is about an
+  algorithm — both are about *representation*, and what a structure costs to store versus
+  what that costs back on every access.
+
+  **Sparse matrices** are drawn twice at once: as the dense grid they stand for, with the
+  zeros as holes, and as the (row, column, value) triplet list they actually are, with
+  every step highlighting the same entry in both. Building the list reports the storage of
+  both forms — three numbers per term plus a header, against one per cell, which is why
+  the crossover sits at about a third density rather than a half. The two transposes are
+  the reason the view exists: swapping r and c takes one pass but destroys the row-major
+  order the list has to be in, so the naive fix rebuilds the result in order and re-reads
+  every term once per column (O(cols · t)), while the fast transpose counts the terms per
+  column first, turns the counts into starting positions with a running sum, and then
+  places every term in one pass (O(cols + t)). They produce the identical result, and the
+  step counts are reported so the gap is a number rather than a claim. Addition is a
+  two-list merge whose interesting case is a sum that cancels — the term is dropped,
+  because a sparse list storing zeros would stop being sparse. Multiplication only ever
+  multiplies the pairs that share an index. And reading `A[i][j]` is a binary search,
+  because random access is the thing the representation gives up.
+
+  **Array layout** draws the arithmetic that makes a multidimensional array a fiction.
+  Seven layouts — row-major, column-major, lower- and upper-triangular, symmetric,
+  tridiagonal, diagonal — and in each one every logical cell is labelled with the memory
+  slot it maps to, with the strip below labelled with the index each slot holds: the same
+  mapping read both ways. Addressing one element expands the formula a term at a time
+  (and note what the row-major one never contains: the first dimension, which is exactly
+  why C lets you write `int a[][4]`). Laying the array out shows the storage order, which
+  is what actually decides locality. And walking it by rows and by columns is the same
+  traversal with the loops swapped, counting the address jump at every step: with the
+  grain every step lands on the next slot, against the grain almost none do — same
+  elements, same arithmetic, several times slower on real hardware. For the packed
+  layouts, a fifth operation sorts every cell into stored, structurally zero, or sharing a
+  slot with its mirror, and totals them.
+
+- **Expression notation: infix, postfix and prefix**, converted and evaluated, under
+  STACKS & QUEUES. The view shows the stack, because the stack is the whole content of the
+  subject — precedence and associativity are not properties of a notation, they are the
+  rules that decide when an operator comes off it, and the comparison behind every pop is
+  spelled out as it is made. The operations offered follow the notation, so "evaluate
+  postfix" is never offered for an infix expression. Infix → postfix is the shunting yard;
+  infix → prefix is the *same* shunting yard run over the reversed expression with the
+  brackets swapped, and both things that change in the mirror are shown — the reversal
+  flips associativity, so the pop rule flips with it. Evaluating postfix is one pass and
+  one stack; evaluating prefix is that pass backwards, with the operand order reversed
+  along with it. Evaluating infix directly takes two stacks, which is the honest cost of
+  the notation, and its step count can be compared with evaluating the postfix form.
+  Turning postfix back into infix is the evaluator with strings in place of numbers, and
+  the fully bracketed result is worth reading twice: every bracket it prints was already
+  being stated by the operator positions.
+
+- **Priority queues, single- and double-ended.** Three structures over the same flat
+  array, and one operation that separates them. A plain min heap has no idea where its
+  maximum is — it must be a leaf, so ⌈n/2⌉ of them get examined, and the run highlights
+  every one it looks at while the sidebar carries the `O(n)` before you even click. A
+  **min-max heap** alternates its levels, so the root is the smallest element and the
+  largest is one of its two children; the canvas labels the levels, because the alternation
+  *is* the invariant, and every sift moves two levels at a time against grandparents — the
+  nearest node of the same kind — with a trickle-down weighing six candidates instead of
+  two. An **interval heap** reads the same array in pairs: a node is a closed interval, the
+  lo values form a min heap and the hi values a max heap, and the root holds both answers
+  side by side with no comparison at all. Switching between the three re-inserts the same
+  values under the new invariant, which is the comparison the view exists for: identical
+  input, three completely different arrays, all three with the same first element.
+
+- **Leftist trees**, a heap you can meld. A binary heap is fast at everything except
+  joining two of them, because its shape is the array it lives in — so melding two
+  n-element heaps means re-heapifying, O(n), which swamps everything else it was chosen
+  for. A leftist tree gives up the array and keeps one rule: s(left) ≥ s(right) at every
+  node, where s is the null-path length. That bounds the right spine at ⌊log₂(n+1)⌋, and
+  since every operation works only down the right spines, they are all logarithmic — which
+  the canvas makes visible by drawing every node's s beside it and the right spine heavier
+  than the rest. Meld is then the *only* operation: insert melds with a one-node tree,
+  delete-min melds the root's two subtrees, and both builds are sequences of melds. It is
+  drawn in its two passes — merge the two right spines into one key-ordered chain, then
+  link the chain back up from the bottom, swapping children where the rule demands it —
+  which is why it is written iteratively; a recursion hides the second pass inside its
+  unwinding. Building by repeated insertion (O(n log n)) and by pairwise melding through a
+  queue (O(n)) are both offered, on the same values, each reporting the spine work it
+  spent.
+
+- **Selection trees — winner trees and loser trees.** Merging k sorted runs the obvious
+  way costs k−1 comparisons per output, because every one re-scans every run's head and
+  re-derives, every single time, a fact that has barely changed: only one run moved. A
+  selection tree remembers the tournament, so the next winner costs ⌈log₂ k⌉. The two
+  kinds fall out of one pass over it — every match establishes both who won and who lost,
+  and a winner tree stores the first while a loser tree stores the second. A winner tree's
+  root is the answer, and replaying a path re-plays each match, reading both children of
+  every node on it. A loser tree keeps the champion above the root, at position 0, drawn
+  outside the tree because that is where it lives — and replaying is then a plain walk
+  upward, beating the contender against the loser already sitting at each node: one value
+  read per level, and the sibling subtree never consulted. Every node is labelled with the
+  run it names and the value that run is currently offering, because the array stores run
+  indices and the values move underneath them. The comparison total is reported against a
+  flat scan of all k heads.
+
+- **Optimal binary search trees**, as a seventh dynamic programming problem. Balance is
+  what you build when you know the keys but not how often each one is looked up; given the
+  frequencies it is the wrong target, and a key asked for a thousand times a second belongs
+  near the root even if that makes the tree lopsided. `c[i][j]` is the cheapest subtree
+  over the run of keys i…j, and the trick is in the last term: whichever key becomes the
+  root, every *other* key in the run drops one level, so the run's whole weight is added
+  exactly once regardless of the choice. That single term is why a subproblem's cost does
+  not depend on the context it is used in, and so why the table works at all. It shares the
+  triangular shape and the increasing-run-length fill order with matrix chain
+  multiplication, and the two are worth reading side by side. The final frame gives the
+  cost of a perfectly balanced tree over the same keys, because the gap between the two
+  numbers is what knowing the frequencies is worth.
+
+### Changed
+
+- **Glows follow the high-contrast setting everywhere.** Four canvas highlights — the
+  active recursion call, the expression cursor, and the current sparse-matrix and
+  array-layout cells — had a fixed glow alpha and stayed lit under high contrast; they now
+  go through `--glow-alpha` like every other glow.
+- **A type floor of 11px.** Every label, caption, legend, tag and table header that was
+  set at 8–10.5px is now 11px, and index marks inside fixed-size cells are 10px. Sidebar
+  group headings (Build, Query, Traversal…) were 9.5px at 80% opacity — smaller and fainter
+  than the rows under them — and now head them. Each step's narration is set at 14px in
+  full ink rather than as a 12px grey caption, since it is the line read aloud in a
+  lecture. Canvas hints, empty-canvas messages and the not-found heading were sentences
+  typed in capitals; they are now sentence case in the text face. Short control labels
+  (EXPORT, VALUE, OPERATIONS) keep their capitals.
+- **Names in the text face, measurements in mono.** Algorithm and operation lists, panel
+  titles and topic titles use IBM Plex Sans; JetBrains Mono stays on controls, values,
+  counters and code. Panel titles are `h2` elements, so each view has a heading
+  structure under the app's `h1`. All figures use tabular digits so counters don't jitter
+  while a run plays.
+- **The landing page says what the app is.** A plain sentence replaces "choose a category
+  to start visualizing", above a count of views and families computed from the registry.
+  Each family's card carries a small drawing of its own structure in its accent — bars for
+  arrays, a tree, a graph, a filled DP table, a pruned search tree — and lists its topics
+  while closed, so the whole map reads without opening anything. Trees, the largest
+  family, spans two columns, which closes the grid that used to leave an orphan card; closed
+  cards in a row now end on the same line. The page no longer fades in on every return.
+- **The landing page runs.** A real sort plays in the header — quick sort, insertion
+  sort, merge sort and heap sort in turn, each on a fresh array, built from the same
+  algorithm code and state colours as the sorting view — and clicking it opens that view.
+  It pauses while scrolled away or in a background tab, and under reduced motion it shows
+  one still frame from mid-run instead. On the first open of a page load, the header
+  settles in line by line, the cards rise in order, and each family's drawing is traced
+  like a beam crossing the screen; returning to the page from a view shows it at once.
+- **A fresh run says where to start.** While a run is loaded and has not started, the
+  play button is filled amber rather than outlined, so the first thing to press is the
+  one solid control on screen.
+- **The favicon is the wave mark.** The orange "DV" set is replaced by the short trace
+  drawn beside the wordmark, so the tab and the app carry the same mark. The 16px tab
+  icon has its own pixel-snapped drawing; the touch and manifest icons put the trace on
+  the app's dark ground with a soft glow. The SVG masters are kept in `design/icons/`,
+  and `favicon.ico` is now PNG-compressed (9 kB for six sizes).
+- **Interaction feedback.** Buttons answer a press with a slight scale instead of a 1px
+  nudge, and transition only colour, fill, border and transform rather than `all`. Menus
+  and the appearance panel grow from the control that opened them, the export dialog from
+  its centre, and the phone's sheets use a drawer curve; all of it collapses under reduced
+  motion. Copying code or a share link now turns the button green with a tick — it used to
+  reuse the "selected" style. Text fields show a soft focus ring as well as a coloured
+  border, hovering a landing card lifts it only under a real pointer, and selection,
+  caret and scrollbars are themed from the palette.
+
+- **New favicon set.** The blue "DV" wordmark is replaced by an orange one carrying a bar
+  chart above the D and a line chart for the V, which also puts the icon on the app's own
+  accent colour. Every size is rendered in one pass from the 1254px original rather than
+  by resampling a 512 down a chain, which is what keeps the 16px legible, and the mark is
+  unpremultiplied from the black field it was drawn on so its glow survives being placed
+  on the app's `#0b0d12` ground instead of picking up a halo.
+
+  The set gains a 48×48 tab icon — the size Chrome actually picks on a 1.5x display — and
+  its `.ico` is now a multi-size PNG-compressed one covering 16 through 256, against three
+  BMP sizes before. Tab icons take the mark nearly to the frame edge, because at 16px
+  every pixel of it counts; the touch and manifest icons keep a margin, because the
+  platform rounds their corners.
+
+  The tab icons and the `.ico` are now **transparent**, where they previously carried a
+  dark ground. A tab strip is dark in dark mode and light in light mode, and the browser
+  draws the favicon straight onto it — so a baked-in background reads as a dark tile on a
+  light strip. The touch and manifest icons stay opaque on purpose: iOS composites a
+  transparent touch icon onto a ground of its own choosing, and the mark's gradient runs
+  light enough that it loses contrast on the white circle a launcher puts a non-maskable
+  icon in.
+
+  `favicon.ico` is also named explicitly in the markup instead of being left to the
+  browser's implicit `/favicon.ico` request, since that request is only made when no
+  `<link rel="icon">` matches — so the old `.ico` was shipped and never used. The five
+  links are identical in `index.html` and in all three standalone pages, which is now
+  written down in `DOCS.md` because replacing the set means editing four files.
+
+- **The algorithm and data-structure chunk was split in two.** `manualChunks` in
+  `vite.config.js` put `src/algorithms/` and `src/dataStructures/` in one chunk, which
+  crossed Rollup's 500 kB warning once six structures were added to it. They are now
+  `algorithms` and `structures`, which is also the honest split: a new sort touches one and
+  a new structure the other, so they cache and invalidate on their own schedules.
+
+- **`DOCS.md`'s "add a whole new structure" now lists all six registrations** a view needs
+  to be reachable and shareable, rather than the two it mentioned. Adding six of them in a
+  row made it clear that the missing four — the URL state, the two topic files, and the
+  canvas height and scroll-container conventions in the stylesheet — are exactly the ones
+  easy to forget and invisible until someone shares a link or opens the view on a phone.
+
+### Fixed
+
+- **The wordmark could not be reached from the keyboard.** It was a `div` with a click
+  handler, so the way back to the category page needed a mouse. It is now a button — the
+  first tab stop on every view — and the `▪` character beside it is a drawn mark.
+- **Native dropdowns were unreadable in the light theme.** The open option list had a
+  hard-coded near-black background under dark text; it now takes the surface colour.
+- **The root's balance factor was clipped on AVL trees.** The `bf:` label above the root
+  rose out of the drawing; the layout now leaves room above the first level.
+- **EXPORT covered the end of full-width canvas headers.** The corner reserved for the
+  floating buttons was still sized for SHARE alone, so the hash table's load-factor
+  read-out (`α 0.57`) sat underneath EXPORT, and so did the end of the expression input.
+  The reservation now covers both buttons.
+- **On tablets the category tabs wrapped to four or five rows** beside the wordmark. The
+  wordmark now takes its own line between 761 and 1100px and the tabs use the full width.
+
+- **The tree view described a BST whatever type was selected.** The topic panel was keyed
+  to the view rather than the type, so it was titled "Tree (Binary Search Tree)" and
+  carried a BST write-up while an AVL tree, a red-black tree, a splay tree or a treap was
+  on screen — and splay trees and treaps were not mentioned anywhere in it at all. There
+  are now seven write-ups, one per type, and the panel is keyed `tree:<type>`.
+
+  The per-operation descriptions had the same fault in a smaller way: `insert`, `delete`
+  and `search` enumerated what a BST, an AVL tree, a threaded tree and a plain binary tree
+  do, and stopped there — so selecting Splay and reading Insert told you nothing about
+  splaying. Those three now declare `desc` as a function of the setup, resolved in
+  `useTree`, with the shared descent and the seven type-specific halves kept apart in
+  `src/dataStructures/tree/descriptions.js`.
+
+- **The hash table write-up covered half the strategies the sidebar offers.** It described
+  chaining, linear probing and quadratic probing but never double hashing, Robin Hood or
+  cuckoo hashing, and of the four hash functions only division. All six strategies and all
+  four functions are now covered. An audit of every other view with a type toggle — linked
+  list, B-tree, dynamic hashing, heap, range queries, and the new priority-queue, leftist,
+  selection-tree, expression and array-layout views — found their single write-ups already
+  covering every variant they offer.
+
+- **The keyboard-shortcuts button no longer sits on top of the volume slider.** The slider
+  asked for 64px and rendered at its parent's full width, running underneath the button
+  beside it. `.controls__volume` was losing the cascade to the generic
+  `input[type="range"] { width: 100% }` — an attribute selector weighs the same as a class,
+  so `input[type="range"]` scores (0,1,1) and outranks a lone class at (0,1,0). Matching the
+  tag as well restores the intended order without reaching for `!important`. The sound group
+  now also holds its width instead of being squeezed by the speed slider, and a thin rule
+  separates the controls that are about the run from the two that are about the page.
+
+- **An export no longer hangs when the tab is in the background.** The capture
+  waited for two animation frames between steps, to be sure the step it had
+  just seeked to was laid out. A backgrounded tab never fires one, so tabbing
+  away mid-export left it stuck behind a progress bar that never moved. The
+  wait now falls back to a timeout.
+
+- **Quick sort no longer overflows the stack in the complexity sweep.** Its degenerate
+  case is not hypothetical here, it is the lesson: a last-element pivot on sorted input
+  partitions into n-1 and 0 every time, so the recursive form nests n deep. Harmless at
+  the forty bars the animation draws, fatal at the n = 5000 the empirical sweep reaches —
+  it threw `RangeError: Maximum call stack size exceeded` on sorted, nearly sorted,
+  reversed and all-equal input, killing the whole sweep. The partition is now driven from
+  an explicit stack, pushing the right side before the left so ranges are visited in the
+  same pre-order the two recursive calls produced.
+
+  Nothing observable changed: 960 runs across eight input shapes, four pivot rules, ten
+  sizes and three seeds produce byte-identical frames and identical `count()` statistics.
+  The reported depth on a degenerate run is still n, because that is true and it is the
+  point — what moved is where the pending ranges are kept, not how deep the recursion is.
+  The sweep can now plot quick sort's measured slope of 2.00 against introsort's on the
+  same axes, which is the comparison introsort exists to make and was previously
+  impossible to draw.
+
+### Changed
+
+- **Sound is on every view, not only the bars.** The speaker button lived in the sorting
+  and searching transport and did nothing anywhere else, because pitch there means the
+  value of an element and nothing in a tree, a hash table, a DP grid or a graph is a
+  value on a scale to be pitched. Pretending otherwise would have said something untrue
+  about the data, so those views sonify the other thing every run has instead: each frame
+  takes the next degree of a pentatonic scale, which makes an operation a phrase whose
+  length is its cost — a push is two notes, a search down a deep tree is a long climb.
+  The waveform still says what kind of frame it is, an answer resolves onto the octave
+  above, and a refused operation — a full stack, a key that is not there, a pruned branch
+  — is one note below the scale entirely, where nothing successful can reach. Structures
+  sitting still stay silent: loading, undoing or redrawing one is a single frame with
+  nothing happening in it, and switching views does not replay the frame already on
+  screen.
+
+  Two things a structure operation does are audible that were not. Changing the structure
+  — a node leaving, nodes being created, two lists becoming one — now has a timbre of its
+  own, where before a delete sounded exactly like the search that found what to delete; it
+  takes the refusal's sawtooth deliberately, because both are the run doing something it
+  cannot take back, and the register separates them. And the O(1) queries have a voice at
+  all: `isEmpty`, `size` and `peek` answer without walking anything, so a whole class of
+  operation was being silenced as a structure standing still when what it really was is a
+  run one frame long. A frame that reports a result is now told from a redraw by whether
+  it reports one, rather than by how many frames came with it.
+
+- **The tree canvas can be handled, not just watched.** It had no interaction at all: every
+  tree was built by typing into the sidebar, and a tree deeper than the panel was squeezed
+  to fit or scrolled sideways on a phone. Now a node is inspected by clicking or tapping it,
+  which reports what the drawing cannot — its depth, the height and size of the subtree under
+  it, its parent and children, an AVL balance factor reddened once it leaves [-1, 1], a
+  treap's priority, and a red-black node's colour and black-height, that last being the
+  invisible number the whole red-black rule is about;
+  deleted by triple-clicking or holding it, which plays the real delete and its rebalance;
+  and inserted by double-clicking or holding empty canvas. Pan by dragging, zoom by
+  scrolling or pinching, and RESET VIEW to put it back.
+
+  The gestures are the graph's on purpose, so one set of habits covers both views, but they
+  cannot mean the same thing. A vertex is dropped where you put it, and its position is the
+  data; a tree node's position is derived from its value, so the press supplies a point and
+  the point cannot supply a key. Inserting therefore opens a small input where you pressed,
+  and where the node actually lands is decided by the ordering — which is the lesson, not a
+  limitation. Zoom is anchored to the cursor or to the midpoint between two fingers, so what
+  you are looking at stays under them.
+
+- **Traversing a linked list is its own operation.** It used to be half of "Search /
+  Traverse", which meant you could not simply walk a list — you had to nominate a value to
+  look for and then ignore the fact that it was being searched for, and the run stopped
+  early the moment it happened to hit that value. Traverse now takes no input and visits
+  every node from the head to the end of the chain, which is the operation the cost of
+  every other one is made of. It is also where the list type finally shows itself. A
+  circular list has no null to stop at, so the walk gets a frame for arriving back at the
+  head and the note that it has to remember where it began or go round forever. A doubly
+  linked list is then walked back the other way along its prev pointers, which is the
+  whole of what the extra pointer per node buys: a singly linked list cannot do it at all,
+  because a node knows nothing about what points at it, so going backwards means starting
+  again from the head and a reverse walk costs O(n²) instead of O(n). Search keeps the
+  target and the early exit, and Traverse sits beside it.
+
+- **The landing page leads with the sections people arrive for.** Graphs sat last, after
+  eight sections of algorithm families, which is the wrong place for one of the four
+  structures a course reaches first. The order is now arrays, trees, graphs and linked
+  lists, then everything else in its previous order.
+
+- **The data-structure hooks share one engine instead of twelve copies of it.** Every
+  structure view had written out the same four things longhand — the structure, the frames
+  of the operation being watched, playback over them, and undo/redo — and they were the
+  same in all of them: `useStack` and `useQueue` differed by three lines once you renamed
+  the noun. That machinery is now `useStructureRun`, and twelve hooks went from 1,451
+  lines to 1,005.
+
+  The useful part is not the line count but that the engine names what was previously
+  implicit. There are three ways the picture changes, and they behave differently:
+  `apply(steps, final)` plays an operation's frames, `load(next, message)` replaces the
+  structure outright, and `reframe(message)` redraws the same structure under new rules —
+  switching a range query between a segment tree and a Fenwick tree — without an undo
+  entry, because nothing about the document changed. The first two record history before
+  mutating, so the rule that used to live in a comment in every hook is now kept in one
+  place, and no raw setter is handed out: changing a structure without recording is not
+  something a view can express any more.
+
+  Views whose document is more than the structure — the heap's max/min, the tree's type
+  and threading, the hash table's collision strategy and hash function — declare that with
+  `snapshot`/`restore`, so undoing past a switch brings the setting back along with the
+  keys rather than leaving the two disagreeing.
+
+  `useLinkedList` and `useHuffman` were left as they were, deliberately: the first reframes
+  from the nodes currently *on screen* rather than the committed list, which `load` would
+  quietly change, and the second has no structure and no history to begin with.
+
+- **The export dialog is no longer in the initial download.** Opening it is the only
+  thing that needs the GIF encoder, the video recorder and the DOM capture — roughly a
+  thousand lines between them — and most sessions never do, yet every visit paid for all
+  of it before the landing page could draw. The dialog is now behind `React.lazy`, which
+  moves those three modules into a chunk of their own: the main bundle drops from 294.92
+  kB to 281.43 kB (83.93 kB to 78.72 kB gzipped), and the 14.33 kB that left arrives only
+  when someone actually clicks EXPORT.
+
+  A code-split dialog can be asked for before its code arrives, so the press now draws a
+  stand-in with the real dialog's backdrop, panel and heading rather than nothing at all.
+  It closes on the backdrop like the real one, because a slow network is exactly when
+  someone is most likely to change their mind.
+
+- **Dead code removed, and helper modules now say what they actually offer.** Nine
+  unreferenced symbols went — `utils/randomArray.js` entirely (superseded by the seeded
+  `buildInput` in `utils/distributions.js`), `PUZZLE_MAP`, `findNode`, `findVertexByLabel`,
+  `MST_ALGO_MAP`, `doubleStepExpr`, `parseIndex`, `avlDeleteByValue` and `minLeafKey` —
+  along with the one CSS rule, `.topbar__share`, that no element carried.
+
+  Separately, 53 exports whose every reference was inside their own defining file are no
+  longer exported. The point is the read: `useBarEditing.js` published its whole drag
+  state machine — `barsGeometry`, `valueAt`, `indexAt`, `startDrag`, `dragTo`, `endDrag`
+  and its three thresholds — as if any of it were an entry point, when the hook is the
+  only one; `tree/helpers.js` published six rotation and splice internals the same way.
+  What a module exports is the only cheap signal of what it is for, and these were
+  drowning it.
+
+  Nothing observable changed, and nothing in the bundle did either: Rollup had already
+  tree-shaken all of it, so the built chunks are byte-identical apart from the removed CSS
+  rule. Verified by running every sorting and searching algorithm to a correct result and
+  exercising each touched structure's operations — 2-3 tree, all six hash-table schemes,
+  both range-query kinds, union-find, trie, both dynamic-hash kinds, both B-tree variants,
+  all 23 graph operations and the tree-height sweep.
+
+- **The string canvas is shared, and knows nothing about strings.** `StringCanvas` was
+  already a generic renderer for rows sharing one set of columns; only its name and its
+  `str-` class prefix said otherwise. It is now `GridCanvas`, the frame builders live in
+  `algorithms/gridFrame.js` where both families can reach them, a frame can ask for wider
+  columns when its cells hold numbers instead of single characters, and the `sub` field
+  the helpers had always built is finally drawn.
+
+- **Panels no longer blur a backdrop nobody can see.** `.panel` — the canvas and the
+  sidebar, the two largest elements on screen — carried `backdrop-filter: blur(14px)`, and
+  so did the nine landing cards. Everything behind them is a static gradient, so the blur
+  was invisible, but it forced the compositor to re-blur that region on every frame the
+  panel or its contents changed, which is every step of every animation. Blur is kept for
+  the overlays that sit over real content: menus, the mobile sheet, the action bar.
+
+- **Per-step transitions name the properties they animate.** Linked-list nodes, queue and
+  stack slots, union-find and heap cells used `transition: all`, which asks the browser to
+  watch every animatable property — including the ones that trigger layout — on elements
+  that restyle on every frame. They now list only what actually changes.
+
+- **The landing page says what each view actually holds.** A card description shared its
+  line with the label and was truncated with an ellipsis when it did not fit, then hidden
+  outright below 560px — so the one place a view says what is inside it was the first thing
+  to disappear. Descriptions now wrap onto their own line under the label at every width.
+  The Tree card admits to red-black, splay and treap, and the Graph card to SCC and max
+  flow; both had been describing a smaller app than the one that shipped.
+
+- **The multi-way tree canvas is shared, and knows nothing about 2-3 trees.**
+  `TwoThreeTreeCanvas` was already generic over `keys`/`children` arrays except for one
+  line that drew a divider only when a node held exactly two keys. It is now
+  `MultiwayTreeCanvas`, draws a divider between every adjacent pair, derives its slot width
+  from the widest node in the tree so order-5 boxes cannot overlap, scrolls inside its own
+  container when the tree outgrows the panel, and draws the B+ leaf chain when a frame asks
+  for it.
+
+- **`cloneNode` copies whatever a node carries.** It picked out `id`, `value`, `left` and
+  `right` by name, which was exactly right until a node had a colour or a priority — a clone
+  that silently dropped them would leave the tree looking correct and behaving wrongly.
+
+- **A frame can ask for edge labels.** `GraphCanvas` drew weights only when the WEIGHTS
+  toggle was on, which made max flow unreadable whenever it was off — `flow/capacity` is not
+  optional decoration for that operation. A frame carrying `showWeights` now gets labels
+  regardless. Graph operations are also handed `directed`, `weighted` and the vertex
+  `positions` alongside the sidebar's inputs, because the newer ones need to know whether
+  the arrows mean anything, and A* cannot have a heuristic without knowing where things are.
+
+- **Each problem shows its own example again.** The dynamic programming and string views
+  keep one flat record of input fields so that switching between related problems keeps what
+  you typed — LCS and edit distance are the same grid read two ways, and seeing one input
+  under both is the point. But the record was seeded by merging every problem's defaults,
+  so where two of them share a field name the last one silently won: landing on LCS gave
+  you edit distance's KITTEN/SITTING, and three of the four string algorithms lost the
+  demo text chosen to show them off. The current problem's own defaults now go on top, and
+  they are re-applied when you switch — unless you have edited the input, in which case
+  what you typed survives, which was the behaviour worth keeping in the first place.
+
+- **The algorithm modules are their own bundle chunk.** Every family added brings frame
+  builders, pseudocode and long-form descriptions with it, and the four of them pushed the
+  app chunk back over Rollup's 500 kB warning. They are pure logic with no components in
+  them, so they now split out and cache independently of the UI: the largest chunk is 290 kB
+  rather than 510 kB.
+
+- **A shorter header: categories beside the title, SHARE on the canvas.** The title,
+  category strip and share button were a wrapping flex row, which was fine at six
+  categories. At nine — with the active one showing its open problem, so
+  `DYNAMIC PROGRAMMING / Longest Common Subsequence` is a 377px pill by itself — they
+  wanted 1529px against the 1209px a 1280px screen has, and wrapped onto *three* lines.
+  That put 165px of header above the visualization.
+
+  The categories now sit beside the title and wrap to a second line, and **SHARE** has
+  moved to the canvas's top-right corner. Header height goes from 165px to 85px, every
+  category stays visible without scrolling, and the row count is capped at two.
+
+  They are also drawn as a plain row rather than inside a rounded container. A container
+  has to be as wide as its widest line, so on two rows it left a large empty box beside the
+  short one. Inactive categories are transparent and fill in on hover; only the one you are
+  on keeps the filled treatment, which gives the row a focal point instead of eight
+  identical chips. A hairline after the wordmark separates it from the nav.
+
+  Two things had to move with it. The dropdowns are now positioned `fixed` from their
+  trigger's rect and clamped to the viewport, rather than absolutely inside the strip,
+  since with eight wrapping categories the right-most pill is no longer the last one. And
+  `.main-col` now publishes a `--share-safe` custom property naming how much of the
+  corner the button occupies: canvas headers that run the full width of the panel pad
+  themselves out of it, which the hash table and dynamic hashing views need — their load
+  factor read-out ends exactly where the button floats. Headers that are centred or
+  left-aligned ignore it, and on a phone it is zero, because SHARE is in the nav sheet
+  there and the corner is free.
+
+- **`DpInfoPanel` is now `CodeInfoPanel`, shared by two views.** It was already just
+  "description, costs, and code with the executing line lit up", which is what the
+  backtracking view needs too. The code block's heading is a prop, since one view shows a
+  recurrence and the other a recursive procedure.
+
+- **`treeHeight` is memoized against the node object.** Every AVL balance factor asks for
+  two heights and `avlFixupTree` asks for a balance factor at every node, so an unmemoized
+  O(n) height made a single insert O(n²) and building a tree O(n³) — fine for the thirty-node
+  trees the canvas draws, hopeless for the new height-vs-n sweep. Caching is sound because
+  nodes in this codebase are immutable: every operation builds new nodes rather than
+  mutating the ones it was given, so a node's height can never change after it exists. A
+  WeakMap means a cached height dies with the tree it describes.
+
+- **Sorting counters are counted, not guessed.** `annotateSteps` used to infer comparisons
+  and swaps from what a frame happened to highlight, which meant an algorithm that wrote
+  without drawing a swap (merge sort, radix sort) under-reported, and one that drew a frame
+  per comparison counted frames rather than comparisons. Every sorting algorithm is now
+  written against a shared sort context and reports five real counters as it works — key
+  comparisons, array reads, array writes, auxiliary-memory high-water mark in elements, and
+  deepest recursion — which is what makes racing two of them fair. The transport bar shows
+  all five, omitting the two that are structurally zero for a given algorithm. Searching
+  algorithms keep the old derived CMP/WRT read-out, which is exact for a linear scan and
+  close enough for the range searches, whose cost *is* the frames they draw.
+
+  The same rewrite is what gives every sort a frame-free `count()` path, since one body now
+  serves both — two hand-maintained copies would drift, and then the plot and the animation
+  would disagree.
+
+- **Bucket lists flow into columns instead of scrolling.** A 37-bucket table, or a
+  directory at global depth 5, used to be a long scroll through a narrow strip while the
+  right half of the canvas sat empty. Both now fill a column top-to-bottom and start
+  another one beside it, so the whole table is on screen at once. Column order, not row
+  order — a probe walks consecutive indices, and those have to stay next to each other.
+  A phone has no width to spare, so there the lists stay single columns and scroll.
+
+- **The bundle is split three ways, so less of it has to arrive before the app runs.**
+  React and the icon set are their own chunk — they change only when a dependency does,
+  so an app redeploy no longer invalidates them in anyone's cache. The topic write-ups
+  are another: `TopicPanel` starts collapsed, so its 30 kB of prose is fetched the first
+  time someone expands it rather than on every visit, and the panel's heading now lives
+  in `topicTitles.js` so the collapsed state needs nothing else. Initial download is
+  ~151 kB gzipped, and Rollup's 500 kB chunk warning is gone.
+
+- **The graph view opens empty, on the adjacency matrix.** It used to land on a random
+  graph with the adjacency list showing. The graph is the topic you build yourself now
+  that the canvas and the matrix are both editable, and a graph already on screen is
+  something to clear before you can start; RANDOM GRAPH is one click away when you want
+  one. The matrix leads because it is the representation you can type into, and it shows
+  the pairs that *aren't* connected too — which is most of a graph you are still
+  building. Shared links are unaffected: they arrive with the graph they carry.
+
+### Added
+
+- **The run can be heard.** A speaker button in the transport bar turns each
+  element's value into a pitch, so a sort is a scatter that resolves into a
+  rising scale and a binary search is three or four probes closing on one
+  note. Classic, and a third channel beside colour and the state glyphs — the
+  only one that carries the *value* rather than the state, and the only one
+  that works with the screen off.
+
+  Pitch is mapped logarithmically over 180Hz–1200Hz. Ears hear ratios, not
+  differences, so a linear map would squeeze the bottom half of the array into
+  a semitone and spread the top half across an octave; the log map gives every
+  equal step in value an equal musical step. Timbre carries the state while
+  pitch carries the value, so two events at the same pitch stay distinct:
+  comparisons are a sine, swaps a triangle, a search's probes a square. Runs
+  end on a cue of their own — three notes across a sorted array, the pitch of
+  what a search found, or one note below the whole range when it found
+  nothing.
+
+  A run is bookended. Pressing play from the top sweeps the array as it
+  stands — one note per element, left to right — and holds the algorithm back
+  until that finishes; when a sort completes the same sweep plays again, and
+  because the array is now in order it comes out as a rising scale. The same
+  notes, the same length, transformed: that contrast is the argument the sound
+  was making, and it only lands because the scatter came first. Searches keep
+  their single found note, since a search ends on an answer that sweeping the
+  array would bury. Sweeps are scheduled on the audio clock rather than fired
+  from a timer, because evenness is the one thing they cannot afford to lose.
+
+  Off by default and remembered, because a page that makes noise on its own is
+  the thing everyone hates about pages that make noise. Notes are shaped with
+  a short attack and an exponential tail rather than switched on and off,
+  which is the difference between a note and a click, and voices are capped so
+  a fast run is a run of notes instead of mud. Exports stay silent: the
+  capture seeks through every frame in turn and would otherwise fire hundreds
+  of notes at once.
+
+- **An MIT licence** for the project's own code, in `LICENSE`, with `license`
+  declared in `package.json` to match. It closes with a third-party section
+  naming the two bundled typefaces and their SIL Open Font License terms,
+  because a bare MIT file at the root of a repo that ships someone else's fonts
+  reads as a claim over them too.
+
+- **The fonts are self-hosted**, and the app now makes no third-party request
+  of any kind. Writing the privacy notice made the cost of the Google Fonts
+  links explicit — a webfont request hands its host the reader's IP address,
+  browser and the page that asked, on every visit, for two typefaces that are
+  77 kB. They are served from `public/fonts/` instead, which also makes the site
+  work offline and behind a blocked CDN.
+
+  One file per family rather than one per weight: both are variable fonts, so a
+  single woff2 covers the whole 400-700 range the app uses — the seven files
+  Google's stylesheet names turned out to be the same two files listed seven
+  times. Only the `latin` subset ships, which is what an English page pulled
+  from Google before, so nothing renders differently. Exports pick the fonts up
+  through `domCapture.js`, which now rewrites every `url(….woff2)` in the
+  collected CSS into a `data:` URL rather than fetching a known stylesheet — so
+  it keeps working when a face is added or renamed.
+
+  Both are under the SIL Open Font License, which asks that the copyright
+  notice and licence accompany the files wherever they go — so they sit next to
+  the woff2 in `public/fonts/`, served rather than merely committed, alongside a
+  `README.txt` naming each file, its copyright line and its upstream project.
+
+- **The category cards on the home page collapse.** Ten families each listing
+  every topic under them ran to a page and a half, so the one screen whose job
+  is to show what the app contains was the one screen you couldn't see at once.
+  A card now shows its name, its blurb and a count, and opens to list its
+  topics. Any number can be open together, because closing the last one for you
+  makes comparing two families harder than it needs to be, and clicking anywhere
+  on a card toggles it — the head, the blurb, the padding, the gap between
+  topics — so there is nothing to aim at. Choosing a topic still leaves the
+  screen rather than collapsing the card behind it. Same shape as the
+  collapsible operation groups in the sidebars, down to the chevrons.
+
+- **Terms of use**, at `/terms.html`, sharing the privacy notice's design and
+  linked from it and from the category page's footer. Short, because the site
+  is: with no accounts, no payments and nothing stored on a server, most of what
+  a terms page usually carries has nothing here to attach to. What is left is
+  specific — the MIT grant over the code and the writing and the fonts'
+  exclusion from it, an explicit warning that the animations and complexity
+  claims are teaching simplifications to be checked before they are relied on,
+  no uptime promise, and the as-is disclaimer that mirrors the licence.
+
+  It also says where the material came from. The algorithms are the field's,
+  not the site's, and no claim is made over them — only over the particular way
+  they are explained and drawn here, which was written for this project. Since
+  good faith isn't certainty in a subject everyone learns from the same
+  textbooks, there is a plain route for anyone who thinks otherwise: one email,
+  no legal notice needed, and it gets corrected, credited or removed — the
+  whole site if that is what it takes.
+
+- **A privacy notice**, at `/privacy.html` and linked from the footer of the
+  category page. It is a description of what the code actually does rather than
+  boilerplate: the three `localStorage` keys named individually, the fact that
+  there are no cookies and no analytics at all, and the one third party the app
+  contacts — Google Fonts, which the export path re-fetches to embed the
+  typefaces in an exported image. It also states the thing that makes this app
+  unusually private without trying to be: a shared setup lives after the `#` in
+  the address, and browsers never transmit that to a server, so the arrays and
+  graphs you build cannot appear in anyone's logs even when you share the link.
+  Standalone, like the 404, so it renders even if the build doesn't.
+
+- **A not-found screen.** A shared link carries its whole setup in the address,
+  so one truncated in a chat window arrives naming a topic that doesn't exist —
+  and every such link used to land silently on the category page, leaving the
+  reader to wonder what they had clicked. It now gets a 404 screen that says the
+  link points at nothing and shows the address back so it can be compared with
+  the original. A visit with no hash at all is still an ordinary one and goes
+  straight to the categories; leaving the screen clears the dead hash so a
+  reload doesn't return to it.
+
+  A bad *path* is a different failure — the host's, not the app's — and
+  `public/404.html` is now the page served for it. It is deliberately
+  standalone: no bundle, no stylesheet, and its few colours copied from `:root`
+  instead of shared with it, because a 404 that depends on the build it is
+  apologising for renders as unstyled text exactly when it is needed. It replays
+  the reader's stored theme so it doesn't arrive in the wrong one.
+
+- **The graph canvas uses the whole panel.** Its `viewBox` was a fixed 640x300
+  laid inside an element as wide as the panel, which the browser scaled to fit
+  and centred — so on any normal window the graph sat in a column down the
+  middle with a few hundred pixels of drawn-but-unreachable canvas either side.
+  The `viewBox` is now measured from the element itself, so one unit is one
+  pixel and nothing is letterboxed, and the canvas is taller as well. The ring
+  the vertices start on is an ellipse inscribed in that box rather than a fixed
+  104-pixel circle, which is what spreads them out; it is capped at 3.5:1 so a
+  very wide, short canvas doesn't flatten it into a line. Dragging is unchanged
+  and still lands exactly under the cursor — it was already mapped through the
+  SVG's own transform rather than an aspect-ratio guess.
+
+- **Linked-list nodes are drawn as the struct.** One rectangle divided into the
+  fields the node actually holds: `data | next` for a singly linked list,
+  `prev | data | next` for a doubly linked one — the payload in the middle, so
+  each pointer sits on the side it points to — and, for a circular list, the
+  same two fields with the tail's `next` holding the head instead of null. A
+  pointer field carries a dot when it points somewhere and is struck through
+  when it is null, in the node's own state colour, so a list's shape can be read
+  off the boxes without following an arrow. Reverse is what this was for: each
+  node's `next` field empties and refills as its pointer is flipped, which a row
+  of arrows between featureless boxes could only ever show indirectly.
+
+  A circular list's wrap-around is now **drawn rather than captioned**. The tail
+  used to carry a `↺ HEAD` badge with a note under the row explaining it, which
+  is a label for the pointer and not the pointer; it is now a real dashed link
+  curving out of the tail's `next` field, under the row and back up into the
+  head. It is measured off the laid-out nodes, so it follows an insert or a
+  delete that moves the head — and when the row has wrapped onto several lines
+  it routes down into a lane and up a gutter beside the block, rather than
+  cutting a diagonal across every line of nodes in between.
+
+  A node now draws the arrow **arriving** at it rather than the one leaving,
+  which looks identical on a single line and fixes a wrapped one: the arrow sits
+  at the front of the item the row breaks between, so a line ends on a node
+  instead of on an arrow pointing at nothing, and picks up again at the start of
+  the next line. The HEAD and prev/curr/next tags hang off the node itself now
+  rather than off the node-and-its-arrow, so they are centred on the box they
+  name instead of half an arrow's width to one side of it.
+
+- **The bars are editable.** Click one to set its value to the height you
+  clicked at, drag it up and down to scrub with the number shown above it, or
+  drag it sideways to move it along the array. Keyboard equivalents throughout:
+  ↑/↓ change a focused bar by one or, with Shift, by ten, and Alt+←/→ move it,
+  leaving the bare arrows stepping the run as they do everywhere else.
+
+  One press has to serve both edits, so the axis of the first few pixels of
+  movement decides which it is, and a press that never travels four pixels is a
+  click. The array is held as a draft for the length of the gesture and
+  committed once on release — committing per pointer move would have put a
+  hundred entries on the undo stack and recomputed the whole run for each one.
+
+  Editing rewinds to the first step and applies to the array the run *starts*
+  from rather than to what happens to be on screen: mid-run the canvas shows a
+  partly sorted picture, and the searches that sort a copy show an order the
+  base array never had. Reordering is disabled on those searches for the same
+  reason — the sort would undo it before the first frame — while setting values
+  still works. The scale is frozen for the length of a gesture so the bars
+  can't rescale out from under the cursor as a value grows past what used to be
+  the tallest one.
+
+  The column is the target, not the bar: hit-testing on whatever the pointer
+  physically landed on made the empty space above a short bar dead, and that
+  space is exactly where you press to raise it.
+
+  A finger reaches the same three gestures by a different route: tap to set a
+  value, **hold** a bar to pick it up and then drag it to scrub or to move it.
+  Treating a finger like a cursor did not work at all on a phone — the canvas
+  is a third of the screen tall, so the browser read the drag as the page
+  scroll it looks like and cancelled the pointer partway through, and refusing
+  the scroll outright would have left a band the page could not be swiped past.
+  The hold is the same one that picks a vertex up on the graph canvas, buzzes
+  and lifts the bar the moment it lands, and refuses the scroll only from there
+  on. The axis threshold is wider for a finger than for a cursor, so a tremor
+  during a scrub no longer reorders the array.
+
+- **A theme system, and a second channel for algorithm state.** Light, dark and
+  system themes; high contrast as a *modifier* on top of either, so a light
+  high-contrast mode exists at all; and a colour-blind-safe palette for the
+  hues that carry meaning. Appearance is stored locally and stays out of the
+  shareable link — it describes the reader, not the run — but exports follow
+  it, so a light run exports light.
+
+  The refactor underneath is the point. Colour had been the app's entire
+  encoding for compare, swap, sorted and pivot, and it lived as ~230 hardcoded
+  `rgba()` literals of five hues spread across seventeen components and the
+  stylesheet. Those are now mixed from channel tokens, and the states are named
+  for what they *mean* rather than for what colour they are, so a palette
+  re-points the meaning and no component knows a palette exists. Only
+  primitives are redefined per axis: custom properties resolve where they are
+  used, so overriding one `--ink-rgb` re-derives every border, hairline and
+  panel fill, which is why a whole light theme is a dozen lines.
+
+  **Every state now carries a glyph as well as a colour** — `↔` comparing, `⇄`
+  swapping, `✓` in place, `◆` pivot, `◎` probing, `★` found — with a legend
+  under the bars naming only the states that algorithm can actually reach.
+  Either channel alone is enough, which is what makes the picture survive
+  greyscale printing and the deficiencies no palette fully covers.
+
+  The safe palette was chosen by measurement rather than by picking colours off
+  a list. Candidate sets were simulated for protanopia, deuteranopia and
+  tritanopia and scored on their weakest pair against a contrast floor. Naive
+  Okabe-Ito assignments scored ΔE 3.8 at worst — idle collapsing onto pivot
+  under protanopia, which is *worse* than the palette they were meant to
+  replace. The shipped set scores 19.4 on dark and 9.2 in the hardest case,
+  and beats the default palette by 2–4x in every theme and contrast
+  combination. Text contrast is 16:1 or better everywhere, and all four
+  theme/contrast combinations pass WCAG AA across the interface.
+
+  Two things fixed on the way: high contrast had been overriding the hues
+  unconditionally, so switching it on silently threw the colour-blind-safe
+  palette away — the two settings are meant to compose, and its overrides are
+  now per palette. And `--on-primary` was defined but never used, leaving
+  three rules with a hardcoded dark label that became unreadable on the light
+  theme's darker accent.
+
+- **Export a run as a GIF, a video, or a printable step table.** Every view
+  gets an EXPORT button next to SHARE, and all three formats are produced in
+  the page with no new dependencies and nothing uploaded anywhere.
+
+  One capture path serves all twenty-odd views rather than a hand-written
+  painter per view: the visualization is cloned into an SVG `<foreignObject>`
+  and rendered through an `<img>`, so the export is drawn by the same engine
+  that drew the screen. Two things do not come along for free and are handled
+  once per export — the stylesheet is inlined (with `:root` rewritten to a
+  class, since inside the SVG the custom properties have no `<html>` to hang
+  off), and the webfonts are fetched and embedded as data URLs, because an
+  image-rendered SVG may not fetch anything and would otherwise silently fall
+  back to a system face and shift every glyph. The frame is measured on the
+  *clone*, not the live column: dropping the code panel lets everything below
+  it move up, and measuring the original left a band of empty background as
+  tall as the panel that wasn't in the picture.
+
+  The GIF encoder is written here — palette by median cut sampled across the
+  whole run rather than from the first frame, since a sort's bars all turn
+  green by the end; LZW with the code width growing on the code being
+  assigned, because the decoder adds no entry for the first code it reads and
+  its table trails the encoder's by exactly one; and per-frame differencing
+  that writes only the changed rectangle with the rest transparent. That last
+  part is the difference between a few hundred kilobytes and many megabytes
+  for a run that moves two bars a step.
+
+  Video uses the browser's own `MediaRecorder`, offering MP4 where the browser
+  can write one and WebM otherwise. Recording is real-time by nature, so the
+  export takes as long as the video runs.
+
+  The step table is one row per frame — the pseudocode line executing, what
+  happened, the state left behind, the running counters — and prints through
+  the browser's own dialog, where Save as PDF produces the file. The header
+  carries the shareable link to the run, so a printout is not a dead end. The
+  table is only built and mounted while a print is actually happening; a
+  thousand permanently hidden rows would cost every view a layout it never
+  shows. It is portalled to `<body>` rather than rendered in place, because
+  printing hides `.app` wholesale so a cancelled print leaves the run
+  untouched — and a hidden ancestor hides its children, so a table rendered
+  inside it printed a blank page.
+
+  Runs longer than 240 steps are thinned evenly, always keeping the first and
+  last frame, and the player is restored to the step it was on when the export
+  finishes.
+
+- **Real source code beside the pseudocode, in five languages.** The code panel on every
+  algorithm view now carries tabs for C, C++, Java, Python and JavaScript alongside the
+  pseudocode, each a real implementation rather than the pseudocode retyped, and each with
+  a copy button. The step highlight works the same in every tab: a listing's lines are
+  tagged with the pseudocode line they implement, so one step lights the `if` in the C and
+  the tuple swap in the Python at the same time, and one pseudocode line often lights
+  several source lines. The tab is remembered across algorithms, so reading the Java for
+  one means reading the Java for the next. All 42 algorithms are covered — the sorts, the
+  searches, the six DP problems, the four backtracking searches, the greedy and
+  number-theory five, the four string algorithms and Huffman coding.
+
+  Tagging is inline: `@@n` at the end of a source line, stripped before the code is shown
+  or copied, so the mapping lives next to the line it describes instead of in a table of
+  line numbers that would drift the first time anyone edited the listing. The listings are
+  ~200 kB of text and most visits never leave the pseudocode tab, so they are not in the
+  initial bundle — they load in per-category chunks the first time a language is picked,
+  the same way the long-form topic write-ups do.
+
+- **Greedy algorithms and number theory, as a section of their own.** Activity selection
+  and fractional knapsack are greedy in the technical sense — a locally best choice that is
+  provably globally optimal — and both are drawn beside the reason they work. Activity
+  selection lays the activities out as bars on a real timeline, so the earliest-finish rule
+  is a thing you watch rather than a thing you are told. Fractional knapsack sits next to
+  0/1 knapsack in the DP section on purpose: the only difference between them is whether an
+  item can be cut, and that difference is the whole reason one is greedy and the other is
+  not. The sieve of Eratosthenes, fast exponentiation and Euclid's GCD are the arithmetic
+  underneath everything else, each drawn with the detail that makes it fast — the sieve
+  starting at p² and stopping at √n, the exponent read bit by bit with the running squares
+  beneath it, and Euclid's quotient column showing exactly how many subtractions each
+  modulo replaced.
+
+  Checked against independent references rather than against themselves: activity selection
+  against a brute-force search over every subset, fractional knapsack against a separate
+  reference pour, the sieve against trial division at every limit from 2 to 120, fast
+  exponentiation against exact BigInt arithmetic, and Euclid against a reference gcd.
+
+- **A favicon, a touch icon and a web manifest.** The app had none, so it showed the
+  browser's blank-page default in a tab and could not be installed. They live in `public/`,
+  which Vite serves at `/` in dev and copies to the root of `dist/` on build. The generated
+  manifest shipped with empty names and white theme and background colours, which would
+  have flashed white on launch against an app that declares `theme-color #0b0d12`; both now
+  match the app.
+
+- **Eight more sorts, taking the list from nine to seventeen.** Cycle sort, comb sort,
+  3-way quick sort, introsort, Timsort, counting sort, bucket sort and bitonic sort. They
+  were chosen to be different in kind rather than more of the same: cycle sort minimises
+  writes rather than comparisons, bitonic sort is a network whose comparisons do not
+  depend on the data at all, introsort and Timsort are the hybrids real standard libraries
+  actually ship, and counting and bucket sort do their real work in an array that is not
+  the bars. The existing comparison counting sort keeps its key, so old share links still
+  resolve; the new `counting` is the true one.
+
+  Each is checked against its own headline claim rather than only for sortedness: that
+  3-way quick sort is linear on all-equal input where plain quick sort is quadratic, that
+  Timsort is linear on sorted input, that cycle sort never writes more than n times, that
+  introsort's recursion depth stays under 2·log₂n on input built to break quick sort, that
+  bitonic sort makes an identical number of comparisons whatever the input, and that
+  counting sort makes none. The suite runs every algorithm against every input shape and
+  every variant at thirteen sizes.
+
+  Timsort's minimum run length is a setting because the real rule returns n for n < 64,
+  which at the array sizes that fit on screen means one run and nothing to merge. The
+  default is 8 so the run stack is visible; `auto` is offered, and labelled as the honest
+  one.
+
+- **Frames can name regions and carry a second array.** `bands` draws a ruler under the
+  bars sharing their horizontal scale — the three regions of a Dutch-flag partition, the
+  runs on Timsort's stack, which sort introsort has handed a range to, the direction a
+  bitonic sub-network is sorting in. `aux` draws a labelled row of cells beside them, which
+  is where counting sort's tallies and bucket sort's bucket sizes live. Bar colour was
+  already carrying five meanings, so regions got a row of their own rather than a sixth
+  shade.
+
+- **B-trees and B+ trees, at order 3, 4 or 5.** A new view under TREES, and the one
+  structure in the app whose shape is an argument about hardware rather than about
+  mathematics: a node is as wide as the block it lives in, so one read narrows the search
+  *m* ways instead of two, and the height falls from log₂ n to log_m n.
+
+  What it is built to show is that **nothing rebalances it**. There is not a rotation
+  anywhere in the implementation. Every leaf stays at the same depth because the update
+  rules are symmetric about the vertical — an overflowing node splits and pushes its median
+  *up*, an underflowing one borrows from a sibling or merges and pulls a separator *down*,
+  and the only way to gain a level is to split the root while the only way to lose one is to
+  empty it. Run Insert at order 3 and watch a split travel upward a level at a time.
+
+  Delete is the intricate half and the frames say so as they go: an internal key is a
+  separator and cannot simply be removed, so it is overwritten with its predecessor — which
+  lives in a leaf — and that copy is deleted instead, which turns every deletion into a leaf
+  deletion followed by a repair that can cascade to the root.
+
+  **VARIANT** rebuilds the same keys the other way. A B+ tree moves every key into a leaf,
+  keeps only routing separators upstairs and links the leaves left to right — drawn as a
+  dashed chain along the bottom — so Inorder Traversal walks one level instead of touring
+  the tree. That is why database indexes are B+ trees: a range scan finds its starting leaf
+  once and never touches the interior again. It costs a uniform full-height search, which
+  sounds worse and makes every lookup predictable.
+
+  Verified against the invariants at every order and in both variants: all leaves at one
+  depth, key counts inside [⌈m/2⌉−1, m−1] for every node but the root, separators bounding
+  their subtrees, sorted traversal — checked after each of twelve inserts in sorted,
+  reversed and mixed order, after **every one of fourteen single deletions** from a
+  fourteen-key tree, and after deleting everything in three different orders.
+
+  That testing caught a real bug that no amount of looking at the screen would have. A B+
+  separator equal to the key being searched for is only a *copy* of the right subtree's
+  smallest key, so an equal key must route **right**; routing it left walked past the leaf
+  holding it, and deleting a key that had been copied upward silently did nothing while the
+  tree still looked perfectly correct.
+
+- **Huffman coding trees.** Also under TREES. Build a code from any text and watch the
+  greedy rule that produces the optimal one: repeatedly merge the two lightest trees.
+
+  The canvas is a forest for every step but the last, which is the point — you watch trees
+  get eaten. Each frame draws the priority queue as it stands beside the forest, so "the two
+  lightest" is something you see selected rather than a rule you are asked to take on trust.
+  The last frame reads the codes off the paths and reports the encoded size against a
+  fixed-width code for the same text.
+
+  Checked against an independent reference implementation on eight texts — the total cost
+  matches the optimum every time — plus the properties that matter and are easy to get
+  subtly wrong: the codes are prefix-free, encoding and decoding round-trip through the
+  finished tree, every internal weight is the sum of its children, the root weighs exactly
+  the length of the text, and the sibling property holds so a rarer symbol is never given a
+  shorter code than a commoner one.
+
+- **Range queries: segment trees and Fenwick trees, over one array.** A new view under
+  TREES. Both answer "what is the sum of positions 1 to 5?" on an array that keeps changing,
+  and both get O(log n) for query *and* update by storing partial answers over ranges rather
+  than positions — where a plain array is O(n) to query and a prefix-sum array is O(n) to
+  repair.
+
+  They share a canvas on purpose. Under the array sits a row of spans, each drawn across the
+  cells it summarises; spans on one row never overlap, because a segment tree's row is a
+  depth and a Fenwick tree's is a lowbit class. That makes the punchline visible in both: a
+  query lights up three or four stored values that happen to tile the range exactly. On the
+  default array a Fenwick `a[1..5]` shows two green spans tiling prefix(5) = 17 + 10 = 27 and
+  one red span for the prefix(0) = 5 it never wanted — 22, from three reads instead of five.
+
+  MIN and MAX are disabled for the Fenwick tree, and that is the lesson rather than a
+  limitation of the implementation: a Fenwick range is one prefix minus another, subtraction
+  undoes a sum, and nothing undoes a minimum. A segment tree takes all three because it never
+  relies on undoing anything.
+
+  Checked exhaustively rather than by sampling: every one of the 36 ranges of an 8-element
+  array, for segment/sum, segment/min, segment/max and fenwick/sum, against brute force —
+  then four point updates each, re-verifying all 36 ranges after every one. Plus the invariant
+  the canvas depends on: no two spans overlap within a row, in either structure.
+
+- **Red-black trees, splay trees and treaps.** Three more TREE TYPE options in the existing
+  tree view, sharing its operations, canvas and shared links — and disagreeing with AVL, and
+  with each other, about what "balanced" should mean. AVL keeps sibling heights within one
+  and pays for it in rotations; a red-black tree only promises the longest path is at most
+  twice the shortest, and restructures far less; a splay tree promises *nothing* per
+  operation and is O(log n) only amortised; a treap has no balancing rule at all and gets
+  O(log n) expected height from random priorities alone.
+
+  Red-black nodes are drawn in their colour, because the colour is the data. A new key
+  arrives red, since a black one would change its path's black-height immediately while red
+  only risks the locally repairable "no two reds in a row". Treap priorities are drawn above
+  each node in purple. Splay's **Search** is the only search in the app that rewrites the
+  structure it is searching — and it does it on a failed search too.
+
+  All three needed a mutable, parent-linked representation internally, which the rest of the
+  app deliberately does not use: rotations and fix-up walk *upward*. Each converts on the way
+  in and freezes on the way out. That is also what made red-black deletion tractable to get
+  right — the double-black cases are hard enough without rebuilding the spine every step.
+
+  Verified against the invariants rather than by eye: red-black insert over four key sets
+  including sorted and reversed input; **every one of fourteen single deletions** from an
+  eleven-key tree, plus delete-everything in three orders, each checked for root-black,
+  no-red-red and equal black-height; treaps checked for BST order *and* heap order over six
+  random trials; splay checked for last-inserted-at-root, searched-key-at-root, and that a
+  failed search still splays.
+
+- **Eight more graph algorithms, and the operation list split by what each is allowed to
+  know.** Shortest paths now sit under two headings rather than one, because the difference
+  between them is not speed but assumptions. **Uninformed** — Dijkstra, Bellman-Ford,
+  Floyd–Warshall — know the edges and nothing else, expand in every direction including
+  away from the target, and hold on any graph. **Heuristic** — A* — is handed an estimate of
+  what is left and leans towards the goal, expanding 4 of 6 vertices on the default network
+  where Dijkstra would settle everything nearer than the target first.
+
+  A*'s estimate is the straight-line distance between vertices *as drawn*, so dragging one
+  changes it. That needs care: A* only returns the true shortest path when the estimate
+  never overshoots the real remaining cost, and straight-line distance is not admissible on
+  its own, because edge weights have nothing to do with how far apart vertices happen to be
+  drawn. It is scaled by (cheapest edge ÷ longest edge on screen) — a route covering
+  geometric distance D needs at least D ÷ longest-edge hops at at least the cheapest edge
+  each — and checked against Dijkstra on three graphs to confirm they agree.
+
+  **Bellman-Ford** earns its O(V·E) twice: it survives negative edges, and one pass past the
+  V−1 guarantee turns it into a negative-cycle detector — a distance that still improves
+  proves that going round a loop makes the total smaller, so no shortest path exists at all.
+
+  **Connectivity & structure** is a new group of five. Cycle detection runs a genuinely
+  different algorithm per DIRECTED setting — grey/black stack colouring against
+  parent-exclusion — so a diamond is a DAG directed and cyclic undirected, from one picture.
+  Bipartite check reports its failure as an *odd cycle*, which is what non-bipartite
+  actually means. Bridges & articulation points finds single points of failure from
+  discovery times and low-links in one pass. Tarjan's and Kosaraju's find the same strongly
+  connected components two different ways — one pass with a stack, or two passes with the
+  graph reversed — and are worth running back to back on the same graph.
+
+  **Max flow (Edmonds–Karp)** labels every edge `flow/capacity` regardless of the WEIGHTS
+  toggle, and the residual backward edges are the point: they let a later augmenting path
+  undo an earlier decision without having to notice it was wrong. When no path remains, the
+  vertices still reachable are one side of a minimum cut whose capacities add to exactly the
+  flow. Verified at 23 on the CLRS network, and at 2 on the small case that only reaches the
+  optimum by using a backward edge.
+
+  All eight are checked against reference implementations: Tarjan against Kosaraju on four
+  graphs, A* against Dijkstra on three, bridges against hand-worked path/triangle/bowtie
+  cases, and max flow against two known networks.
+
+- **Floyd–Warshall is actually reachable now.** It has been in the repository, complete and
+  with a matching `DistanceMatrixPanel`, since before this changelog — and imported by
+  nothing, so it has never appeared in the app while README and DOCS both listed it. Both
+  are now wired in: it sits with the other uninformed shortest-path operations and fills an
+  all-pairs distance matrix under the canvas. Its S→T distance agrees with A*'s on the same
+  graph, which is a pleasant way to find out that two unrelated implementations are right.
+
+- **String algorithms: KMP, Z, Rabin-Karp and Manacher on one aligned grid.** A new family.
+  Brute-force matching is O(n·m) because a comparison that fails after eight matching
+  characters throws all eight away; each of these keeps a different piece of what the failed
+  attempt proved, and the view is built to show which piece.
+
+  Everything is drawn on one set of columns, and a row can start part-way along — so KMP's
+  search draws the pattern as a second row beginning at the column it is aligned with, and a
+  shift is that row physically moving right rather than a number changing. Blue marks the
+  span being *reused instead of recompared* — KMP's border, Z's mirror, Manacher's reflected
+  radius — which is the one idea the whole family shares.
+
+  **KMP builds its failure function on screen first.** π[i] is the length of the longest
+  proper prefix of P[0..i] that is also a suffix, and when one is found both ends light up
+  at once: the prefix at the front and the matching suffix ending at i. That picture is the
+  failure function; the number under it is only its length. Then the search uses it, and
+  each mismatch says what it is trading — "8 matched, π[7] = 4 of them are also a prefix, so
+  slide 4 and keep those 4" — with the text pointer never moving backwards.
+
+  Two of the defaults were chosen by measurement rather than taste. Rabin-Karp's modulus is
+  233, found by searching for one that actually produces a spurious hit on the default text,
+  because a verification loop that never fires looks like pointless ceremony — "BABCA" and
+  "ABABC" both hash to 170. And the Z default exercises the mirror on 18 of its 46 frames,
+  four of them needing no character comparisons at all.
+
+  All four are checked against brute force: the three matchers agree with a naive search on
+  eight cases including overlapping matches, KMP's π matches a reference implementation, and
+  Manacher agrees with an O(n²) longest-palindrome search.
+
+- **Backtracking: four searches, one board, and a tree that shows what pruning removes.**
+  A new family — n-queens, sudoku, subset sum and permutations — sharing one canvas and
+  one search-tree panel.
+
+  Backtracking is depth-first search over partial answers with one addition: the moment a
+  partial answer is provably hopeless, the whole subtree under it is abandoned without
+  being built. Choose, check, recurse, and — the step that gets skipped when people write
+  it out by hand — undo. The board shows all of it: what the constraint has already ruled
+  out (squares a placed queen attacks, the digit that clashes), the choice being made, and
+  in yellow the choice being taken back.
+
+  **The state space tree is the point, and it is not `RecursionPanel`.** Every path from the
+  root to a node is one partial solution, and the tree of all of them is the space the
+  search moves through — so `SearchTreePanel` draws it with its edges. Without them you can
+  see that eighteen nodes at depth 3 were rejected; with them you can see they were all
+  children of one choice, and that rejecting it removed an entire subtree. Nodes carry the
+  classical names: **E-node** for the one being expanded, live for the rest of the path,
+  killed-by-the-bounding-function for branches rejected before their children were ever
+  generated, dead end for those tried and undone, answer node for those that worked. The
+  path from the root to the E-node is drawn as one thick line and spelled out underneath,
+  because that chain *is* the partial solution the board is showing.
+
+  `RecursionPanel` could not do this job. It draws merge and quick sort's recursion, where a
+  call owns a contiguous `[lo, hi]` slice and is drawn as a segment on the bars' own
+  horizontal scale — containment is an interval relationship there, so it needs no lines at
+  all. A backtracking node owns no interval. Same frame vocabulary (`calls`, `callId`,
+  `depth`, one shared array rather than a copy per frame), different geometry.
+
+  Two things keep the tree cheap enough to redraw every frame: the layout is computed once
+  per run from the finished tree and memoized on the shared `calls` array, so nodes appear
+  in place instead of the picture shuffling sideways on every step; and nodes are batched
+  into one `<path>` per state rather than one element each, since 7-queens over every
+  solution is 3,585 nodes. Trees run from 4 leaves to 764, so the slot width adapts — labels
+  while they fit — and the E-node is kept in view as you step.
+
+  Making that colouring correct needed one extension to the shared-array trick. A
+  merge-sort call never changes after it is created, so `RecursionPanel` can slice by
+  `callCount` and be done. A backtracking node does change — it starts as exploring and
+  later becomes a dead end or a solution — so mutating a status field would make early
+  frames show nodes dying before they died. Instead each node records *when* it changed, as
+  frame ordinals (`openedAt`, `closedAt`), and the panel compares them against the frame's
+  own `seq`. Mutation stays safe because it is only ever read as a comparison, and stepping
+  backwards shows the tree as it was rather than as it ended up.
+
+  **Permutations is in there as the control case.** It has no constraint, so nothing is
+  ever pruned, every leaf is an answer, and the tree is exactly the size of the output — 65
+  nodes for 24 answers. Next to n-queens, where 140 of 172 nodes are rejected on sight, the
+  difference between the two trees is precisely what a constraint buys.
+
+  Searches stop at 4,000 nodes, and the number is not arbitrary: every solution to 7-queens
+  is 3,585 nodes, 8-queens is 15,721, and the newspaper sudoku at the top of the Wikipedia
+  article takes this row-major solver 37,653 nodes and 4,157 backtracks. The three sudoku
+  presets were chosen by running the solver over candidates rather than by how hard they
+  look to a person — one that needs no guessing at all, one with three, one with eight —
+  because those two things turn out to be barely related.
+
+- **Dynamic programming: six problems, one table, filled and then walked backwards.** A
+  new family on the landing page — longest common subsequence, edit distance, 0/1
+  knapsack, coin change, longest increasing subsequence and matrix chain order — each
+  listed as its own entry, all six sharing one canvas.
+
+  Every problem is a table filled cell by cell, and the frame model already had exactly
+  the right shape for it: `run(params)` returns an array of frames, so stepping backwards
+  through a fill and scrubbing into the middle of a backtrack are free. Each step marks
+  four things, and they mean different things: the cell being written, the cells it read
+  and rejected, the one cell its answer actually **came from**, and — during the
+  backtrack — the cells on the recovered solution. The third of those is the recurrence
+  made visible: a knapsack cell looks at two neighbours and takes one, and which one it
+  took is the difference between putting the item in the bag or leaving it out.
+
+  **The backtrack is half of it.** A filled table holds a number, and a number is not a
+  solution — "length 4" is not a subsequence and "23" is not a set of items. Every cell
+  records the decision it made in its corner (`↖ ↑ ←`, `✓` or `·`, `←j`, `k=3`), the walk
+  back reads those marks rather than recomputing anything, and the answer builds up under
+  the table as it goes: the subsequence, the edit script, the items taken, the coins
+  spent, the bracketing. Reading rather than recomputing is what stops the recovered
+  answer from ever disagreeing with the number the fill produced.
+
+  The six are grouped by what the table is indexed by, not by what the problem is about,
+  because that is where the lesson is. LCS and edit distance are the same grid with the
+  arithmetic turned upside down — one counts what two strings share, the other what they
+  don't — and switching between them keeps your input so the two are one click apart.
+  Coin change is the knapsack with a single index changed, reading from its own row
+  instead of the one above, which is exactly the difference between a coin you can spend
+  again and an item you cannot. The increasing subsequence's answer is not in the last
+  cell but the largest cell anywhere in its single row. Matrix chain fills diagonally, by
+  chain length, and its lower triangle is drawn as absent rather than unfilled — a run
+  never goes backwards, so those cells are not "not yet", they are "not a cell".
+
+  Defaults are the textbook cases and the numbers match: KITTEN → SITTING is distance 3
+  with the classic script, and the CLRS matrix chain 30, 35, 15, 5, 10, 20 comes out at
+  ((A1(A2A3))(A4A5)) for 11,875 multiplications against 25,500 bracketed left to right.
+  Coin change opens on 1, 3, 4 making 6, where the table finds 3+3 and greedy gets three
+  coins — the panel says so when it happens.
+
+  Input sizes are capped (12 characters, 8 items, capacity 20, amount 24, 14 numbers, 7
+  matrices) because one frame per cell means the table's *area* is the length of the
+  animation.
+
+- **Probes against load factor, for all six collision strategies at once.** A sweep under
+  the hash table view. The canvas holds a couple of dozen keys and resizes itself at α 0.5
+  or 0.75, so it can never show the part that decides which strategy you pick: what a
+  lookup costs as the table fills. This fills a table of 79, 331 or 673 slots to each load
+  factor from 0.05 to 0.95 — five tables per point, every strategy dealt the same keys in
+  the same order — and counts the slots a lookup examines, using the same `locate()` the
+  animation walks.
+
+  At α 0.95 in a 673-slot table an unsuccessful search costs linear probing 112 slots,
+  double hashing 19, Robin Hood 9 and chaining 2. Two results are worth the sweep on their
+  own: linear probing and Robin Hood have *identical* averages — Robin Hood moves keys
+  around without changing how many there are, so what it buys is the worst case (284
+  against 22), not the mean — and cuckoo hashing's curve simply stops at α 0.5, where its
+  eviction chains start closing into cycles a bigger table is the only fix for. The
+  classical curves are drawn dashed over the top, and the measurements sit under them past
+  α 0.8, because those results are asymptotic in the table size and a few hundred slots is
+  not asymptotic.
+
+- **Adjacency list vs adjacency matrix, as a cost rather than a rendering.** A panel under
+  the graph view. The representation panel above it shows the two as alternative views of
+  one graph, which is true of a graph with six vertices and misleading about every other:
+  they are opposite bets, and which one pays depends only on density.
+
+  It reads out exact numbers for the graph on screen — memory, edge query and traversal,
+  with every ordered pair of vertices actually asked about rather than sampled — and
+  sweeps the same measurement to 256 vertices at four densities. Both structures are
+  really built and really queried; nothing is quoted from a complexity table. At V = 128
+  and average degree 4 the matrix stores 16,384 cells against the list's 640. At the
+  Complete setting the two land on exactly the same number, because V + 2E = V + V(V−1) =
+  V², which is the whole rule in one line.
+
+- **Prim vs Kruskal on the same graph.** A panel under the graph view. Both algorithms run
+  on the graph the canvas is drawing and their chosen edges are listed in the order each
+  picked them, numbered — Prim's tree connected at every moment, Kruskal's a scattering of
+  fragments until the last edge — with the totals, which are equal, side by side. When no
+  two edges share a weight the edge sets are identical too, and the panel says which case
+  it is looking at.
+
+  Underneath, a density sweep at fixed V: array-based Prim's curve is nearly flat, because
+  it scans every vertex on every round whether the graph has V edges or V², while
+  Kruskal's E log E climbs past it. At V = 128 the crossing lands between E = 1.4k and
+  E = 2.5k, so "Kruskal for sparse graphs" becomes a number you read off rather than a
+  rule of thumb. Every point also checks that the two totals still agree, which is the one
+  assertion the whole comparison rests on and is cheap to verify at every size.
+
+- **Balance & Height: BST vs AVL vs 2-3 tree, on the same keys in the same order.** A new
+  view under TREES. A binary search tree has no shape of its own — its shape is decided
+  entirely by the order its keys arrive in, and the worst order is the most natural one.
+  Insert 1, 2, 3 … 15 and the BST reaches height 14 while the AVL tree and the 2-3 tree
+  both sit at 3.
+
+  Six insertion orders make that the variable: sorted, reversed, random, alternating ends,
+  median-first (which builds a perfectly balanced BST with no rebalancing at all) and
+  sawtooth. The sequence is drawn above the lanes with a cursor on the next key, and one
+  transport tick is one insert.
+
+  The board underneath shows height beside the comparisons spent reaching it, which stops
+  "shortest" from being read as "cheapest": the 2-3 tree matches AVL's height on 15 sorted
+  keys but spends 51 comparisons against AVL's 45, because a node holding two keys costs
+  two comparisons to pass through. A GUARANTEE column carries each structure's promised
+  bound at the current key count — and `none` for the BST, which promises nothing.
+
+- **Height against n, measured.** The canvases cap at 24 keys; the sweep below them runs
+  the same insert code without keeping the intermediate trees, so n reaches 1600. It plots
+  height (or total comparisons) against n with log₂ n, log₃ n and n dashed over the top.
+  On sorted input at n = 400 the BST measures height 399 — tracking n exactly — against
+  the AVL tree's 8 and the 2-3 tree's 7, with log₂ 400 = 8.6.
+
+- **Race & Compare: two to four sorting algorithms side by side, and an empirical
+  complexity plot.** A new view under ARRAYS. One input array is built from a named shape
+  and a seed and handed unchanged to every lane, so any difference on screen is the
+  algorithm rather than the data; a lane that finishes early freezes on its last frame
+  instead of blanking, because the finished array sitting beside one still being churned
+  *is* the comparison.
+
+  The transport can sync the lanes two ways. BY FRAME advances every lane one frame per
+  tick, which is simple but compares frames rather than work — a bubble sort frame is one
+  comparison while a merge sort frame can be a whole write. BY WORK, the default, spends
+  the same number of operations in every lane per tick, so the lane that costs less
+  genuinely finishes earlier on screen.
+
+  Under the track, a live scoreboard fills each counter against the largest final value in
+  its column, so one lane overtaking another is something you watch rather than work out.
+
+- **Eight input shapes, for sorting and for the race.** Random, nearly sorted, already
+  sorted, reversed, few unique, all equal, sawtooth and organ pipe. This is where the
+  interesting comparisons live: on nearly-sorted input at n = 24, insertion sort finishes
+  in 25 operations against merge sort's 165 and quick sort's 872 — the reverse of what
+  their average-case complexities imply. Every shape is a pure function of `(n, seed)`, so
+  a shared link rebuilds the same array in someone else's browser, and NEW DATA only has
+  to change the seed.
+
+- **Empirical complexity: growth measured, not asserted.** Every sorting algorithm now
+  also exports `count()` — the same body as `run()` with frame recording switched off — so
+  a sweep can run it at 10, 20, 40 … 5000 elements without materialising millions of
+  frames. The panel plots measured operations against n with n, n log n and n² fitted over
+  the top, and reports each algorithm's measured growth exponent beside the complexity its
+  metadata claims. Log-log by default, because that is the only view where a power law is
+  a straight line you can read the slope off.
+
+  It shows things a complexity table cannot: insertion sort measuring 1.08 on nearly-sorted
+  input while quick sort measures 1.97 on the same data, and quick sort's 2.00 on sorted
+  input dropping to 1.21 the moment the pivot rule changes.
+
+- **Pivot and gap-sequence variants.** Quick sort can partition around the last element
+  (Lomuto's textbook pivot), the first, the median of three, or a random element drawn
+  from the run's seed. Shell sort can use the Shell (n/2), Knuth (3h+1) or Sedgewick
+  (1, 5, 19, 41, …) gap sequence. Same algorithm, same input, visibly different curves —
+  and the choice travels in the share link.
+
+- **A stability demo you can see.** COLOUR BY ORIGIN tints every bar by the index it
+  started at. Paired with the FEW UNIQUE or ALL EQUAL shapes the values are identical, so
+  the colours are the only record of whether tied elements kept their original order —
+  which is the definition of stability and something a chart of numbers simply cannot
+  show. Displaced elements are outlined in dashed red once the run finishes, and the
+  verdict is measured from *this* run rather than repeated from the algorithm's metadata:
+  an input with no ties says so instead of claiming a pass it never earned.
+
+- **Self-loops on the graph.** An edge may now have both endpoints on one vertex. Click a
+  vertex to arm it and click it again to loop it back to itself, set FROM and TO to the
+  same vertex in ADD EDGE, or type into the matrix's diagonal — which is an ordinary
+  editable cell now rather than a `·`, and one cell rather than a mirrored pair. `A-A`,
+  `A: A` and a `1` on the diagonal all build one from text, and it travels in a shared
+  link like any other edge. The loop is drawn away from the middle of the canvas, turning
+  aside if it would hang off the edge, and carries an arrowhead and a weight like any
+  other edge does. Degree counts one twice on an undirected graph — it leaves the vertex
+  and arrives back at it — Kruskal's reports it as the cycle it is, and a topological sort
+  now finds the cycle a self-loop makes.
+
+- **Dynamic hashing, as its own view: extendible and linear.** The thing a plain hash
+  table cannot do — grow without rehashing everything at once. **Extendible** keeps a
+  directory of 2^d pointers, drawn as a column of `0110 → B2` entries beside the buckets,
+  each carrying its own local depth; an overflowing bucket splits, and the directory only
+  doubles when that bucket was already as deep as the directory itself. **Linear** has no
+  directory at all, just a level and a split pointer, and the bucket that splits is the
+  one the pointer is on — not the one that overflowed, which chains into an overflow
+  block and waits its turn. Each bucket is labelled with the hash it currently answers
+  to, since that one comparison is the whole of a directoryless lookup.
+
+  Switching scheme replays the same keys in the same arrival order, which is the
+  comparison worth making: in both, where a key ends up depends on how many splits had
+  happened when it got there. Insert, search, delete and list keys are joined by
+  **Depths & Pointers**, which reads out the numbers that decide what the next insert
+  will do.
+
+- **Three more collision strategies, and a hash function to choose.** **Double hashing**
+  steps by `h₂(k) = 1 + k mod (m−2)`, a stride each key computes for itself, so two keys
+  that collide once don't collide all the way along. **Robin Hood** probes forward but
+  swaps the key it is carrying with any sitting key closer to home — each slot shows its
+  probe distance, and evening those out lets it run at α 0.75, stop a search early, and
+  delete by shifting the run back instead of leaving a tombstone. **Cuckoo hashing** puts
+  two tables side by side: a key takes its T1 slot outright and evicts whoever was there
+  into T2, so no lookup ever costs more than two probes, and an eviction chain that won't
+  end is a cycle that only a bigger table can break.
+
+  **HASH FUNCTION** is now a separate axis above collision handling, because it decides
+  where keys land before any collision rule gets a say: division, multiplication,
+  mid-square and digit folding. Switching one redeals the same keys, the way switching
+  strategy already did.
+
+- **Threaded binary trees, as a fourth tree type.** THREADED builds and searches like a
+  BST; what it does differently is spend the null pointers. A tree of *n* nodes carries
+  *n* + 1 null child pointers, and each becomes a thread to an inorder neighbour: a null
+  right pointer to the successor, and under double threading a null left pointer to the
+  predecessor. THREADING switches between double and single (right-only) threading and
+  re-threads the tree already on screen rather than building a new one.
+
+  Threads are drawn as dashed curves under the solid child links — purple to a successor,
+  yellow to a predecessor — and the one a step is following lights up. Three operations
+  appear with the type: **Threaded Inorder**, which walks the whole tree with no stack and
+  no recursion (O(1) space, against O(h) for the ordinary traversal); **Reverse Inorder**,
+  which is the same walk backwards and so needs the left threads, offered only under
+  double threading; and **Inorder Successor**, where a node with no right child answers in
+  one hop instead of climbing back up through parents it doesn't store. Insert and delete
+  say which threads they relinked.
+
+  The threads are derived from the tree's shape rather than stored on the node, so they
+  cannot fall out of sync with it and every existing tree operation works unchanged.
+  A threaded tree travels in a shared link like any other, with `tm` carrying which of
+  its pointers are threaded.
+
+- **The adjacency matrix is editable.** Click a cell off the diagonal, type, and the
+  graph follows. The matrix is the graph, so a cell says all three things a cell can
+  mean: a different number reweights the edge, a number where there was a `0` creates
+  one, and `0` removes it. Enter or clicking away commits, Escape cancels, and an empty
+  or unparseable cell is treated as a slip rather than an instruction.
+
+  One `setEdgeWeight` operation covers all three cases instead of the call site choosing
+  between addEdge and removeEdge — deciding which operation a typed number amounts to is
+  exactly the question the matrix has already answered. Undirected edges occupy both
+  cells and move together; directed ones stay independent.
+
+  An unweighted graph's matrix now reads `1` and `0` rather than showing the weights its
+  edges happen to be carrying unused underneath, which is what an unweighted adjacency
+  matrix means and what makes typing into one coherent.
+
+- **Undo and redo, on every structure.** `Ctrl+Z` takes back the last edit and `Ctrl+Y`
+  (or `Ctrl+Shift+Z`) puts it back, on all twelve views. Each keeps its own history of up
+  to 50 edits, so the graph's undo can't reach into what you did to the heap and
+  switching views leaves both stacks where they were.
+
+  A new `useHistory` hook holds the machinery; a view supplies only a `snapshot()` of
+  what is worth restoring and a `restore()` that puts it back. Snapshots store references
+  rather than clones, which is free and safe because every operation in the codebase
+  already builds a new structure instead of mutating the one it was handed — the same
+  property that makes the frames precomputed and the stepping reversible.
+
+  Playback is deliberately outside the document. Undo takes back a change to the
+  *structure*, not your position in a run, so the timeline, the selected operation and
+  half-typed sidebar text are left alone. Read-only operations are still recorded rather
+  than filtered out: an undo that lands on an identical structure costs nothing, where a
+  second list of which operations mutate would be one more thing to keep in step.
+
+- **Copy and paste on the graph.** What `Ctrl+C` takes depends on where the cursor is —
+  over a vertex it copies that vertex and its neighbours, over empty canvas the whole
+  graph. Pasting our own vertex copy back duplicates it, wired to the same neighbours;
+  anything else is read as graph text and replaces the graph. Comparing the clipboard
+  text against what we put there is what tells those apart, so copying something else in
+  another app in between wins, as it should.
+
+  What lands on the system clipboard is adjacency-list text the sidebar's LIST box would
+  accept, so a graph can be pasted into notes or another tab and back. Adjacency rather
+  than the terser edge list because it is the only one of the two that can say a vertex
+  exists and is connected to nothing.
+
+  Both ride the browser's own `copy`/`paste` events rather than intercepting the
+  keystrokes, which means no clipboard permission prompt, and a copy made with text
+  selected or the cursor in a field stays an ordinary text copy.
+
+- **An editable graph canvas.** The ring the vertices start on keeps a fresh graph
+  readable but says nothing about the graph, and building one meant going through the
+  sidebar. The canvas now does all of it: **drag** a vertex to move it, **double-click**
+  empty space to add one where you pressed, and **click two vertices** to connect them.
+  On a phone the same three gestures are a hold-then-drag, a hold on empty canvas, and a
+  tap on each end. **Triple-clicking** a vertex deletes it, edges and all, which is a
+  cursor gesture only — the phone keeps REMOVE VERTEX in the sidebar.
+
+  The triple counts clicks by the browser's own `detail`, the same burst that defines a
+  double click, rather than adding a second timing rule of its own. Each click still
+  answers as it arrives, so triple-clicking a vertex while another is armed makes the
+  edge and then deletes the vertex under it; the edge goes too, so the result is right,
+  it just takes two undos rather than one.
+
+  Connecting moved from a drag between two vertices to a click on each, because a drag
+  is now what moves one. That is also the only gesture touch can offer — the browser
+  claims a finger drag off an SVG shape as a page scroll — so both inputs finally behave
+  the same way. A vertex only comes loose once a cursor has actually travelled a few
+  pixels, leaving a click that doesn't move still a click; a finger has to hold, since
+  its rival reading is that page scroll. Clicking empty canvas calls off a half-made
+  edge.
+
+  Edges follow their endpoints live, so a crossing can be pulled apart or a path lined up
+  left to right before running a traversal over it. Positions are stored as a fraction of
+  the canvas rather than in pixels, so a layout arranged on a desktop survives the switch
+  to the phone's taller viewBox; they outlast operations and playback, and reset with
+  **RESET LAYOUT**, SHUFFLE or a newly loaded graph. An arrangement also travels in the
+  shared link, as an `xy` field listing `label:x:y` for the vertices actually dragged off
+  the ring — so an untouched graph's link is byte-for-byte what it was before, and a
+  rearranged one hands someone else the layout you built. A moving vertex wears a dashed
+  ring, and a phone buzzes once as it comes loose.
+
+  The touch drag refuses the page scroll for as long as it lasts, which is what makes it
+  possible at all — the browser otherwise cancels the pointer mid-gesture. The canvas is
+  now drawn even when the graph is empty, with the placeholder floated over it rather
+  than replacing it, because pressing the canvas is how the first vertex gets made.
+- **Binary heaps** — max and min, under TREES. The complete tree and the flat array it
+  actually lives in are drawn together and highlighted in lockstep, with the index
+  arithmetic (`parent ⌊(i−1)/2⌋`, `left 2i+1`, `right 2i+2`) spelled out for whatever the
+  current step is touching, since a heap stores no child pointers at all. Insert sifts up
+  from the end, extract fills the root from the end and sifts down, and new values arrive
+  as a plain array that is heapified on screen — the bottom-up build is O(n), and watching
+  it is the point. Switching max/min re-heapifies the same values. Search prunes subtrees
+  whose root is already outranked by the target, which is a real optimization and still
+  O(n) — a heap is not a search structure. New `src/dataStructures/heap/`, `useHeap`,
+  `HeapCanvas`, `HeapSidebar`.
+- **Tries** — a prefix tree under TREES, where a green ring marks an end-of-word node.
+  That ring carries the structure's central distinction: searching "car" in a trie holding
+  only "card" walks the whole path successfully and still answers PREFIX ONLY. Insert
+  creates only the nodes a word actually needs and reports how many it reused; delete
+  clears the flag and prunes back up, stopping at the first node that still has children
+  or is itself a word; autocomplete walks to a prefix and enumerates the subtree below it,
+  alphabetically, because children are always visited in order. New
+  `src/dataStructures/trie/`, `useTrie`, `TrieCanvas`, `TrieSidebar`.
+- **Union-Find surfaced as its own structure** under GRAPHS, with path compression
+  animated. The forest and the parent array sit side by side: every find walks to the root
+  and then re-points each element it passed straight at that root, one frame per pointer,
+  and the trees visibly flatten — run the same find twice and the second has nothing left
+  to compress. Union by size hangs the smaller tree under the larger, and a union of two
+  elements already in one set reports ALREADY CONNECTED, which is precisely the cycle check
+  Kruskal's runs. New `src/dataStructures/unionFind/`, `useUnionFind`, `UnionFindCanvas`,
+  `UnionFindSidebar`.
+
+- **Hash tables** — a new HASHING category with all three classic collision strategies:
+  separate chaining, linear probing and quadratic probing. The canvas is the bucket array
+  itself, one row per index, so a probe sequence reads top to bottom and its wrap past the
+  last bucket is visible; the header carries the load factor as a bar with a tick at the
+  limit that triggers a resize, and the line below shows the hash being computed. Insert,
+  search and delete all walk the same path through `locate()`, so a lookup provably
+  retraces its insert. Operations: insert, search, delete, load factor, list keys, resize,
+  clear. New `src/dataStructures/hashTable/`, `useHashTable`, `HashTableCanvas`,
+  `HashTableSidebar`.
+- **Load-factor-triggered resizing, animated.** Crossing the limit (0.75 chaining, 0.5
+  probing) grows the table to the next prime capacity mid-run and replays every key into
+  it, one frame per key — a rehash is not a copy, since `h(k)` is taken mod the new
+  capacity. Table sizes are prime (7 → 17 → 37 → …), which keeps `k mod m` from clustering
+  and is what makes quadratic probing's guarantee hold. **Resize** forces the same by hand.
+- **Tombstones.** Deleting from an open-addressed table leaves a `DEL` marker rather than
+  an empty slot, because blanking it would strand every key whose probe sequence runs
+  through it. Searches step over tombstones; later inserts reuse the first one they passed.
+- **Strategy switching replays the keys.** Changing the collision strategy rebuilds the
+  same keys into a fresh table instead of starting over, so the three strategies can be
+  compared on identical input.
+- **Recursion structure for the divide-and-conquer sorts.** Merge and quick sort frames now
+  carry `range` (the inclusive subrange the current call owns), `depth`, and the call tree
+  itself. Bars outside the active partition fade back — by opacity, not colour, so a sorted
+  or pivot bar keeps its meaning — and a new `RecursionPanel` draws the tree under the bars:
+  one row per depth, each call a segment covering exactly the columns it owns, on the same
+  horizontal scale as the bars. The live call is highlighted and its ancestors outlined. The
+  tree fills in as the run proceeds; quick sort on sorted input draws its O(n²) staircase.
+- **Shareable links.** The address bar tracks the topic, algorithm and data on screen,
+  and a **SHARE** button copies the link; opening one goes straight to the visualizer with
+  that data loaded. Custom arrays, lists, stacks, queues, trees, 2-3 trees, hash tables,
+  graphs and polynomials all round-trip exactly, tree shape included — trees are written in
+  the order that rebuilds them, a graph carries its vertices and edges separately so both
+  keep their order, and a hash table carries its keys in insertion order plus its capacity,
+  which depends on how big the table ever got rather than on how many keys it holds now. New `src/utils/urlState.js`; each view hook now takes an optional `init`.
+  Written with `replaceState`, so it doesn't fill browser history, and read once on load.
+  Anything unrecognised in a link falls back to the default, so a hand-edited link can only
+  produce a setup the app could have built itself.
+- **Live pseudocode.** Every sorting/searching frame now carries a `line` index into its
+  algorithm's `pseudocode`, and `InfoPanel` highlights that line as the run plays, steps or
+  scrubs. A finished run reports `null` and highlights nothing. Each algorithm declares its
+  indices once as a `LINE` constant beside `run`.
+- **Pseudocode expanded where it was too coarse to follow** — shell sort's inner pass,
+  quick sort's partition, merge sort's `merge`, heap sort's `heapify` and exponential
+  search's binary phase were each a single line that every frame would have mapped to.
+  Binary and interpolation search gained the `return not found` line their miss frames land
+  on.
+- **Phone layout.** Below 760px the two-column workspace rearranges instead of shrinking:
+  the visualization takes the screen, the sidebar becomes a **bottom sheet** (capped so the
+  canvas stays visible behind it, and self-closing when you run/apply/shuffle), and a fixed
+  **action bar** carries play/pause, the sheet toggle and shuffle within thumb reach.
+  Top-bar dropdowns collapse into one **menu sheet** behind a ☰ button. New
+  `Workspace` component and `useMediaQuery` hook; `MOBILE_QUERY` is the single breakpoint.
+- **Tap-to-connect graph vertices on touch** — tap one vertex, then another. Drag-to-connect
+  stays on the cursor; a finger drag off an SVG shape gets claimed as a page scroll, so the
+  pointer was cancelled mid-gesture.
+- **Portrait graph layout and readable trees on small screens** — the vertex ring becomes an
+  ellipse that fills a tall canvas, and trees keep a fixed slot per node, scrolling sideways
+  inside the panel rather than shrinking to fit.
+- **Touch-sized controls** — buttons, rows, sliders and slider thumbs grow under any coarse
+  pointer, and text inputs move to 16px so iOS Safari stops zooming in on focus.
+- **Scrubbable timeline** under the transport bar in every view — drag or click to jump to
+  any step of a run. Focusable, so arrow keys scrub it too.
+- **Keyboard shortcuts** (`src/hooks/useKeyboardShortcuts.js`):
+  <kbd>Space</kbd> play/pause, <kbd>←</kbd>/<kbd>→</kbd> step, <kbd>Home</kbd>/<kbd>End</kbd>
+  jump to first/last, <kbd>R</kbd> reset, <kbd>S</kbd> shuffle, <kbd>?</kbd> toggle help.
+  They're ignored while typing in a field, and a focused button keeps its native
+  <kbd>Space</kbd> behaviour.
+- **In-app shortcut cheat sheet**, toggled by <kbd>?</kbd> or the keyboard button at the
+  right end of the transport bar.
+- **<kbd>Enter</kbd> runs the selected operation** — each sidebar's operation block is now
+  a real `<form>`, so submitting from any input runs it.
+- **Live speed read-out** next to the slider, in steps per second, replacing the unlabelled
+  slider.
+- **Replay affordance** — the play button becomes a replay icon once a run reaches the end.
+- **Tooltips and `aria-label`s** on every transport control, each naming its shortcut.
+- **`prefers-reduced-motion` support** — decorative animation is dropped when the OS asks
+  for reduced motion; step playback still works.
+- **`DOCS.md`** — setup, shortcuts, input formats, architecture and extension guide.
+- **`CHANGELOG.md`** — this file.
+
+### Removed
+
+- **The boot screen.** The app opens straight on the category picker. A 2.6-second
+  loading animation for a bundle that is already loaded was a delay pretending to be
+  work, and it sat between you and the app every single visit. Its pointer-following
+  glow went with it — that effect existed nowhere else.
+- **RESET LAYOUT on the graph canvas.** Undo already walks back a vertex you dragged
+  somewhere you didn't mean, and SHUFFLE or a newly loaded graph still returns every
+  vertex to the ring, so the button was a third way to do something two other controls
+  already covered — taking room in the hint line to say so.
+
+### Changed
+
+- **Kruskal's MST now uses the shared union-find** instead of its own copy buried in
+  `kruskalMST.js`. The shared version adds union by size and full path compression (the
+  old local one had neither), so it is strictly faster; the MST it produces is unchanged,
+  since the edge choices depend only on connectivity and not on which root wins a merge.
+- **Playback rewritten as a shared `useStepPlayer` hook**, replacing eight near-identical
+  `setInterval` blocks duplicated across the view hooks. It runs on
+  `requestAnimationFrame` and reads speed through a ref, so changing speed mid-run retimes
+  the next step instead of tearing down and restarting the timer.
+- **Animation duration now tracks playback speed** via a `--step-anim` CSS variable set
+  from the current step delay — slow runs glide, fast runs snap, instead of every run using
+  a fixed 250–280 ms transition that smeared steps together at speed.
+- **Transport buttons disable at the boundaries** (reset/step-back at step 1, step-forward
+  at the end) instead of silently doing nothing.
+- **Speed curve unified across views.** Sorting/searching used `620 - speed × 5.5`
+  (30 ms floor) while every other view used `720 - speed × 6` (40 ms floor); all views now
+  share one curve, 700 ms → 40 ms per step.
+- **`Controls` and `ListControls` merged.** `Controls` is now the single transport
+  component with optional comparison/swap metrics; `ListControls` is a thin wrapper.
+- **`App.jsx` simplified** — one `transport` prop bundle wired to the active view's player,
+  replacing eight copies of inline `onReset` / `onStepBack` / `onStepForward` closures.
+- **Every clickable `<div>` is now a `<button>`** — algorithm rows, operation rows,
+  collapsible group headers and top-bar menu items — with `aria-pressed` / `aria-expanded`
+  state and a consistent `:focus-visible` ring.
+- **Sidebar range and text inputs are properly labelled** with `<label for>`.
+
+### Fixed
+
+- **Cursor-to-canvas mapping on the graph.** Client coordinates were converted to the SVG
+  viewBox by scaling against the element's bounding box, which is only correct when the
+  two share an aspect ratio — the desktop graph is fluid-width against a fixed 640×300
+  viewBox, so `preserveAspectRatio` letterboxes it and the error grew with distance from
+  the centre. It now goes through the SVG's own `getScreenCTM()`. Drag-to-connect was
+  forgiving enough to hide this; dragging a vertex is not.
+- **Playback stutter when moving the speed slider.** The old playback effect depended on
+  `[playing, speed, steps]`, so every slider change destroyed and recreated the interval,
+  resetting its phase mid-run.
+- **Render-phase side effect in `useVisualizer`** — `setPlaying(false)` was called inside a
+  `useMemo`, updating state during render.
+- **State setter called inside a state updater** — the playback tick called `setPlaying`
+  from within a `setStepIdx` updater. Auto-stop is now its own effect.
+- **Right-most top-bar dropdown overflowed the viewport**, adding a horizontal scrollbar to
+  the whole page. It now right-aligns and is width-capped.
+- **Duplicate keys in the `usePolynomial` return object** (`atEnd`, `runOperation`,
+  `togglePlay` were each listed twice).
+- **Top-bar dropdowns now close on <kbd>Esc</kbd>**, not only on outside click.
+- **Stacked layout shrank to its content width** below 900px — `align-items: flex-start` on
+  the row layout also applied once it became a column. The visualization now also comes
+  first in that stacked order, instead of sitting below a full-width sidebar.
+- **RUN buttons did nothing in the phone sheet**, on every structure view. Tapping one
+  closed the sheet, and closing unmounted the form before the browser got to the click's
+  default action — the form submission algorithm drops a form that is no longer connected
+  without even firing `submit`, so the operation never started while the sheet slid away as
+  if it had. Buttons that own a form now close the sheet from its bubbled `submit` instead,
+  once the run is under way. The test is `.form` rather than the type alone, since a bare
+  `<button>` reports `type="submit"` even when it has no form to submit — RANDOM and APPLY
+  still close on click.
+
+---
+
+## [1.0.0] — 2026-08-03
+
+First working release: an interactive React + Vite visualizer for core algorithms and data
+structures, with step-by-step playback, complexity information and pseudocode panels.
+
+### Added
+
+- **Boot screen and category landing page**, plus the long-form topic write-ups shown under
+  each visualizer. (`a23a1b7`)
+- **Additional searching algorithms** — jump search, interpolation search and exponential
+  search, alongside linear and binary search. (`f549486`)
+- **Additional sorting algorithms** — shell sort, radix sort and comparison counting sort,
+  alongside bubble, selection, insertion, merge, quick and heap sort. (`5d0881d`)
+- **Array visualizer** with random array generation, custom array input, adjustable size,
+  target selection for searches, and `lo`/`mid`/`hi` pointers for range-based searches.
+- **Data-structure visualizers** — linked list (singly, doubly, circular), polynomial
+  arithmetic, stack, queue, binary tree / BST / AVL, 2-3 tree, and graph with adjacency-list
+  and adjacency-matrix views plus drag-to-connect edge creation.

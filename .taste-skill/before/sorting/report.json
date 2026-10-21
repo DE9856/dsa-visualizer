@@ -1,0 +1,1508 @@
+{
+ "url": "http://localhost:5199/#v=sorting",
+ "at": "2026-10-21T10:32:58.360Z",
+ "allow": [],
+ "viewports": [
+  {
+   "width": 1440,
+   "height": 900,
+   "load": "load",
+   "screens": 2,
+   "filled": [
+    1,
+    1
+   ],
+   "motion": {
+    "elements": 69,
+    "css": 0,
+    "transitions": 69,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 1440,
+     "h": 900
+    },
+    "page": {
+     "height": 1438,
+     "screens": 1.6,
+     "words": 269,
+     "img": 0,
+     "video": 0,
+     "canvas": 0,
+     "svg": 23,
+     "sections": 0,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 0,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [
+      "✓"
+     ],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "DSA://VISUALIZER",
+     "words": 1,
+     "chars": 16,
+     "lines": 1,
+     "size": 17,
+     "vw": 1.2,
+     "font": "JetBrains Mono",
+     "weight": 700,
+     "tracking": -0.02,
+     "leading": 1.2,
+     "top": 24,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "h1": {
+     "text": "DSA://VISUALIZER",
+     "words": 1,
+     "lines": 1,
+     "size": 17,
+     "font": "JetBrains Mono"
+    },
+    "headings": [],
+    "headingSummary": {
+     "count": 0,
+     "maxLines": 0,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 0,
+     "medianWords": null,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "IBM Plex Sans",
+       "share": 0.66,
+       "mono": false
+      },
+      {
+       "family": "JetBrains Mono",
+       "share": 0.34,
+       "mono": true
+      }
+     ],
+     "familyCount": 2,
+     "sizes": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      17
+     ],
+     "sizeCount": 6,
+     "notLoaded": [],
+     "body": {
+      "font": "IBM Plex Sans",
+      "size": 13,
+      "leading": 1.65,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 6.3
+     },
+     "measureChars": 170,
+     "max": {
+      "size": 17,
+      "vw": 1.2,
+      "font": "IBM Plex Sans",
+      "text": "▪"
+     },
+     "monoShare": 0.34,
+     "monoProseShare": 0.34,
+     "monoFamilies": [
+      "JetBrains Mono"
+     ],
+     "monoSamples": [
+      "DSA://VISUALIZER",
+      "ARRAYS",
+      "/ Sorting",
+      "TREES",
+      "GRAPHS",
+      "MATRICES & ARRAYS"
+     ],
+     "microLabels": 0,
+     "microLabelShare": 0,
+     "microSamples": [],
+     "upperShare": 0.13,
+     "centerShare": 0.08,
+     "smallText": 18
+    },
+    "eyebrows": [],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#f2f3f6",
+     "bodyBgHsl": {
+      "h": 225,
+      "s": 0.18,
+      "l": 0.96
+     },
+     "dark": false,
+     "sectionBgs": [
+      {
+       "color": "#f2f3f6",
+       "top": 0,
+       "hsl": {
+        "h": 225,
+        "s": 0.18,
+        "l": 0.96
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#596070",
+       "share": 0.94
+      },
+      {
+       "color": "#b04804",
+       "share": 0.02
+      },
+      {
+       "color": "#14171d",
+       "share": 0.02
+      },
+      {
+       "color": "#ffffff",
+       "share": 0.01
+      },
+      {
+       "color": "#146e98",
+       "share": 0.01
+      }
+     ],
+     "button": {
+      "bg": "#ffffff",
+      "hsl": {
+       "h": 0,
+       "s": 0,
+       "l": 1
+      },
+      "fg": "#596070"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 16,
+     "inHero": 13,
+     "radius": "pill",
+     "height": 32,
+     "withShadow": 1,
+     "withGradient": 0,
+     "mono": 16,
+     "upper": 0,
+     "heroLabels": [
+      "ARRAYS / Sorting",
+      "TREES",
+      "GRAPHS",
+      "MATRICES & ARRAYS",
+      "LINKED LISTS"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 20,
+     "shadowOverlay": 0,
+     "shadowSamples": [
+      "button.btn.topbar__category → rgba(176, 72, 4, 0.28) 0px 0px 14px 0px",
+      "div.panel.sidebar → rgba(0, 0, 0, 0.03) 0px 1px 0px 0px inset, rgba(90, 100, 120, 0.25) 0px 10px 30p",
+      "div.panel.canvas → rgba(0, 0, 0, 0.03) 0px 1px 0px 0px inset, rgba(90, 100, 120, 0.25) 0px 10px 30p",
+      "div.bar.bar--marked → rgba(20, 110, 152, 0.22) 0px 0px 10px 0px"
+     ],
+     "gradients": 1,
+     "scrims": 0,
+     "gradientSamples": [
+      "div.app → radial-gradient(circle at 15% -10%, rgba(176, 72, 4, 0.1), rgba(0, 0, 0, 0) 45%), radial-gradient(circle at 85"
+     ],
+     "gradientText": 0,
+     "hairlines": 1,
+     "hairlineSamples": [
+      "div.bars.bars--editable 1100px"
+     ],
+     "outlinedBoxes": 5,
+     "dashed": 0,
+     "blurred": 2,
+     "roundedBoxes": 5,
+     "boxRadius": 14,
+     "squareMedia": 0,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": [
+      {
+       "count": 4,
+       "iconTopped": false,
+       "rounded": false,
+       "top": 773
+      },
+      {
+       "count": 3,
+       "iconTopped": false,
+       "rounded": true,
+       "top": 102
+      }
+     ]
+    },
+    "heroMedia": [],
+    "nav": null,
+    "fontsLoaded": [
+     "jetbrains mono",
+     "ibm plex sans"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 1440,
+     "h": 900
+    },
+    "pageH": 1438,
+    "margins": {
+     "left": 41,
+     "right": 51
+    },
+    "sections": [
+     {
+      "sel": "div.panel.canvas",
+      "tag": "div",
+      "top": 102,
+      "height": 340,
+      "words": 40,
+      "media": 0,
+      "middle": 49,
+      "heading": null,
+      "left": 295,
+      "right": 191,
+      "textLeft": 295,
+      "textRight": 191,
+      "fullBleed": false,
+      "footer": false,
+      "hero": true,
+      "continues": false,
+      "pinned": false
+     },
+     {
+      "sel": "div.panel.info",
+      "tag": "div",
+      "top": 573,
+      "height": 236,
+      "words": 61,
+      "media": 0,
+      "middle": 84,
+      "heading": null,
+      "left": 293,
+      "right": 43,
+      "textLeft": 293,
+      "textRight": 43,
+      "fullBleed": false,
+      "footer": true,
+      "hero": false,
+      "continues": false,
+      "pinned": false
+     }
+    ],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "DSA://VISUALIZER",
+      "size": 17,
+      "top": 24,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 38,
+      "n": 1
+     }
+    ],
+    "leftBlocks": 1,
+    "bodySize": 13,
+    "stage": false,
+    "explains": false,
+    "slivers": [],
+    "voidShare": 0.05,
+    "voidBox": {
+     "x": 420,
+     "y": 540,
+     "w": 1020,
+     "h": 60
+    }
+   },
+   "app": {
+    "viewport": {
+     "w": 1440,
+     "h": 900
+    },
+    "dark": false,
+    "ground": "#f2f3f6",
+    "sidebar": null,
+    "topbar": null,
+    "canvas": {
+     "left": 41,
+     "right": 43
+    },
+    "hero": {
+     "text": "DSA://VISUALIZER",
+     "words": 1,
+     "chars": 16,
+     "lines": 1,
+     "size": 17,
+     "vw": 1.2,
+     "font": "JetBrains Mono",
+     "weight": 700,
+     "tracking": -0.02,
+     "leading": 1.2,
+     "top": 24,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "charts": 0,
+    "layout": {
+     "panels": 4,
+     "firstScreen": 4,
+     "ragged": [
+      {
+       "diff": 605,
+       "top": 102
+      }
+     ],
+     "voids": []
+    },
+    "tiles": 0,
+    "panels": {
+     "count": 9,
+     "radii": [
+      [
+       14,
+       4
+      ],
+      [
+       0,
+       4
+      ],
+      [
+       10,
+       1
+      ]
+     ],
+     "heavyBorders": 9,
+     "borderSamples": [
+      "#000000 on #ffffff (21:1)",
+      "#000000 on #ffffff (21:1)",
+      "#000000 on #ffffff (21:1)"
+     ],
+     "heavyShadows": 4,
+     "softShadows": 0,
+     "shadowSamples": [
+      "rgba(90, 100, 120, 0.25) 0px 10px 30px 0px",
+      "rgba(90, 100, 120, 0.25) 0px 10px 30px 0px",
+      "rgba(90, 100, 120, 0.25) 0px 10px 30px 0px"
+     ],
+     "glass": 0
+    },
+    "chips": {
+     "count": 0,
+     "hues": 0,
+     "samples": []
+    },
+    "numbers": {
+     "cells": 0,
+     "leftAligned": 0,
+     "figures": 16,
+     "tabularShare": 0,
+     "kpiMax": 10
+    },
+    "rows": null,
+    "chartHues": 0,
+    "placeholders": [],
+    "type": {
+     "under13": 0.38,
+     "tiny": 6,
+     "tinySamples": [
+      "comparing 10px",
+      "swapping 10px",
+      "in place 10px",
+      "Click a bar to set its v 10px"
+     ],
+     "sizes": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      17
+     ]
+    },
+    "title": {
+     "text": "DSA://VISUALIZER",
+     "size": 17,
+     "top": 24
+    },
+    "colourShare": 0.026
+   },
+   "consoleErrors": []
+  },
+  {
+   "width": 768,
+   "height": 1024,
+   "load": "load",
+   "screens": 3,
+   "filled": [
+    1,
+    1,
+    1
+   ],
+   "motion": {
+    "elements": 69,
+    "css": 0,
+    "transitions": 69,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "page": {
+     "height": 2180,
+     "screens": 2.1,
+     "words": 269,
+     "img": 0,
+     "video": 0,
+     "canvas": 0,
+     "svg": 23,
+     "sections": 0,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 0,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [
+      "✓"
+     ],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "DSA://VISUALIZER",
+     "words": 1,
+     "chars": 16,
+     "lines": 1,
+     "size": 17,
+     "vw": 2.2,
+     "font": "JetBrains Mono",
+     "weight": 700,
+     "tracking": -0.02,
+     "leading": 1.2,
+     "top": 24,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "h1": {
+     "text": "DSA://VISUALIZER",
+     "words": 1,
+     "lines": 1,
+     "size": 17,
+     "font": "JetBrains Mono"
+    },
+    "headings": [],
+    "headingSummary": {
+     "count": 0,
+     "maxLines": 0,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 0,
+     "medianWords": null,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "IBM Plex Sans",
+       "share": 0.66,
+       "mono": false
+      },
+      {
+       "family": "JetBrains Mono",
+       "share": 0.34,
+       "mono": true
+      }
+     ],
+     "familyCount": 2,
+     "sizes": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      17
+     ],
+     "sizeCount": 6,
+     "notLoaded": [],
+     "body": {
+      "font": "IBM Plex Sans",
+      "size": 13,
+      "leading": 1.65,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 6.3
+     },
+     "measureChars": 105,
+     "max": {
+      "size": 17,
+      "vw": 2.2,
+      "font": "IBM Plex Sans",
+      "text": "▪"
+     },
+     "monoShare": 0.34,
+     "monoProseShare": 0.34,
+     "monoFamilies": [
+      "JetBrains Mono"
+     ],
+     "monoSamples": [
+      "DSA://VISUALIZER",
+      "ARRAYS",
+      "/ Sorting",
+      "TREES",
+      "GRAPHS",
+      "MATRICES & ARRAYS"
+     ],
+     "microLabels": 0,
+     "microLabelShare": 0,
+     "microSamples": [],
+     "upperShare": 0.13,
+     "centerShare": 0.08,
+     "smallText": 18
+    },
+    "eyebrows": [],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#f2f3f6",
+     "bodyBgHsl": {
+      "h": 225,
+      "s": 0.18,
+      "l": 0.96
+     },
+     "dark": false,
+     "sectionBgs": [
+      {
+       "color": "#f2f3f6",
+       "top": 0,
+       "hsl": {
+        "h": 225,
+        "s": 0.18,
+        "l": 0.96
+       }
+      },
+      {
+       "color": "#ffffff",
+       "top": 984,
+       "hsl": {
+        "h": 0,
+        "s": 0,
+        "l": 1
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#596070",
+       "share": 0.94
+      },
+      {
+       "color": "#b04804",
+       "share": 0.02
+      },
+      {
+       "color": "#14171d",
+       "share": 0.02
+      },
+      {
+       "color": "#ffffff",
+       "share": 0.01
+      },
+      {
+       "color": "#146e98",
+       "share": 0.01
+      }
+     ],
+     "button": {
+      "bg": "#ffffff",
+      "hsl": {
+       "h": 0,
+       "s": 0,
+       "l": 1
+      },
+      "fg": "#596070"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 16,
+     "inHero": 13,
+     "radius": "pill",
+     "height": 32,
+     "withShadow": 1,
+     "withGradient": 0,
+     "mono": 16,
+     "upper": 0,
+     "heroLabels": [
+      "ARRAYS / Sorting",
+      "TREES",
+      "GRAPHS",
+      "MATRICES & ARRAYS",
+      "LINKED LISTS"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 18,
+     "shadowOverlay": 0,
+     "shadowSamples": [
+      "button.btn.topbar__category → rgba(176, 72, 4, 0.28) 0px 0px 14px 0px",
+      "div.panel.sidebar → rgba(0, 0, 0, 0.03) 0px 1px 0px 0px inset, rgba(90, 100, 120, 0.25) 0px 10px 30p",
+      "div.panel.canvas → rgba(0, 0, 0, 0.03) 0px 1px 0px 0px inset, rgba(90, 100, 120, 0.25) 0px 10px 30p",
+      "div.bar.bar--marked → rgba(20, 110, 152, 0.22) 0px 0px 10px 0px"
+     ],
+     "gradients": 2,
+     "scrims": 0,
+     "gradientSamples": [
+      "div.app → radial-gradient(circle at 15% -10%, rgba(176, 72, 4, 0.1), rgba(0, 0, 0, 0) 45%), radial-gradient(circle at 85",
+      "select#input-shape.text-input → linear-gradient(45deg, rgba(0, 0, 0, 0) 50%, rgb(89, 96, 112) 50%), linear-gradient(135deg, rgb(89, 96, 112) 5"
+     ],
+     "gradientText": 0,
+     "hairlines": 5,
+     "hairlineSamples": [
+      "div.sidebar__section 686px",
+      "div.sidebar__section 686px",
+      "div.sidebar__section 686px",
+      "div.sidebar__section 686px",
+      "div.bars.bars--editable 678px"
+     ],
+     "outlinedBoxes": 5,
+     "dashed": 0,
+     "blurred": 2,
+     "roundedBoxes": 5,
+     "boxRadius": 14,
+     "squareMedia": 0,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": [
+      {
+       "count": 4,
+       "iconTopped": false,
+       "rounded": false,
+       "top": 1638
+      }
+     ]
+    },
+    "heroMedia": [],
+    "nav": null,
+    "fontsLoaded": [
+     "jetbrains mono",
+     "ibm plex sans"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "pageH": 2180,
+    "margins": {
+     "left": 41,
+     "right": 41
+    },
+    "sections": [
+     {
+      "sel": "div.topbar",
+      "tag": "div",
+      "top": 18,
+      "height": 146,
+      "words": 21,
+      "media": 0,
+      "middle": 29,
+      "heading": {
+       "text": "DSA://VISUALIZER",
+       "size": 17,
+       "tag": "h1"
+      },
+      "left": 38,
+      "right": 45,
+      "textLeft": 38,
+      "textRight": 78,
+      "fullBleed": false,
+      "footer": false,
+      "hero": true,
+      "continues": false,
+      "pinned": false
+     },
+     {
+      "sel": "div.panel.sidebar",
+      "tag": "div",
+      "top": 984,
+      "height": 1172,
+      "words": 107,
+      "media": 0,
+      "middle": 0,
+      "heading": null,
+      "left": 41,
+      "right": 41,
+      "textLeft": 41,
+      "textRight": 59,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": false,
+      "pinned": false
+     },
+     {
+      "sel": "div.main-col",
+      "tag": "div",
+      "top": 178,
+      "height": 788,
+      "words": 111,
+      "media": 0,
+      "middle": 0,
+      "heading": null,
+      "left": 41,
+      "right": 36,
+      "textLeft": 43,
+      "textRight": 43,
+      "fullBleed": false,
+      "footer": true,
+      "hero": true,
+      "continues": false,
+      "pinned": false
+     }
+    ],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "DSA://VISUALIZER",
+      "size": 17,
+      "top": 24,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 38,
+      "n": 1
+     }
+    ],
+    "leftBlocks": 1,
+    "bodySize": 13,
+    "stage": false,
+    "explains": false,
+    "slivers": [],
+    "voidShare": 0,
+    "voidBox": null
+   },
+   "app": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "dark": false,
+    "ground": "#f2f3f6",
+    "sidebar": null,
+    "topbar": null,
+    "canvas": {
+     "left": 41,
+     "right": 41
+    },
+    "hero": {
+     "text": "DSA://VISUALIZER",
+     "words": 1,
+     "chars": 16,
+     "lines": 1,
+     "size": 17,
+     "vw": 2.2,
+     "font": "JetBrains Mono",
+     "weight": 700,
+     "tracking": -0.02,
+     "leading": 1.2,
+     "top": 24,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "charts": 0,
+    "layout": {
+     "panels": 4,
+     "firstScreen": 3,
+     "ragged": [],
+     "voids": []
+    },
+    "tiles": 0,
+    "panels": {
+     "count": 9,
+     "radii": [
+      [
+       14,
+       4
+      ],
+      [
+       0,
+       4
+      ],
+      [
+       10,
+       1
+      ]
+     ],
+     "heavyBorders": 9,
+     "borderSamples": [
+      "#000000 on #ffffff (21:1)",
+      "#000000 on #ffffff (21:1)",
+      "#000000 on #ffffff (21:1)"
+     ],
+     "heavyShadows": 4,
+     "softShadows": 0,
+     "shadowSamples": [
+      "rgba(90, 100, 120, 0.25) 0px 10px 30px 0px",
+      "rgba(90, 100, 120, 0.25) 0px 10px 30px 0px",
+      "rgba(90, 100, 120, 0.25) 0px 10px 30px 0px"
+     ],
+     "glass": 0
+    },
+    "chips": {
+     "count": 0,
+     "hues": 0,
+     "samples": []
+    },
+    "numbers": {
+     "cells": 0,
+     "leftAligned": 0,
+     "figures": 16,
+     "tabularShare": 0,
+     "kpiMax": 10
+    },
+    "rows": null,
+    "chartHues": 0,
+    "placeholders": [],
+    "type": {
+     "under13": 0.38,
+     "tiny": 6,
+     "tinySamples": [
+      "comparing 10px",
+      "swapping 10px",
+      "in place 10px",
+      "Click a bar to set its v 10px"
+     ],
+     "sizes": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      17
+     ]
+    },
+    "title": {
+     "text": "DSA://VISUALIZER",
+     "size": 17,
+     "top": 24
+    },
+    "colourShare": 0.028
+   },
+   "consoleErrors": []
+  },
+  {
+   "width": 390,
+   "height": 844,
+   "load": "load",
+   "screens": 2,
+   "filled": [
+    1,
+    1
+   ],
+   "motion": {
+    "elements": 39,
+    "css": 0,
+    "transitions": 39,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 390,
+     "h": 844
+    },
+    "page": {
+     "height": 1083,
+     "screens": 1.3,
+     "words": 126,
+     "img": 0,
+     "video": 0,
+     "canvas": 0,
+     "svg": 12,
+     "sections": 0,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 0,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [
+      "✓"
+     ],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "DSA://VIS",
+     "words": 1,
+     "chars": 9,
+     "lines": 1,
+     "size": 15,
+     "vw": 3.8,
+     "font": "JetBrains Mono",
+     "weight": 700,
+     "tracking": -0.02,
+     "leading": 1.2,
+     "top": 11,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "h1": {
+     "text": "DSA://VIS",
+     "words": 1,
+     "lines": 1,
+     "size": 15,
+     "font": "JetBrains Mono"
+    },
+    "headings": [],
+    "headingSummary": {
+     "count": 0,
+     "maxLines": 0,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 0,
+     "medianWords": null,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "IBM Plex Sans",
+       "share": 0.75,
+       "mono": false
+      },
+      {
+       "family": "JetBrains Mono",
+       "share": 0.25,
+       "mono": true
+      }
+     ],
+     "familyCount": 2,
+     "sizes": [
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      17
+     ],
+     "sizeCount": 8,
+     "notLoaded": [],
+     "body": {
+      "font": "IBM Plex Sans",
+      "size": 12.5,
+      "leading": 1.65,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 6.3
+     },
+     "measureChars": 49,
+     "max": {
+      "size": 17,
+      "vw": 4.4,
+      "font": "IBM Plex Sans",
+      "text": "▪"
+     },
+     "monoShare": 0.25,
+     "monoProseShare": 0.25,
+     "monoFamilies": [
+      "JetBrains Mono"
+     ],
+     "monoSamples": [
+      "DSA://VIS",
+      "Sorting",
+      "↔",
+      "53",
+      "↔",
+      "18"
+     ],
+     "microLabels": 0,
+     "microLabelShare": 0,
+     "microSamples": [],
+     "upperShare": 0.06,
+     "centerShare": 0.03,
+     "smallText": 9
+    },
+    "eyebrows": [],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#f2f3f6",
+     "bodyBgHsl": {
+      "h": 225,
+      "s": 0.18,
+      "l": 0.96
+     },
+     "dark": false,
+     "sectionBgs": [
+      {
+       "color": "#f2f3f6",
+       "top": 0,
+       "hsl": {
+        "h": 225,
+        "s": 0.18,
+        "l": 0.96
+       }
+      },
+      {
+       "color": "#ffffff",
+       "top": 76,
+       "hsl": {
+        "h": 0,
+        "s": 0,
+        "l": 1
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#596070",
+       "share": 0.92
+      },
+      {
+       "color": "#b04804",
+       "share": 0.04
+      },
+      {
+       "color": "#14171d",
+       "share": 0.03
+      },
+      {
+       "color": "#146e98",
+       "share": 0.01
+      },
+      {
+       "color": "#c12a2a",
+       "share": 0.01
+      }
+     ],
+     "button": null,
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 2,
+     "inHero": 2,
+     "radius": "pill",
+     "height": 39,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 2,
+     "upper": 0,
+     "heroLabels": [
+      "COPY",
+      "ALGORITHMS"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 9,
+     "shadowOverlay": 0,
+     "shadowSamples": [
+      "div.panel.canvas → rgba(0, 0, 0, 0.03) 0px 1px 0px 0px inset, rgba(90, 100, 120, 0.25) 0px 10px 30p",
+      "div.bar.bar--editable → rgba(176, 72, 4, 0.22) 0px 0px 10px 0px",
+      "div.bar.bar--editable → rgba(176, 72, 4, 0.22) 0px 0px 10px 0px",
+      "div.bar.bar--editable → rgba(176, 72, 4, 0.22) 0px 0px 10px 0px"
+     ],
+     "gradients": 1,
+     "scrims": 0,
+     "gradientSamples": [
+      "div.app → radial-gradient(circle at 15% -10%, rgba(176, 72, 4, 0.1), rgba(0, 0, 0, 0) 45%), radial-gradient(circle at 85"
+     ],
+     "gradientText": 0,
+     "hairlines": 3,
+     "hairlineSamples": [
+      "div.topbar.topbar--mobile 390px",
+      "div.bars.bars--editable 344px",
+      "div.actionbar 390px"
+     ],
+     "outlinedBoxes": 4,
+     "dashed": 0,
+     "blurred": 2,
+     "roundedBoxes": 4,
+     "boxRadius": 12,
+     "squareMedia": 0,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": []
+    },
+    "heroMedia": [],
+    "nav": null,
+    "fontsLoaded": [
+     "jetbrains mono",
+     "ibm plex sans"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 390,
+     "h": 844
+    },
+    "pageH": 1083,
+    "margins": {
+     "left": 25,
+     "right": 25
+    },
+    "sections": [
+     {
+      "sel": "div.panel.canvas",
+      "tag": "div",
+      "top": 76,
+      "height": 287,
+      "words": 42,
+      "media": 0,
+      "middle": 0,
+      "heading": null,
+      "left": 23,
+      "right": 31,
+      "textLeft": 23,
+      "textRight": 31,
+      "fullBleed": false,
+      "footer": false,
+      "hero": true,
+      "continues": false,
+      "pinned": false
+     },
+     {
+      "sel": "div.panel.controls",
+      "tag": "div",
+      "top": 375,
+      "height": 202,
+      "words": 8,
+      "media": 0,
+      "middle": 0,
+      "heading": null,
+      "left": 25,
+      "right": 25,
+      "textLeft": 25,
+      "textRight": 25,
+      "fullBleed": false,
+      "footer": false,
+      "hero": true,
+      "continues": false,
+      "pinned": false
+     },
+     {
+      "sel": "div.panel.info",
+      "tag": "div",
+      "top": 589,
+      "height": 420,
+      "words": 61,
+      "media": 0,
+      "middle": 0,
+      "heading": null,
+      "left": 27,
+      "right": 40,
+      "textLeft": 27,
+      "textRight": 46,
+      "fullBleed": false,
+      "footer": true,
+      "hero": false,
+      "continues": false,
+      "pinned": false
+     }
+    ],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "DSA://VIS",
+      "size": 15,
+      "top": 11,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 26,
+      "n": 1
+     }
+    ],
+    "leftBlocks": 1,
+    "bodySize": 13,
+    "stage": false,
+    "explains": false,
+    "slivers": [],
+    "voidShare": 0,
+    "voidBox": null
+   },
+   "app": {
+    "viewport": {
+     "w": 390,
+     "h": 844
+    },
+    "dark": false,
+    "ground": "#f2f3f6",
+    "sidebar": null,
+    "topbar": {
+     "h": 64
+    },
+    "canvas": {
+     "left": 25,
+     "right": 25
+    },
+    "hero": {
+     "text": "DSA://VIS",
+     "words": 1,
+     "chars": 9,
+     "lines": 1,
+     "size": 15,
+     "vw": 3.8,
+     "font": "JetBrains Mono",
+     "weight": 700,
+     "tracking": -0.02,
+     "leading": 1.2,
+     "top": 11,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "charts": 0,
+    "layout": {
+     "panels": 3,
+     "firstScreen": 3,
+     "ragged": [],
+     "voids": []
+    },
+    "tiles": 0,
+    "panels": {
+     "count": 4,
+     "radii": [
+      [
+       12,
+       3
+      ],
+      [
+       10,
+       1
+      ]
+     ],
+     "heavyBorders": 4,
+     "borderSamples": [
+      "#000000 on #ffffff (21:1)",
+      "#000000 on #ffffff (21:1)",
+      "#000000 on #ffffff (21:1)"
+     ],
+     "heavyShadows": 3,
+     "softShadows": 0,
+     "shadowSamples": [
+      "rgba(90, 100, 120, 0.25) 0px 10px 30px 0px",
+      "rgba(90, 100, 120, 0.25) 0px 10px 30px 0px",
+      "rgba(90, 100, 120, 0.25) 0px 10px 30px 0px"
+     ],
+     "glass": 0
+    },
+    "chips": {
+     "count": 0,
+     "hues": 0,
+     "samples": []
+    },
+    "numbers": {
+     "cells": 0,
+     "leftAligned": 0,
+     "figures": 16,
+     "tabularShare": 0,
+     "kpiMax": 9
+    },
+    "rows": null,
+    "chartHues": 0,
+    "placeholders": [],
+    "type": {
+     "under13": 0.21,
+     "tiny": 7,
+     "tinySamples": [
+      "Sorting 10px",
+      "comparing 10px",
+      "swapping 10px",
+      "in place 10px"
+     ],
+     "sizes": [
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+     ]
+    },
+    "title": {
+     "text": "DSA://VIS",
+     "size": 15,
+     "top": 11
+    },
+    "colourShare": 0.013
+   },
+   "consoleErrors": []
+  }
+ ],
+ "findings": [
+  {
+   "level": "FAIL",
+   "id": "emoji",
+   "width": 1440,
+   "message": "Emoji in the page: ✓",
+   "fix": "Remove. Use words or real imagery.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "gradient",
+   "width": 1440,
+   "message": "1 gradient fill(s): div.app → radial-gradient(circle at 15% -10%, rgba(176, 72, 4, 0.1), rgba(0, 0, 0, 0) 45%), radial-gradient(circle at 85",
+   "fix": "Use a flat colour or a real image. The only gradient allowed by default is a neutral scrim over a photo for legibility.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "button-fx",
+   "width": 1440,
+   "message": "Buttons with shadow/glow.",
+   "fix": "Flat fill, one colour.",
+   "alsoAt": [
+    768
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "heavy-shadow",
+   "width": 1440,
+   "message": "4 panel shadow(s) heavy enough to read as floating: rgba(90, 100, 120, 0.25) 0px 10px 30px 0px | rgba(90, 100, 120, 0.25) 0px 10px 30px 0px | rgba(90, 100, 120, 0.25) 0px 10px 30px 0px",
+   "fix": "Panels sit on the ground: separate them with a fill one step from the ground or a quiet 1px border. A shadow, if any, is under 8% black with a small blur. Real overlays (menus, dialogs, popovers) may float.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "heavy-borders",
+   "width": 1440,
+   "message": "9 panel borders are dark against their ground: #000000 on #ffffff (21:1) | #000000 on #ffffff (21:1) | #000000 on #ffffff (21:1)",
+   "fix": "A panel border is a whisper: about 1.1–1.3:1 against its ground on a light screen (#e5e7eb–#ededed on white), and about 1.2–1.5:1 on a dark one (#1a1a1a on #000, #2e2e2e on #111). Darker lines turn the screen into a grid of boxes; keep the stronger line for controls.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "tabular",
+   "width": 1440,
+   "message": "Only 0% of the figures use tabular numerals.",
+   "fix": "Set font-variant-numeric: tabular-nums on tables, KPIs and anything that updates, so digits keep their width.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "tiny-text",
+   "width": 1440,
+   "message": "6 text blocks under 11px: comparing 10px, swapping 10px, in place 10px, Click a bar to set its v 10px.",
+   "fix": "Nothing below 11px; secondary text 12px, data 13–14px.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "ragged-row",
+   "width": 1440,
+   "message": "1 pair(s) of cards in one row end at different heights (by 605px).",
+   "fix": "Cards that share a row share a bottom edge: balance them by their content (the same number of rows, a block of similar height beside it), or stack them. In testing, ragged rows were marked down every time."
+  }
+ ],
+ "images": [
+  {
+   "viewport": "desktop",
+   "width": 1440,
+   "fold": "/home/deepesh/Desktop/dsa-visualizer/.taste-skill/before/sorting/desktop-fold.jpg",
+   "pages": [
+    "/home/deepesh/Desktop/dsa-visualizer/.taste-skill/before/sorting/desktop-page-01.jpg"
+   ],
+   "film": []
+  },
+  {
+   "viewport": "tablet",
+   "width": 768,
+   "fold": "/home/deepesh/Desktop/dsa-visualizer/.taste-skill/before/sorting/tablet-fold.jpg",
+   "pages": [
+    "/home/deepesh/Desktop/dsa-visualizer/.taste-skill/before/sorting/tablet-page-01.jpg"
+   ],
+   "film": []
+  },
+  {
+   "viewport": "mobile",
+   "width": 390,
+   "fold": "/home/deepesh/Desktop/dsa-visualizer/.taste-skill/before/sorting/mobile-fold.jpg",
+   "pages": [
+    "/home/deepesh/Desktop/dsa-visualizer/.taste-skill/before/sorting/mobile-page-01.jpg"
+   ],
+   "film": []
+  }
+ ]
+}

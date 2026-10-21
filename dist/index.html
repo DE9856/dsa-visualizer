@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b0d12" />
+    <meta name="color-scheme" content="dark" />
+    <meta
+      name="description"
+      content="Interactive Data Structures & Algorithms visualizer — animated sorting, searching, lists, trees and graphs, step by step."
+    />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <title>DSA Visualizer</title>
+    <!-- Served from public/, which Vite copies to the site root — so these
+         absolute paths resolve in dev and in the built bundle alike. -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <!-- Self-hosted, so the app contacts no third party at all. Preloaded
+         because the @font-face rules live in the CSS bundle, which the browser
+         only discovers after parsing it — a round trip of blank text. The
+         crossorigin attribute is required even same-origin: fonts are always
+         fetched in CORS mode, and without it the preload is simply ignored. -->
+    <link rel="preload" href="/fonts/jetbrains-mono-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/ibm-plex-sans-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <script type="module" crossorigin src="/assets/index-QXg3nXM5.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/vendor-DhSCsYu8.js">
+    <link rel="modulepreload" crossorigin href="/assets/algorithms-DVzo5BRF.js">
+    <link rel="modulepreload" crossorigin href="/assets/structures-DBqq7r0F.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-CeClmphQ.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

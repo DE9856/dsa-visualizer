@@ -1,0 +1,704 @@
+# 🚀 DSA Visualizer
+
+An interactive **Data Structures & Algorithms Visualizer** built with **React + Vite**. The application provides animated visualizations for algorithms and core data structures, helping students and developers understand how operations execute step by step.
+
+📖 **[Full documentation →](DOCS.md)** — setup, keyboard shortcuts, input formats, architecture and extension guide.
+📝 **[Changelog →](CHANGELOG.md)**
+
+---
+
+## ✨ Features
+
+### 🔢 Algorithms
+
+#### Sorting Algorithms
+- Bubble Sort
+- Selection Sort
+- Insertion Sort
+- Cycle Sort — the fewest writes any sort can make
+- Shell Sort
+- Comb Sort
+- Merge Sort
+- Quick Sort
+- 3-Way Quick Sort — the Dutch national flag partition, drawn as it holds
+- Heap Sort
+- Introsort — quick sort, heap sort and insertion sort in one, as `std::sort` does it
+- Timsort — natural runs, a run stack and its balancing invariants
+- Counting Sort (Comparison)
+- Counting Sort — tallies and running totals, shown beside the bars
+- Bucket Sort
+- Radix Sort
+- Bitonic Sort — a sorting network, the same comparisons whatever the input
+
+Quick Sort can use a first, last, median-of-three or random pivot, Shell Sort the Shell,
+Knuth or Sedgewick gap sequence, Comb Sort three shrink factors, Bucket Sort three bucket
+counts and Timsort three minimum run lengths — same algorithm, visibly different curves.
+
+#### Searching Algorithms
+- Linear Search
+- Binary Search
+- Jump Search
+- Interpolation Search
+- Exponential Search
+
+#### Race & Compare
+
+Two to four sorting algorithms on the same input, under one transport, with a live
+scoreboard and an empirical complexity plot:
+
+- **Race mode** — 2–4 canvases side by side over one shared array; a lane that finishes
+  early freezes on its last frame.
+- **Two sync modes** — advance every lane one *frame* per tick, or spend the same number
+  of *operations* in every lane per tick. The second is the fair one: a bubble sort frame
+  is one comparison while a merge sort frame can be a whole write.
+- **Real metrics** — comparisons, array reads, array writes, auxiliary-memory high-water
+  mark and maximum recursion depth, counted by each algorithm as it runs rather than
+  inferred from what a frame happens to highlight.
+- **Input shapes** — random, nearly sorted, already sorted, reversed, few unique, all
+  equal, sawtooth and organ pipe, built from a seed so a shared link is the same race.
+- **Empirical complexity** — sweeps n from 10 to 5000 with frame recording switched off
+  and plots measured operations against n, with n, n log n and n² fitted over the top and
+  the measured growth exponent for each algorithm.
+- **Stability demo** — tints every bar by the index it started at, so tied elements that
+  came out reordered are visible (and marked) rather than hidden behind equal values.
+
+---
+
+### 📚 Data Structures
+
+The visualizer also supports interactive operations for:
+
+- 🌳 Trees (Binary Tree, BST, AVL, Threaded) — plus **Balance & Height**, a BST/AVL/2-3
+  comparison on one key sequence
+- 🌲 2-3 Trees
+- ⛰️ Heaps (max & min, sift up/down)
+- 🎚️ Priority Queues (min heap vs min-max heap vs interval heap — single- and
+  double-ended)
+- 🪶 Leftist Trees (meldable heaps, melding in O(log n))
+- 🏆 Selection Trees (winner & loser trees for a k-way merge)
+- 🔤 Tries (prefix tree & autocomplete)
+- 🔗 Linked Lists (singly, doubly, circular)
+- 🗂️ Hash Tables (chaining, linear/quadratic probing, double hashing, Robin Hood, cuckoo)
+- 🧭 Dynamic Hashing (extendible & linear — directory and directoryless)
+- 📊 Graphs
+- 🧩 Union-Find (disjoint sets with path compression)
+- 📦 Stacks
+- 📥 Queues
+- 🧮 Expression Notation (infix ↔ postfix ↔ prefix, converted and evaluated)
+- ➗ Polynomial Operations
+- 🕳️ Sparse Matrices (triplet form, fast transpose, add & multiply)
+- 🗺️ Array Layout (row- vs column-major addressing, and packed special matrices)
+
+Each module provides its own visualization with animations that demonstrate how the underlying data structure changes after every operation — and, with the speaker button
+on, every operation is audible: pitch climbs a pentatonic scale as the run goes on, the
+timbre says whether a frame is a comparison, a swap or an answer, and a refused operation
+lands on one note below the whole scale.
+
+---
+
+## 🛠️ Tech Stack
+
+- React
+- Vite
+- JavaScript (ES6+)
+- CSS3
+
+---
+
+## 🚀 Getting Started
+
+> Requires **Node.js 18+**. See [DOCS.md](DOCS.md#running-it-locally) for the full guide.
+
+Clone the repository
+
+```bash
+git clone <repository-url>
+cd dsa-visualizer
+```
+
+Install dependencies
+
+```bash
+npm install
+```
+
+Run the development server
+
+```bash
+npm run dev
+```
+
+Create a production build
+
+```bash
+npm run build
+```
+
+Preview the production build
+
+```bash
+npm run preview
+```
+
+---
+
+## 📁 Project Structure
+
+```
+src/
+│
+├── algorithms/
+│   ├── sorting/            one file per sorting algorithm
+│   ├── searching/          one file per searching algorithm
+│   ├── dp/                 one file per DP problem (LCS, edit distance,
+│   │                       knapsack, coin change, LIS, matrix chain,
+│   │                       optimal BST)
+│   ├── backtracking/       one file per problem (n-queens, sudoku, subset
+│   │                       sum, permutations) + the search-tree recorder
+│   ├── strings/            KMP, Z-algorithm, Rabin-Karp, Manacher
+│   ├── metrics.js          the operation counters every sort reports
+│   ├── sortContext.js      the run()/count() pair each sort is written against
+│   ├── stability.js        did equal elements keep their original order?
+│   ├── complexity.js       the empirical n-sweep and its curve fits
+│   ├── stepUtils.js
+│   └── index.js            algorithm registry
+│
+├── dataStructures/
+│   ├── depq/               (single.js / minmax.js / interval.js: one
+│   │                        invariant each over the same flat array)
+│   ├── dynamicHash/
+│   ├── expression/         (helpers.js: precedence, the tokeniser and the
+│   │                        validators shared by all six operations)
+│   ├── graph/              (represent.js: list vs matrix cost;
+│   │                        mstCompare.js: Prim vs Kruskal, counted)
+│   ├── hashTable/          (probeSweep.js: probes against load factor)
+│   ├── heap/
+│   ├── leftist/            (meldSteps.js: the meld every operation is)
+│   ├── linkedList/
+│   ├── mdArray/            (helpers.js: the seven layouts, each with its
+│   │                        own mapping, storage order and arithmetic)
+│   ├── polynomial/
+│   ├── queue/
+│   ├── selectionTree/      (winner and loser trees over one array)
+│   ├── sparseMatrix/
+│   ├── stack/
+│   ├── tree/               (compare.js: BST vs AVL vs 2-3 on one key order)
+│   ├── trie/
+│   ├── twoThreeTree/
+│   └── unionFind/
+│
+├── components/             Canvas, Sidebar, Controls, InfoPanel, ...
+│
+├── hooks/
+│   ├── useStepPlayer.js         shared playback engine
+│   ├── useKeyboardShortcuts.js
+│   └── use<Structure>.js        one per visualizer view
+│
+├── data/                   categories + topic write-ups
+├── utils/
+│
+├── App.jsx
+├── main.jsx
+└── index.css
+```
+
+---
+
+## ⌨️ Keyboard Shortcuts
+
+| Key | Action |
+| --- | --- |
+| `Space` | Play / pause (replays from the start when finished) |
+| `←` / `→` | Step back / forward |
+| `Home` / `End` | Jump to the first / last step |
+| `R` | Reset to the first step |
+| `S` | Shuffle — new random data |
+| `Ctrl+Z` / `Ctrl+Y` | Undo / redo the last edit (every structure keeps its own history) |
+| `Ctrl+C` / `Ctrl+V` | Copy / paste — on the graph, a vertex or the whole graph |
+| `?` | Toggle the in-app shortcut help |
+| `Enter` | Run the selected operation (from any sidebar input) |
+| `Esc` | Close an open top-bar menu |
+
+Shortcuts are ignored while you're typing in a field. Full details in [DOCS.md](DOCS.md#keyboard-shortcuts).
+
+---
+
+## 📄 Licence
+
+[MIT](LICENSE) — do what you like with the code, keep the copyright notice.
+
+The two bundled typefaces are **not** covered by it: they are under the SIL Open Font
+License 1.1 and carry their own notices, which ship beside them in
+[`public/fonts/`](public/fonts/README.txt).
+
+---
+
+## 🔤 Fonts
+
+[JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) and
+[IBM Plex Sans](https://github.com/IBM/plex), both under the
+[SIL Open Font License 1.1](public/fonts/LICENSE-JetBrainsMono.txt) and self-hosted from
+`public/fonts/` — so the app makes no third-party request. Licences and attribution ship
+with them, in [`public/fonts/README.txt`](public/fonts/README.txt).
+
+---
+
+## 🔒 Privacy
+
+No accounts, no database, no analytics, no cookies. Three `localStorage` keys hold your
+theme, your sound setting and your last-read code tab, and nothing else is kept. What you
+build travels in the part of the URL after the `#`, which browsers never send to a server
+— so it stays on your machine even when you share the link. There are **no third-party
+requests at all**: the fonts are self-hosted, so your browser never talks to anyone but the
+server you asked for. The full notice is at [`/privacy.html`](public/privacy.html), and the
+[terms](public/terms.html) at `/terms.html` — both linked from the footer of the category
+page.
+
+---
+
+## 🔗 Sharing
+
+The address bar always holds a link to what's on screen, and **SHARE** in the top bar
+copies it. Open a link and you land straight in the visualizer with the data loaded.
+A link that names no topic — truncated on the way, or hand-edited — gets a not-found
+screen that says so and shows the address back, rather than silently landing you on the
+home page:
+
+```
+#v=race&algos=insertion,merge,quick&sh=nearly&n=24&sd=7&sy=op
+#v=treecompare&ord=sorted&n=15&sd=7
+#v=sorting&algo=quick&sh=sorted&sd=7&q=quick.pivot:median3
+#v=tree&type=avl&a=30,20,10,25,40,50
+#v=graph&w=1&g=A,B,C,D&e=A-B(5),B-C(2),C-D(7),A-D
+#v=graph&g=A,B,C&e=A-B,B-C&xy=A:0.2:0.15,C:0.75:0.8
+#v=expression&type=postfix&x=2 3 4 * + 5 -
+#v=sparsematrix&a=0,0,3,0;5,0,0,0;0,7,0,1
+#v=mdarray&type=lower&d=5
+#v=depq&type=interval&a=40,15,70,5,55,90
+#v=selectiontree&type=loser&r=10,15,16;9,20,38;20,30,40
+```
+
+Custom arrays, lists, stacks, queues, trees, heaps, tries, hash tables, union-finds,
+graphs, polynomials, expressions, sparse matrices, array shapes, priority queues, leftist
+trees and merge runs all round-trip exactly — including a graph you have rearranged by
+hand. See [DOCS.md](DOCS.md#sharing-a-setup) for the full format.
+
+---
+
+## 📱 On a phone
+
+The app is built for small screens too, not just scaled down for them. Below 760px the
+visualization takes the whole screen, the sidebar becomes a bottom sheet, and a fixed
+action bar keeps play/pause, the controls sheet and shuffle within thumb reach. Graphs
+lay out in a portrait ring, connect by tapping two vertices, and rearrange or grow by
+holding one and dragging it or holding empty canvas; the sorting bars take the same hold
+to pick up, so a plain swipe still scrolls the page; trees stay readable and scroll
+sideways. See
+[DOCS.md](DOCS.md#on-a-phone) for the details.
+
+---
+
+## 🎯 Current Functionalities
+
+### Sorting
+
+- Generate random arrays
+- Custom array input
+- Adjustable array size
+- Speed controls with a live steps-per-second read-out
+- Step-by-step execution and a draggable timeline to scrub anywhere in a run
+- Live pseudocode — the line the current step is executing is highlighted
+- Real source code beside it, in C, C++, Java, Python and JavaScript, highlighted from
+  the same step, with a copy button
+- A recursion tree under the bars for merge and quick sort, with everything outside the
+  active partition dimmed
+- Pause, Resume, Reset and Replay
+- Live comparison, read, write, auxiliary-memory and recursion-depth counters, reported
+  by the algorithms themselves
+- Eight input shapes (random, nearly sorted, sorted, reversed, few unique, all equal,
+  sawtooth, organ pipe)
+- Editable bars — click one to set its value, drag it up and down to scrub, drag it
+  sideways to move it along the array; on a phone, tap to set and hold to pick up
+- Sound — each value becomes a pitch. Pressing play sweeps the unsorted array first,
+  the run itself sounds every comparison and swap, and a finished sort plays back as
+  a rising scale. It is on every other view too, where pitch follows the position of
+  the frame in the run instead of a value, so an operation is a phrase as long as it
+  is expensive
+- Pivot and gap-sequence variants for quick and shell sort
+- Colour-by-origin, which turns stability into something you can see
+- Complexity information
+- Pseudocode display, plus a real implementation in five languages
+- Export the run as an animated GIF, a video, or a printable step table
+- Light, dark and high-contrast themes, a colour-blind-safe palette, and a
+  glyph on every state so the picture never depends on colour alone
+
+### Balance & Height (trees)
+
+- BST, AVL and 2-3 tree built from the same keys in the same order, one insert per tick
+- Six insertion orders: sorted, reversed, random, alternating ends, median-first, sawtooth
+- Live height, key comparisons and rotations/splits, with each structure's guaranteed
+  height bound alongside
+- A sweep of height (or comparisons) against n up to 1600 keys, plotted with log₂n, log₃n
+  and n overlays
+
+### Race & Compare
+
+- 2–4 sorting algorithms side by side on one shared input
+- Sync by frame index or by work done
+- A live scoreboard of every counter, with the leader marked
+- An empirical complexity sweep to n = 5000, plotted against n, n log n and n²
+
+### Dynamic Programming
+
+- Seven problems on one table canvas: longest common subsequence, edit distance, 0/1
+  knapsack, coin change, longest increasing subsequence, matrix chain order, optimal
+  binary search tree
+- The table fills cell by cell, showing which neighbours each cell read and which one its
+  answer actually came from
+- Then it backtracks, marking the solution path and building the answer itself — the
+  subsequence, the edit script, the items taken, the coins spent, the bracketing, the
+  tree
+- Every cell keeps the decision it made (`↖ ↑ ←`, `✓ ·`, `k=3`), which is what the
+  backtrack reads rather than recomputing
+- The recurrence is shown alongside with the executing line highlighted
+
+### String Algorithms
+
+- KMP, Z-algorithm, Rabin-Karp and Manacher on one aligned character grid
+- KMP builds its failure function first, lighting up both ends of each border — the prefix
+  and the matching suffix — so π is something you watch being discovered, not a table of
+  numbers that appears
+- On a mismatch the pattern row physically slides by exactly what the match earned
+- Z runs on `P + '$' + T` and marks the values it copied from a mirror instead of comparing
+- Rabin-Karp rolls its hash and shows a real spurious hit — two different strings, one hash
+- Manacher interleaves `#` so every palindrome is odd-length, and reuses the mirror radius
+- Blue marks the span being reused rather than recompared, in all four
+
+### Greedy & Math
+
+Five algorithms that get the right answer by refusing to look at most of the problem.
+
+- **Activity Selection** — earliest finish first, drawn as bars on a timeline. The
+  exchange argument is what makes it optimal, not the sorting.
+- **Fractional Knapsack** — sort by value per unit weight and pour, cutting the one item
+  that straddles the limit. Greedy *only* because items divide; 0/1 knapsack is the same
+  problem without that, and needs the DP view instead.
+- **Sieve of Eratosthenes** — crossing off multiples on a ten-wide grid, starting at p²
+  and stopping at √n, with the reason for both shown as it happens.
+- **Fast Exponentiation** — the exponent in binary, the running squares under each bit,
+  and the multiplication count against the naive one.
+- **Euclid's GCD** — the whole descent as a table of a, b, quotient and remainder, where
+  the quotient column is exactly how many subtractions the modulo replaced.
+
+### Backtracking
+
+- N-Queens, Sudoku, subset sum and permutations, on one board canvas
+- **The state space tree** under it, drawn with its edges: every root-to-node path is one
+  partial solution, and the missing subtrees are what the bounding function removed
+- Nodes carry the classical names — **E-node**, live, killed by the bounding function, dead
+  end, answer node — and the path from the root to the E-node is highlighted and spelled out
+- Live counters for nodes, pruned branches, backtracks and solutions
+- The board marks what the constraint has already ruled out (attacked squares, clashing
+  digits) and highlights the undo itself
+- Permutations has no constraint at all, which makes it the control case: nothing is
+  pruned, so the difference between its tree and n-queens' is exactly what a rule buys
+- FIND FIRST or ALL, and a node budget that stops runaway searches and says so
+
+### Searching
+
+- Target value selection
+- Animated traversal
+- Binary search range visualization
+- Live comparisons
+- Complexity analysis
+
+### Data Structures
+
+Interactive visualizations for:
+
+- Stack (capacity 8)
+  - Push, Pop, Peek / Top
+  - Search, Size, isEmpty, isFull, Clear
+
+- Queue (capacity 8)
+  - Enqueue, Dequeue, Peek / Front
+  - Search, Size, isEmpty, isFull, Clear
+
+- Linked List — singly, doubly, circular
+  - Nodes are drawn as the struct: `data | next`, or `prev | data | next` when doubly
+    linked. A pointer field holds a dot when it points somewhere and is struck through
+    when it is null
+  - A circular list's wrap-around is a drawn link, curving from the tail's `next` field
+    back into the head — and routed around the block rather than across it when the row
+    has wrapped onto several lines
+  - Insert at head / tail / position
+  - Delete by value / position, Update node
+  - Traverse — head to tail, and back again along the prev pointers when doubly linked,
+    which is the whole of what the extra pointer buys
+  - Search, Reverse, Sort, Count length
+  - Concatenate, Merge sorted lists, Clear
+
+- Range Queries — segment tree and Fenwick tree over one array
+  - Build, point update, range query, with SUM / MIN / MAX (a Fenwick tree is sum-only,
+    because a range is one prefix minus another and nothing undoes a min)
+  - Both draw as spans over the array cells they summarise, so a query tiling the range
+    with three stored values is something you see rather than infer
+  - Switch structure to rebuild the other one over the same array
+
+- Trees — Binary Tree, BST, AVL, Threaded (single or double), Red-Black, Splay, Treap
+  - Insert, Delete, Search
+  - Handled by gesture as well as by the sidebar: click or tap a node to inspect it —
+    depth, subtree height and size, parent and children, plus the balance factor, priority
+    or colour and black-height its tree type turns on —
+    triple-click or hold it to delete, double-click or hold empty canvas to insert, drag
+    to pan and scroll or pinch to zoom — the same vocabulary the graph uses
+  - Inorder, Preorder, Postorder, DFS, BFS (level order)
+  - Height, Size, Clear
+  - On a threaded tree: Threaded Inorder and Reverse Inorder (no stack, no recursion),
+    Inorder Successor
+  - Red-Black: nodes drawn in their colour, with the insert recolour/rotate cases and the
+    harder delete fix-up shown step by step
+  - Splay: every access moves the touched node to the root, including a failed search —
+    the one search in the app that rewrites what it is searching
+  - Treap: random priorities drawn above each key, kept as a heap by rotations that leave
+    the key order untouched
+
+- 2-3 Tree
+  - Insert (with node splits), Delete, Search
+  - Inorder, Height, Size, Clear
+
+- B-Tree & B+ Tree — order 3, 4 or 5
+  - Insert (splits travelling up), Delete (borrow, merge, and the shrink at the root),
+    Search, Inorder traversal, Clear
+  - Every leaf stays at the same depth without a single rotation — the tree grows only by
+    splitting its root and shrinks only by emptying it
+  - Switch variant to rebuild the same keys the other way: a B+ tree moves every key into a
+    leaf, keeps only separators upstairs and links the leaves, so its traversal is a walk
+    along one level rather than a tour of the tree
+  - Switch order to rebuild at a different node width and watch the height change
+
+- Huffman Coding Tree
+  - Build a code from any text: the forest of leaves, then each merge of the two lightest
+    trees, then the codes read off the finished paths
+  - Every step shows the priority queue as it stands, so "merge the two lightest" is a thing
+    you watch rather than a rule you are told
+  - Compares the fixed-width cost against the Huffman cost on the same text
+
+- Heap — max-heap, min-heap
+  - Insert (sift up), Extract root (sift down), Peek
+  - Build heap bottom-up in O(n), Search, Height, Size, Clear
+  - The tree and the array it lives in, highlighted together, with the index arithmetic
+  - Switch max/min to re-heapify the same values
+
+- Trie — prefix tree over a–z
+  - Insert (creating only the nodes a word needs), Delete (pruning only what nothing needs)
+  - Search (exact word vs. bare prefix), Autocomplete, List words, Size, Clear
+
+- Union-Find — union by size with path compression
+  - Union, Find, Connected?, Components, Add element, Reset
+  - The forest and the parent array side by side, with compression animated pointer by pointer
+  - The same implementation Kruskal's MST uses for its cycle check
+
+- Hash Table — separate chaining, linear probing, quadratic probing, double hashing,
+  Robin Hood, cuckoo hashing
+  - Four hash functions on a separate axis: division, multiplication, mid-square, digit
+    folding — switch one and the same keys are redealt into different buckets
+  - Insert, Search, Delete (tombstones under probing, backward shifting under Robin
+    Hood, eviction chains under cuckoo)
+  - Load factor read-out, List keys in hash order
+  - Automatic resize + rehash when the load factor crosses its limit, or on demand
+  - Switch the collision strategy to replay the same keys into a new table
+  - A probe sweep: slots examined on a hit, a miss, and at worst, for all six strategies
+    across load factors 0.05 to 0.95, against the textbook curves
+
+- Dynamic Hashing — extendible (directory) and linear (directoryless)
+  - Insert with bucket splits, directory doubling, and overflow blocks
+  - Search, Delete, List keys
+  - Depths & Pointers: global vs local depth, or the level and split pointer
+  - Switch scheme to replay the same arrival order into the other shape
+
+- Graphs — directed/undirected, weighted/unweighted
+  - Add / remove vertex and edge from the sidebar, or build the graph on the canvas
+    itself: click two vertices to connect them, click one twice for a self-loop,
+    double-click empty space to add one, triple-click a vertex to delete it
+  - Drag the vertices anywhere — hold first on a phone — to lay the graph out yourself
+    instead of leaving it on the default ring
+  - Neighbours, Degree, Is-adjacent
+  - BFS, DFS, Topological sort
+  - Connectivity & structure: cycle detection (directed and undirected), bipartite check,
+    bridges & articulation points, Tarjan's SCC, Kosaraju's SCC
+  - Minimum spanning tree: Prim's, Kruskal's
+  - Shortest path, uninformed: Dijkstra, Bellman-Ford (negative weights + negative-cycle
+    detection), Floyd–Warshall (all pairs, with a distance matrix)
+  - Shortest path, heuristic: A*, with an admissible straight-line estimate taken from
+    where the vertices sit on the canvas — drag them and the expansions change
+  - Network flow: max flow (Edmonds–Karp), with residual edges and `flow/capacity` labels
+  - Adjacency list and adjacency matrix views — type into a matrix cell to reweight, add
+    or remove that edge, the diagonal included
+  - List vs matrix, measured: memory, edge query and traversal cost for the graph on
+    screen, and the same measurement swept to 256 vertices at four densities
+  - Prim vs Kruskal on the graph on screen — both edge orders, both totals, both step
+    counts — and a density sweep showing where the cheaper of the two changes hands
+
+- Polynomial
+  - Linked-list representation
+  - Add, Multiply, Evaluate P(x)
+
+- Expression Notation — infix, postfix, prefix
+  - The operations offered follow the notation: an infix expression can be converted to
+    postfix or prefix or evaluated with two stacks; a postfix or prefix one can be
+    evaluated or turned back into fully bracketed infix
+  - Infix -> postfix is the shunting yard, with the precedence comparison behind every
+    pop spelled out as it is made; infix -> prefix is the same algorithm run over the
+    reversed expression, and the reversal flips the associativity rule with it
+  - Evaluating postfix is one stack and one pass; evaluating prefix is the same pass
+    backwards, and the operand order reverses with it
+  - Evaluating infix directly takes two stacks -- the honest cost of the notation -- and
+    the step count can be compared with evaluating the postfix form
+  - Operands may be names or numbers; names read better for the conversions and the
+    evaluations need numbers. A malformed expression is refused with the reason, rather
+    than failing halfway through as a stack underflow
+
+- Sparse Matrix
+  - Drawn twice at once: as the dense grid it stands for, with the zeros as holes, and as
+    the (row, column, value) triplet list it actually is
+  - Build the triplet list, with the storage cost of both forms counted at the end
+  - Transpose two ways -- the naive O(cols x t) hunt column by column, and the fast
+    O(cols + t) counting transpose -- which produce the identical result from very
+    different amounts of work, reported as step counts
+  - Add (a two-list merge, dropping any term that cancels to zero) and Multiply (only the
+    pairs that share an index ever multiply)
+  - Read A[i][j], by binary search over the terms -- the operation the representation
+    gives up
+
+- Array Layout -- multidimensional arrays and special matrices
+  - Seven layouts: row-major and column-major, then lower- and upper-triangular,
+    symmetric, tridiagonal and diagonal
+  - Every logical cell is labelled with the memory slot it maps to, and the memory strip
+    below is labelled with the index each slot holds -- the same mapping read both ways
+  - Address one element, with the arithmetic expanded a term at a time
+  - Lay the whole array out in memory, in storage order, which is what decides locality
+  - Walk it by rows and by columns and count the address jumps: with the grain every step
+    lands on the next slot, against the grain almost none do
+  - For the packed layouts, count what the shape saves -- cells stored, cells that share
+    a slot with their mirror, and cells that have no address at all
+  - Up to three dimensions, drawn as a stack of slices
+
+- Priority Queues -- single- and double-ended
+  - Three structures over the same flat array: an ordinary min heap, a min-max heap, and
+    an interval heap
+  - Insert, Delete Min, Delete Max, Build, Peek Both Ends, Check the Invariant
+  - Delete Max is the operation that separates them. The min heap has to hunt its leaves
+    for the maximum and the run says how many it examined; a min-max heap finds it with
+    one comparison; an interval heap needs none
+  - A min-max heap's levels alternate min and max, so the picture labels them, and every
+    sift moves two levels at a time -- against grandparents, the nearest node of the same
+    kind
+  - An interval heap draws two values per node, because a node is a closed interval; the
+    root's is the range of the whole collection
+  - Switching structure re-inserts the same values under the new invariant: identical
+    input, three completely different arrays, all three with the same first element
+
+- Leftist Tree -- a meldable heap
+  - Min or max, with every node's null-path length s drawn beside it
+  - Meld is the only operation: insert melds with a one-node tree, delete-min melds the
+    root's two subtrees, and both builds are sequences of melds. There is no sift-up and
+    no sift-down anywhere in the structure
+  - The meld is drawn in its two passes -- merge the two right spines into one key-ordered
+    chain, then link the chain back up from the bottom, swapping children where the
+    leftist property demands it
+  - The right spine is drawn heavier than the rest, because it is the only path any
+    operation touches, and Spine & Bound checks its length against the bound
+  - Build two ways -- one insert at a time (O(n log n)) and pairwise melding through a
+    queue (O(n)) -- with the spine work each spent reported for comparison
+
+- Selection Tree -- winner and loser trees
+  - k sorted runs at the leaves of a tournament; each internal node records the result of
+    one match, and every node is labelled with the run it names and the value that run is
+    currently offering
+  - A winner tree keeps the winner of each match, so the root is the answer. A loser tree
+    keeps the loser and holds the champion above the root, at position 0 -- drawn outside
+    the tree, because that is where it lives
+  - Play the tournament, output one element (replaying only the path from the changed leaf
+    to the root), or merge everything
+  - The comparison count is reported against a flat scan of all k heads, which is the
+    whole argument for the structure
+  - Runs are padded out to a power of two with empty runs that offer infinity and lose
+    every match they play
+
+---
+
+## ➕ Adding New Algorithms
+
+1. Create a new file inside
+
+```
+src/algorithms/sorting/
+```
+
+or
+
+```
+src/algorithms/searching/
+```
+
+2. Export an object similar to the existing implementations.
+
+3. Implement the required
+
+```javascript
+run(array)
+```
+
+or
+
+```javascript
+run(array, target)
+```
+
+method.
+
+4. Register the algorithm inside
+
+```
+src/algorithms/index.js
+```
+
+The algorithm will automatically appear in the application.
+
+---
+
+## ➕ Adding New Data Structures
+
+Create a new folder inside
+
+```
+src/dataStructures/
+```
+
+and implement:
+
+- Visualization component
+- Operation handlers
+- State management
+- Animation logic
+
+The modular architecture allows new data structures to be added independently without affecting existing modules.
+
+---
+
+## 🎓 Purpose
+
+This project is designed for:
+
+- Students learning Data Structures & Algorithms
+- Classroom demonstrations
+- Coding interview preparation
+- Interactive algorithm visualization
+- Understanding algorithm execution step-by-step
+
+---
+
+## 📄 License
+
+This project is available for educational purposes.
