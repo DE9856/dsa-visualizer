@@ -1,0 +1,69 @@
+DSA VISUALIZER - HOW TO RUN
+===========================
+
+This is a JavaScript project (React + Vite). No Python and no virtual environment
+are needed. All dependencies install locally into the project's node_modules/ folder.
+
+
+REQUIREMENTS
+------------
+- Node.js 18 or newer (20+ recommended). npm comes bundled with it.
+- Any modern web browser.
+
+
+1. INSTALL NODE.JS (one time per machine)
+-----------------------------------------
+Fedora:          sudo dnf install nodejs npm
+Ubuntu/Debian:   sudo apt install nodejs npm
+                 (if the version is below 18, install from https://nodejs.org instead)
+macOS:           brew install node
+Windows:         download the LTS installer from https://nodejs.org
+
+Check that it worked:
+    node -v      (should print v18 or higher)
+    npm -v
+
+
+2. INSTALL DEPENDENCIES (one time, and again whenever package.json changes)
+--------------------------------------------------------------------------
+Open a terminal in this folder and run:
+
+    npm ci
+
+IMPORTANT: if this folder was copied from another computer (especially from
+Windows to Linux/macOS or the other way round), delete node_modules first.
+It contains platform-specific binaries that won't run on a different OS:
+
+    rm -rf node_modules dist          (Linux/macOS)
+    rmdir /s /q node_modules dist     (Windows cmd)
+
+then run "npm ci" again.
+
+
+3. RUN THE APP
+--------------
+    npm run dev
+
+Open the URL it prints, usually http://localhost:5173
+Press Ctrl+C in the terminal to stop the server.
+
+
+OPTIONAL: PRODUCTION BUILD
+--------------------------
+    npm run build      builds the app into dist/
+    npm run preview    serves the built app, usually at http://localhost:4173
+
+
+TROUBLESHOOTING
+---------------
+- "node: command not found"
+    Node.js isn't installed. See step 1.
+
+- Errors mentioning @rollup/rollup-... or @esbuild/...
+    node_modules came from a different OS. Delete it and run "npm ci" again.
+
+- "npm ci" complains about package-lock.json
+    Run "npm install" instead.
+
+- Port 5173 already in use
+    Vite picks the next free port on its own. Use the URL it prints.

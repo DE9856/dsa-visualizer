@@ -64,8 +64,8 @@ export default function GraphRepresentationPanel({ representation, step, directe
         <div className="canvas__note">
           {onSetWeight
             ? weighted
-              ? "CLICK A CELL TO SET THAT EDGE'S WEIGHT · 0 REMOVES IT · THE DIAGONAL IS A SELF-LOOP"
-              : "CLICK A CELL TO CONNECT OR DISCONNECT · 1 OR 0 · THE DIAGONAL IS A SELF-LOOP"
+              ? "Click a cell to set that edge's weight · 0 removes it · the diagonal is a self-loop"
+              : "Click a cell to connect or disconnect · 1 or 0 · the diagonal is a self-loop"
             : null}
         </div>
         <div className="graph-matrix-wrap">

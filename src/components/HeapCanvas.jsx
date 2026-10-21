@@ -82,8 +82,8 @@ export default function HeapCanvas({ step }) {
       </div>
 
       {n === 0 ? (
-        <div className="ll-empty mono" style={{ justifyContent: "center", width: "100%" }}>
-          {"EMPTY HEAP — INSERT A VALUE TO BEGIN"}
+        <div className="ll-empty ll-empty--sentence" style={{ justifyContent: "center", width: "100%" }}>
+          {"Empty heap — insert a value to begin"}
         </div>
       ) : (
         <>
@@ -183,7 +183,7 @@ export default function HeapCanvas({ step }) {
         </>
       )}
 
-      <div className="ll-message mono">{step.message}</div>
+      <div className="ll-message">{step.message}</div>
       {step.notFound && (
         <div className="not-found">{step.overflow ? "TOO LARGE" : step.underflow ? "UNDERFLOW" : "NOT FOUND"}</div>
       )}

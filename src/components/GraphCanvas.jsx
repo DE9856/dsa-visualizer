@@ -447,18 +447,18 @@ export default function GraphCanvas({
 
   const hint = moving
     ? isMobile
-      ? "DRAG TO REPOSITION · LIFT YOUR FINGER TO DROP"
-      : "DRAG TO REPOSITION · RELEASE TO DROP"
+      ? "Drag to reposition · lift your finger to drop"
+      : "Drag to reposition · release to drop"
     : isMobile
       ? pendingLink
-        ? "NOW TAP THE VERTEX TO CONNECT IT TO · OR THIS ONE AGAIN FOR A SELF-LOOP"
+        ? "Now tap the vertex to connect it to · or this one again for a self-loop"
         : // "SPACE" reads as the spacebar on a phone, which is not there, and
           // each gesture needs to name what it acts on: a vertex, or the
           // canvas around one.
-          "TAP TWO VERTICES TO CONNECT · LONG-PRESS A VERTEX TO MOVE IT · LONG-PRESS EMPTY CANVAS TO ADD ONE"
+          "Tap two vertices to connect · long-press a vertex to move it · long-press empty canvas to add one"
       : pendingLink
-        ? "NOW CLICK THE VERTEX TO CONNECT IT TO · OR THIS ONE AGAIN FOR A SELF-LOOP"
-        : "CLICK TWO VERTICES TO CONNECT · DRAG ONE TO MOVE IT · TRIPLE-CLICK ONE TO DELETE · DOUBLE-CLICK EMPTY CANVAS TO ADD";
+        ? "Now click the vertex to connect it to · or this one again for a self-loop"
+        : "Click two vertices to connect · drag one to move it · triple-click one to delete · double-click empty canvas to add";
 
   return (
     <div className="panel canvas graph-canvas">
@@ -470,10 +470,10 @@ export default function GraphCanvas({
           makes the first vertex is a press on the canvas itself. */}
       <div className="graph-canvas__stage">
         {!hasNodes && (
-          <div className="graph-canvas__empty mono">
+          <div className="graph-canvas__empty">
             {isMobile
-              ? "EMPTY GRAPH \u2014 LONG-PRESS ANYWHERE TO ADD A VERTEX"
-              : "EMPTY GRAPH \u2014 DOUBLE-CLICK ANYWHERE TO ADD A VERTEX"}
+              ? "Empty graph \u2014 long-press anywhere to add a vertex"
+              : "Empty graph \u2014 double-click anywhere to add a vertex"}
           </div>
         )}
         <svg
@@ -616,7 +616,7 @@ export default function GraphCanvas({
         </svg>
       </div>
 
-      <div className="ll-message mono">{step.message}</div>
+      <div className="ll-message">{step.message}</div>
       {step.notFound && !step.resultBadge && <div className="not-found">NOT FOUND</div>}
       {step.resultBadge && <div className="result-badge">{step.resultBadge}</div>}
     </div>

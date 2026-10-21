@@ -178,7 +178,7 @@ export default function DepqCanvas({ step }) {
         </>
       )}
 
-      <div className="ll-message mono">{step.message}</div>
+      <div className="ll-message">{step.message}</div>
       {step.notFound && (
         <div className="not-found">{step.overflow ? "TOO LARGE" : step.underflow ? "UNDERFLOW" : "CHECK FAILED"}</div>
       )}

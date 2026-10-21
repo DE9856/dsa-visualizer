@@ -60,16 +60,19 @@ function layout(root, WIDTH) {
 
   const count = order;
   const marginX = 40;
-  const marginY = 34;
+  // More room above than below: an AVL node carries its balance factor over
+  // its head, and the root's label otherwise rises out of the viewBox.
+  const marginTop = RADIUS + 26;
+  const marginBottom = 34;
   const usableW = WIDTH - marginX * 2;
-  const usableH = HEIGHT - marginY * 2;
+  const usableH = HEIGHT - marginTop - marginBottom;
   const stepX = count > 1 ? usableW / (count - 1) : 0;
   const stepY = maxDepth > 0 ? usableH / maxDepth : 0;
 
   Object.keys(positions).forEach((id) => {
     const p = positions[id];
     p.x = count > 1 ? marginX + p.order * stepX : WIDTH / 2;
-    p.y = marginY + p.depth * stepY;
+    p.y = marginTop + p.depth * stepY;
   });
   return positions;
 }
@@ -383,13 +386,13 @@ export default function TreeCanvas({ step, treeType, threadMode, onSelectNode, o
   const isCurrent = (id) => step.current === id;
 
   const hint = inserting
-    ? "TYPE A VALUE · ENTER TO INSERT · ESC TO CANCEL"
+    ? "Type a value · Enter to insert · Esc to cancel"
     : isMobile
       ? // "SPACE" on a phone reads as the spacebar, which is not there. Each
         // gesture names what it acts on instead: a node, or the canvas around
         // one.
-        "TAP A NODE TO INSPECT · LONG-PRESS A NODE TO DELETE · LONG-PRESS EMPTY CANVAS TO INSERT · DRAG TO PAN · PINCH TO ZOOM"
-      : "CLICK A NODE TO INSPECT · TRIPLE-CLICK A NODE TO DELETE · DOUBLE-CLICK EMPTY CANVAS TO INSERT · DRAG TO PAN · SCROLL TO ZOOM";
+        "Tap a node to inspect · long-press a node to delete · long-press empty canvas to insert · drag to pan · pinch to zoom"
+      : "Click a node to inspect · triple-click a node to delete · double-click empty canvas to insert · drag to pan · scroll to zoom";
 
   const moved = transform.k !== 1 || transform.x !== 0 || transform.y !== 0;
 
@@ -401,8 +404,8 @@ export default function TreeCanvas({ step, treeType, threadMode, onSelectNode, o
         </div>
       )}
       {!root && !gestures ? (
-        <div className="ll-empty mono" style={{ justifyContent: "center", width: "100%" }}>
-          {"EMPTY TREE \u2014 INSERT A VALUE TO BEGIN"}
+        <div className="ll-empty ll-empty--sentence" style={{ justifyContent: "center", width: "100%" }}>
+          {"Empty tree \u2014 insert a value to begin"}
         </div>
       ) : (
         <div className="tree-canvas__stage">
@@ -573,7 +576,7 @@ export default function TreeCanvas({ step, treeType, threadMode, onSelectNode, o
                           y={pos.y - RADIUS - 7}
                           textAnchor="middle"
                           className="mono"
-                          style={{ fontSize: 9, fontWeight: 700, fill: unbalanced ? "var(--red)" : "var(--text-dim)" }}
+                          style={{ fontSize: 11, fontWeight: 700, fill: unbalanced ? "var(--red)" : "var(--text-dim)" }}
                         >
                           {`bf:${bf > 0 ? "+" : ""}${bf}`}
                         </text>
@@ -589,10 +592,10 @@ export default function TreeCanvas({ step, treeType, threadMode, onSelectNode, o
               gesture that makes the first node is a press on the canvas, so
               there has to be a canvas to press even with nothing on it. */}
           {!root && (
-            <div className="graph-canvas__empty mono">
+            <div className="graph-canvas__empty">
               {isMobile
-                ? "EMPTY TREE — LONG-PRESS ANYWHERE TO INSERT"
-                : "EMPTY TREE — DOUBLE-CLICK ANYWHERE TO INSERT"}
+                ? "Empty tree — long-press anywhere to insert"
+                : "Empty tree — double-click anywhere to insert"}
             </div>
           )}
 
@@ -690,7 +693,7 @@ export default function TreeCanvas({ step, treeType, threadMode, onSelectNode, o
         </div>
       )}
 
-      <div className="ll-message mono">{step.message}</div>
+      <div className="ll-message">{step.message}</div>
       {step.notFound && !step.resultBadge && <div className="not-found">NOT FOUND</div>}
       {step.resultBadge && <div className="result-badge">{step.resultBadge}</div>}
     </div>

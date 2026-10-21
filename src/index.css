@@ -72,8 +72,14 @@
   --surface-rgb: 23 26 34;
   --overlay-rgb: 17 20 27;
   --scrim-rgb: 6 7 10;
+  /* Translucent, so the warm and cool washes behind the app glow faintly
+     through every panel. */
   --panel: rgb(var(--surface-rgb) / 0.72);
   --panel-alt: rgb(var(--ink-rgb) / 0.035);
+  /* A neutral raised step, for the few places that mark a state without
+     claiming the accent (a toggled icon button such as sound or help). */
+  --active-fill: rgb(var(--ink-rgb) / 0.1);
+  --active-edge: rgb(var(--ink-rgb) / 0.16);
   --border: rgb(var(--ink-rgb) / 0.08);
   --border-strong: rgb(var(--ink-rgb) / 0.14);
   --text: #edebe6;
@@ -114,6 +120,20 @@
   /* Duration of step-driven animations. App.jsx overrides it from the current
      playback speed so fast runs snap instead of smearing into each other. */
   --step-anim: 240ms;
+
+  /* ---- interface motion (not the run's) ----
+     The built-in keywords are too soft to read as a response: these start
+     fast, so a press or an opening menu answers on its first frame. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur-press: 140ms;
+  --dur-ui: 160ms;
+  --dur-overlay: 200ms;
+  /* The one set of properties a control transitions. `all` would also
+     animate layout the moment anything about the control changes. */
+  --control-transition: color var(--dur-ui) ease, background-color var(--dur-ui) ease,
+    border-color var(--dur-ui) ease, box-shadow var(--dur-ui) ease,
+    transform var(--dur-press) var(--ease-out);
 }
 
 /* ---------- light ---------- */
@@ -130,6 +150,8 @@
   --scrim-rgb: 22 26 34;
   --panel: rgb(var(--surface-rgb) / 0.92);
   --panel-alt: rgb(var(--ink-rgb) / 0.045);
+  --active-fill: rgb(var(--ink-rgb) / 0.08);
+  --active-edge: rgb(var(--ink-rgb) / 0.14);
   --border: rgb(var(--ink-rgb) / 0.12);
   --border-strong: rgb(var(--ink-rgb) / 0.24);
   --text: #14171d;
@@ -347,12 +369,35 @@ body {
   font-family: "IBM Plex Sans", sans-serif;
   /* Keeps text edges crisp while panels animate over the gradient backdrop. */
   -webkit-font-smoothing: antialiased;
+  /* Every figure in the app changes as a run plays: counters, values, step
+     numbers. Fixed-width digits keep them from jittering as they count. */
+  font-variant-numeric: tabular-nums;
   /* A phone must never be able to scroll sideways: every wide element
      (matrices, trees) gets its own scroll container instead. */
   overflow-x: hidden;
   /* Stops iOS from inflating text when the device is turned to landscape. */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+}
+
+/* The parts of the page the browser draws itself, themed from the palette so
+   a selection or a scrollbar doesn't arrive in the OS's own blue and grey. */
+::selection {
+  background: rgb(var(--primary-rgb) / 0.32);
+  color: var(--text);
+}
+
+input,
+textarea {
+  caret-color: var(--primary);
+}
+
+html {
+  scrollbar-color: rgb(var(--ink-rgb) / 0.22) transparent;
+}
+
+* {
+  scrollbar-width: thin;
 }
 
 /* Grey flash on tap looks broken next to the app's own :active states. */
@@ -431,7 +476,25 @@ summary {
   border-right: 1px solid var(--border);
 }
 
-.topbar__title h1 {
+/* Between the phone layout and a wide window, the wordmark beside the tabs
+   took a quarter of every row, and the eleven categories wrapped to four or
+   five lines. Given the full width under the wordmark, they take two or three. */
+@media (min-width: 761px) and (max-width: 1100px) {
+  .topbar {
+    flex-wrap: wrap;
+  }
+
+  .topbar__tabs {
+    flex-basis: 100%;
+    order: 3;
+  }
+
+  .topbar__title {
+    border-right: none;
+  }
+}
+
+.topbar__wordmark {
   font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -439,9 +502,33 @@ summary {
   white-space: nowrap;
 }
 
+.topbar__home {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  /* The hit area grows past the text without moving it. */
+  padding: 6px 8px;
+  margin: -6px -8px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+button.topbar__home {
+  cursor: pointer;
+  transition: background-color var(--dur-ui) ease;
+}
+
+button.topbar__home:hover {
+  background: var(--panel-alt);
+}
+
 .topbar__mark {
   color: var(--primary);
-  font-size: 17px;
+  flex-shrink: 0;
   filter: drop-shadow(0 0 8px rgb(var(--primary-rgb) / 0.6));
 }
 
@@ -519,6 +606,17 @@ summary {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  /* Grows out of the tab that opened it: the menu hangs from its top-left
+     corner, so that is where it scales from. */
+  transform-origin: top left;
+  animation: menu-in var(--dur-overlay) var(--ease-out) both;
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
 }
 
 .topbar__menu-item {
@@ -528,7 +626,7 @@ summary {
   padding: 8px 10px;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: color var(--dur-ui) ease, background-color var(--dur-ui) ease;
   /* rendered as a <button> so it is reachable by keyboard */
   width: 100%;
   text-align: left;
@@ -576,10 +674,12 @@ summary {
   gap: 18px;
   min-width: 0;
   position: relative;
-  /* How much of the first panel's top-right corner the floating SHARE button
-     occupies. A canvas header that runs the full width of the panel keeps out
-     of it; most headers are centred or left-aligned and never come close. */
-  --share-safe: 96px;
+  /* How much of the first panel's top-right corner the floating EXPORT and
+     SHARE cluster occupies. A canvas header that runs the full width of the
+     panel keeps out of it; most headers are centred or left-aligned and never
+     come close. (It was 96px from when SHARE stood alone, which let the hash
+     table's load bar and the expression input run under EXPORT.) */
+  --share-safe: 196px;
   /* And how far down it reaches. Content that scrolls sideways cannot dodge
      the button by reserving a right-hand strip — scrolling would carry it
      underneath anyway — so it clears the button vertically instead. */
@@ -607,7 +707,6 @@ summary {
   /* Opaque rather than the usual 3.5%-white button fill: this one floats over
      whatever the canvas is drawing, so it has to stay legible on top of it. */
   background: var(--panel);
-  backdrop-filter: blur(8px);
 }
 
 /* ---------- shared panel / button ---------- */
@@ -635,7 +734,7 @@ summary {
   padding: 7px 14px;
   font-size: 12px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: var(--control-transition);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -644,22 +743,64 @@ summary {
 
 .btn:hover:not(:disabled) {
   color: var(--text);
-  background: rgb(var(--ink-rgb) / 0.06);
+  background: rgb(var(--ink-rgb) / 0.07);
 }
 
+/* Scale rather than nudge: the whole control answers the press, label and
+   icon together, and it reads the same on a pill and on a square. */
 .btn:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: scale(0.97);
 }
 
+/* Legible, and visibly off: 35% opacity made a disabled label unreadable,
+   which hid what the control would do once it was available. */
 .btn:disabled {
-  opacity: 0.35;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
-.btn.active {
+/* A chosen option, filled with the accent. Pinned through hover so the
+   general hover fill doesn't wash out the choice under the pointer. */
+.btn.active,
+.btn.active:hover:not(:disabled) {
   color: var(--on-primary);
   background: var(--primary);
+  border-color: transparent;
   box-shadow: 0 0 16px rgb(var(--primary-rgb) / 0.4);
+}
+
+/* The control in a panel that starts a run: the same fill, set heavier. */
+.btn.active[type="submit"] {
+  color: var(--on-primary);
+  background: var(--primary);
+  border-color: transparent;
+  font-weight: 600;
+}
+
+.btn.active[type="submit"]:hover:not(:disabled) {
+  color: var(--on-primary);
+  background: rgb(var(--primary-rgb) / 0.88);
+}
+
+/* Something finished: a link copied, code on the clipboard. Green, because
+   it reports a result rather than a choice, and the tick arrives with a
+   small scale so the change registers even out of the corner of an eye. */
+.btn.is-done,
+.btn.is-done:hover:not(:disabled) {
+  color: var(--green);
+  background: rgb(var(--green-rgb) / 0.1);
+  border-color: rgb(var(--green-rgb) / 0.4);
+}
+
+.btn.is-done svg {
+  animation: done-in var(--dur-overlay) var(--ease-out) both;
+}
+
+@keyframes done-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
 }
 
 .btn.icon {
@@ -672,6 +813,13 @@ summary {
   border: 1px solid rgb(var(--primary-rgb) / 0.4);
   color: var(--primary);
   border-radius: 10px;
+}
+
+.btn.accent.is-ready,
+.btn.accent.is-ready:hover:not(:disabled) {
+  color: var(--on-primary);
+  background: var(--primary);
+  border-color: transparent;
 }
 
 .btn--block {
@@ -701,11 +849,20 @@ input[type="range"] {
   background: var(--panel-alt);
   border: 1px solid var(--border);
   color: var(--text);
+  transition: border-color var(--dur-ui) ease, box-shadow var(--dur-ui) ease;
 }
 
+.text-input::placeholder {
+  color: var(--text-dim);
+  opacity: 0.8;
+}
+
+/* A ring as well as the border colour: a 1px hue change alone is easy to
+   miss on a projector, which is exactly where someone is typing live. */
 .text-input:focus {
   outline: none;
   border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgb(var(--primary-rgb) / 0.18);
 }
 
 .textarea-input {
@@ -824,13 +981,14 @@ input[type="range"] {
   flex-shrink: 0;
 }
 
+/* A group heading in the sidebar. It was 9.5px at 80% opacity — smaller and
+   fainter than the rows it heads, which read upside down. */
 .algo-group__label {
   font-family: "JetBrains Mono", monospace;
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   color: var(--text-dim);
-  opacity: 0.8;
 }
 
 .algo-group__body {
@@ -840,17 +998,19 @@ input[type="range"] {
   padding-bottom: 4px;
 }
 
+/* Names of things are set in the text face; JetBrains Mono is kept for what
+   the instrument measures and for the controls that drive it. */
 .algo-row {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 13px;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 14px;
   color: var(--text-dim);
-  padding: 8px 10px;
+  padding: 7px 10px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: color var(--dur-ui) ease, background-color var(--dur-ui) ease;
   /* rendered as a <button> so it is reachable by keyboard */
   width: 100%;
   text-align: left;
@@ -863,8 +1023,10 @@ input[type="range"] {
   background: rgb(var(--ink-rgb) / 0.05);
 }
 
-.algo-row.active {
+.algo-row.active,
+.algo-row.active:hover {
   color: var(--primary);
+  font-weight: 500;
   background: var(--primary-dim);
 }
 
@@ -907,9 +1069,9 @@ input[type="range"] {
 }
 
 .canvas__note {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 10px;
-  letter-spacing: 0.04em;
+  /* A sentence of help, so it is set as one: the text face, no tracking. */
+  font-size: 12.5px;
+  line-height: 1.45;
   color: var(--text-dim);
   margin-bottom: 10px;
   /* EXPORT and SHARE float over this row from the panel's top-right corner,
@@ -995,7 +1157,7 @@ input[type="range"] {
 
 .band__label {
   font-family: "JetBrains Mono", monospace;
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.04em;
   white-space: nowrap;
   color: var(--text);
@@ -1048,7 +1210,7 @@ input[type="range"] {
 
 .aux__label {
   font-family: "JetBrains Mono", monospace;
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.06em;
   color: var(--text-dim);
   margin-bottom: 4px;
@@ -1085,7 +1247,7 @@ input[type="range"] {
 }
 
 .aux__cell-key {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--text-dim);
 }
 
@@ -1097,7 +1259,7 @@ input[type="range"] {
 
 .bar__value {
   font-family: "JetBrains Mono", monospace;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-dim);
   position: absolute;
   top: -20px;
@@ -1130,7 +1292,7 @@ input[type="range"] {
 
 .bar__pointer {
   font-family: "JetBrains Mono", monospace;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   position: absolute;
   bottom: -20px;
@@ -1146,7 +1308,7 @@ input[type="range"] {
   gap: 4px 14px;
   margin-top: 10px;
   font-family: "JetBrains Mono", monospace;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-dim);
   flex-shrink: 0;
 }
@@ -1238,7 +1400,7 @@ input[type="range"] {
 .recursion__call.is-active {
   border-color: var(--primary);
   background: rgb(var(--primary-rgb) / 0.28);
-  box-shadow: 0 0 10px rgb(var(--primary-rgb) / 0.35);
+  box-shadow: 0 0 10px rgb(var(--primary-rgb) / var(--glow-alpha));
 }
 
 /* Its ancestors — the rest of the live call stack. */
@@ -1248,7 +1410,7 @@ input[type="range"] {
 }
 
 .recursion__label {
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.02em;
   color: var(--text-dim);
   white-space: nowrap;
@@ -1358,7 +1520,7 @@ input[type="range"] {
 .timeline__range::-webkit-slider-runnable-track {
   height: 6px;
   border-radius: 999px;
-  background: linear-gradient(
+  background: linear-gradient( /* taste-skill-ignore: hard-stop progress fill, not a blend */
     to right,
     var(--primary) 0%,
     var(--primary) var(--progress, 0%),
@@ -1414,7 +1576,7 @@ input[type="range"] {
   gap: 8px 18px;
   padding-top: 12px;
   border-top: 1px solid var(--border);
-  animation: help-in 0.18s ease both;
+  animation: help-in var(--dur-overlay) var(--ease-out) both;
 }
 
 @keyframes help-in {
@@ -1431,7 +1593,7 @@ input[type="range"] {
 }
 
 .controls__help-item kbd {
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--text);
   background: var(--panel-alt);
   border: 1px solid var(--border-strong);
@@ -1477,11 +1639,11 @@ input[type="range"] {
 }
 
 .info__title {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--primary);
-  margin-bottom: 8px;
+  margin: 0 0 8px;
 }
 
 .info__desc {
@@ -1555,7 +1717,7 @@ input[type="range"] {
 
 .source__tab {
   font-family: "JetBrains Mono", monospace;
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.04em;
   padding: 4px 9px;
   border: 1px solid transparent;
@@ -1580,7 +1742,7 @@ input[type="range"] {
 .source__copy {
   flex-shrink: 0;
   padding: 4px 10px;
-  font-size: 10.5px;
+  font-size: 11px;
 }
 
 /* Real code is wider than pseudocode, so the listing scrolls sideways inside
@@ -1644,15 +1806,14 @@ input[type="range"] {
 }
 
 .topic-panel__title {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 600;
   color: var(--primary);
 }
 
 .topic-panel__hint {
   font-family: "JetBrains Mono", monospace;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-dim);
   opacity: 0.7;
 }
@@ -1803,7 +1964,7 @@ input[type="range"] {
    from one whose mark hasn't been drawn yet, and the whole point of showing
    the field is that null is a value. */
 .ll-node__cell--null {
-  background-image: linear-gradient(
+  background-image: linear-gradient( /* taste-skill-ignore: the diagonal strike that marks a null field */
     to top right,
     transparent calc(50% - 0.75px),
     var(--ll-node-border, var(--border-strong)) calc(50% - 0.75px),
@@ -1840,7 +2001,7 @@ input[type="range"] {
   top: -26px;
   left: 8px;
   font-family: "JetBrains Mono", monospace;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.05em;
   color: var(--primary);
@@ -1861,7 +2022,7 @@ input[type="range"] {
   left: 50%;
   transform: translateX(-50%);
   font-family: "JetBrains Mono", monospace;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.03em;
   padding: 1px 6px;
@@ -1975,12 +2136,22 @@ input[type="range"] {
   color: var(--text-dim);
 }
 
+.ll-empty--sentence {
+  font-size: 14px;
+  text-align: center;
+}
+
+/* What the step just did, in a sentence. It is the line a lecturer reads
+   aloud and a student reads between steps, so it is set at reading size in
+   the text face, in full ink — not as a dim caption under the drawing. */
 .ll-message {
   margin-top: 24px;
-  font-size: 12px;
-  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
   text-align: center;
-  min-height: 16px;
+  min-height: 21px;
+  text-wrap: balance;
 }
 
 /* ---------- Stack / Queue ---------- */
@@ -2050,7 +2221,7 @@ input[type="range"] {
   left: 50%;
   transform: translateX(-50%);
   font-family: "JetBrains Mono", monospace;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
   white-space: nowrap;
@@ -2095,7 +2266,7 @@ input[type="range"] {
 
 .sq-base {
   margin-top: 10px;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.08em;
   color: var(--text-dim);
   opacity: 0.7;
@@ -2145,7 +2316,7 @@ input[type="range"] {
 }
 
 .uf-head__count {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--text-dim);
@@ -2156,7 +2327,7 @@ input[type="range"] {
 }
 
 .uf-node__size {
-  font-size: 8.5px;
+  font-size: 10px;
   letter-spacing: 0.04em;
   fill: var(--green);
   opacity: 0.8;
@@ -2173,7 +2344,7 @@ input[type="range"] {
 }
 
 .uf-array__label {
-  font-size: 9.5px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--text-dim);
@@ -2222,7 +2393,7 @@ input[type="range"] {
 }
 
 .uf-cell__index {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--text-dim);
   opacity: 0.8;
@@ -2244,7 +2415,7 @@ input[type="range"] {
 }
 
 .tr-head__count {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--text-dim);
@@ -2263,7 +2434,7 @@ input[type="range"] {
 }
 
 .tr-node__root {
-  font-size: 8.5px;
+  font-size: 10px;
   letter-spacing: 0.06em;
   fill: var(--text-dim);
   opacity: 0.7;
@@ -2306,7 +2477,7 @@ input[type="range"] {
 }
 
 .hp-head__kind {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--green);
@@ -2328,13 +2499,13 @@ input[type="range"] {
 /* The array index, under each node — the tie between the picture and the
    flat array below it. */
 .hp-node__index {
-  font-size: 9px;
+  font-size: 11px;
   fill: var(--text-dim);
   opacity: 0.75;
 }
 
 .hp-node__tag {
-  font-size: 8.5px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.06em;
   fill: var(--primary);
@@ -2351,7 +2522,7 @@ input[type="range"] {
 }
 
 .hp-array__label {
-  font-size: 9.5px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--text-dim);
@@ -2396,7 +2567,7 @@ input[type="range"] {
 }
 
 .hp-cell__index {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-dim);
   opacity: 0.75;
 }
@@ -2435,7 +2606,7 @@ input[type="range"] {
 }
 
 .ht-head__strategy {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--yellow);
@@ -2447,7 +2618,7 @@ input[type="range"] {
 }
 
 .ht-head__stat {
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.06em;
   color: var(--text-dim);
   white-space: nowrap;
@@ -2517,7 +2688,7 @@ input[type="range"] {
 }
 
 .ht-resizing {
-  font-size: 9.5px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--yellow);
@@ -2638,7 +2809,7 @@ input[type="range"] {
 }
 
 .ht-slot__tomb-label {
-  font-size: 9.5px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
   color: var(--red);
@@ -2653,7 +2824,7 @@ input[type="range"] {
 
 .ht-tag {
   margin-left: 8px;
-  font-size: 8.5px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.06em;
   padding: 1px 5px;
@@ -2689,7 +2860,7 @@ input[type="range"] {
 }
 
 .ht-table__caption {
-  font-size: 9.5px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.07em;
   color: var(--text-dim);
@@ -2740,7 +2911,7 @@ input[type="range"] {
 }
 
 .dh-col__caption {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.1em;
   color: var(--text-dim);
@@ -2827,7 +2998,7 @@ input[type="range"] {
    under linear hashing — the same slot, because it is the same question. */
 .dh-row__depth {
   min-width: 52px;
-  font-size: 9.5px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
   color: var(--blue);
@@ -2898,7 +3069,7 @@ input[type="range"] {
 
 .dh-kind__tag {
   margin-left: 7px;
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0.08em;
   opacity: 0.65;
 }
@@ -2954,8 +3125,7 @@ input[type="range"] {
   justify-content: center;
   text-align: center;
   padding: 0 16px;
-  font-size: 11px;
-  letter-spacing: 0.06em;
+  font-size: 14px;
   color: var(--text-dim);
   pointer-events: none;
 }
@@ -3003,7 +3173,7 @@ input[type="range"] {
 }
 
 .graph-edge-label {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   fill: var(--text-dim);
   pointer-events: none;
@@ -3029,7 +3199,7 @@ input[type="range"] {
   align-items: center;
   gap: 6px 16px;
   margin-top: 12px;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.06em;
   color: var(--text-dim);
 }
@@ -3241,14 +3411,7 @@ input[type="range"] {
 
 /* ---------- topbar home click ---------- */
 
-.topbar__title--clickable {
-  cursor: pointer;
-  transition: opacity 0.15s ease;
-}
 
-.topbar__title--clickable:hover {
-  opacity: 0.75;
-}
 
 /* ---------- category landing ---------- */
 
@@ -3265,7 +3428,6 @@ input[type="range"] {
     radial-gradient(circle at 85% 0%, rgb(var(--blue-rgb) / 0.08), transparent 40%),
     radial-gradient(circle at 50% 110%, rgb(var(--purple-rgb) / 0.06), transparent 45%),
     var(--bg);
-  animation: fade-in-up 0.4s ease both;
 }
 
 @keyframes fade-in-up {
@@ -3285,39 +3447,264 @@ input[type="range"] {
   justify-content: center;
 }
 
+/* Text on the left, the live run on the right: the claim and its proof on
+   one line of sight. */
 .landing__header {
-  text-align: center;
-  margin-bottom: 44px;
+  width: min(1120px, 100%);
+  margin-bottom: 40px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+  gap: 40px;
+  align-items: end;
+}
+
+@media (max-width: 900px) {
+  .landing__header {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+}
+
+/* ---------- the live run on the landing page ---------- */
+
+.live-trace {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 16px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--dur-ui) ease, transform var(--dur-press) var(--ease-out);
+}
+
+.live-trace:active {
+  transform: scale(0.99);
+}
+
+.live-trace__head,
+.live-trace__open {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.live-trace__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.live-trace__step {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.live-trace__bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 104px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--border);
+}
+
+.live-trace__bar {
+  flex: 1;
+  min-width: 2px;
+  border: 1.5px solid;
+  border-radius: 3px 3px 1px 1px;
+  /* Shorter than the gap between frames, so a swap reads as a move rather
+     than a cut, and never smears into the next frame. */
+  transition: height 70ms var(--ease-out), background-color 120ms ease, border-color 120ms ease;
+}
+
+.live-trace__open {
+  justify-content: flex-start;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-dim);
+  transition: color var(--dur-ui) ease;
+}
+
+.live-trace__open svg {
+  transition: transform var(--dur-ui) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .live-trace:hover {
+    border-color: var(--border-strong);
+  }
+
+  .live-trace:hover .live-trace__open {
+    color: var(--text);
+  }
+
+  .live-trace:hover .live-trace__open svg {
+    transform: translateX(3px);
+  }
+}
+
+.live-trace:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
+/* ---------- first open ----------
+   Once per page load. The header settles in line by line, the cards rise in
+   order, and each family's drawing is traced like a beam crossing the
+   screen — the instrument switching on. Under reduced motion the global rule
+   collapses every one of these to its end state. */
+
+.landing--intro .landing__intro > *,
+.landing--intro .live-trace {
+  animation: rise-in 520ms var(--ease-out) backwards;
+}
+
+.landing--intro .landing__intro > :nth-child(2) {
+  animation-delay: 50ms;
+}
+
+.landing--intro .landing__intro > :nth-child(3) {
+  animation-delay: 100ms;
+}
+
+.landing--intro .live-trace {
+  animation-delay: 120ms;
+}
+
+.landing--intro .landing__card {
+  animation: rise-in 520ms var(--ease-out) backwards;
+  animation-delay: calc(150ms + var(--i, 0) * 35ms);
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+/* Every shape in a drawing is shorter than 160 units, so one dash that long
+   hides it entirely before the trace and shows it entirely after. The cut
+   branch keeps its own dashes and only fades in. */
+.landing--intro .glyph *:not(.glyph__cut) {
+  stroke-dasharray: 160;
+  animation: trace-draw 900ms var(--ease-out) backwards;
+  animation-delay: calc(260ms + var(--i, 0) * 35ms);
+}
+
+.landing--intro .glyph .glyph__on {
+  animation: trace-draw 900ms var(--ease-out) backwards, trace-fill 360ms ease backwards;
+  animation-delay: calc(260ms + var(--i, 0) * 35ms), calc(700ms + var(--i, 0) * 35ms);
+}
+
+.landing--intro .glyph .glyph__cut {
+  animation: trace-fill-stroke 400ms ease backwards;
+  animation-delay: calc(780ms + var(--i, 0) * 35ms);
+}
+
+.landing--intro .landing__mark path {
+  stroke-dasharray: 48;
+  animation: trace-draw-mark 800ms var(--ease-out) backwards;
+}
+
+@keyframes trace-draw {
+  from {
+    stroke-dashoffset: 160;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes trace-draw-mark {
+  from {
+    stroke-dashoffset: 48;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes trace-fill {
+  from {
+    fill-opacity: 0;
+  }
+}
+
+@keyframes trace-fill-stroke {
+  from {
+    stroke-opacity: 0;
+  }
+}
+
+.landing__title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0 0 14px;
 }
 
 .landing__mark {
   color: var(--primary);
-  font-size: 22px;
+  flex-shrink: 0;
   filter: drop-shadow(0 0 8px rgb(var(--primary-rgb) / 0.6));
 }
 
-.landing__title {
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  margin: 8px 0 6px;
+/* What the product is, in the reader's words, at reading size and in full
+   ink — the line a student or a lecturer reads first and decides on. */
+.landing__subtitle {
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--text);
+  max-width: 34em;
+  margin: 0 0 10px;
 }
 
-.landing__subtitle {
-  font-size: 13px;
-  color: var(--text-dim);
+.landing__meta {
+  font-size: 12px;
   letter-spacing: 0.02em;
+  color: var(--text-dim);
+  margin: 0;
 }
 
 .landing__grid {
-  width: min(1080px, 100%);
+  width: min(1120px, 100%);
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   /* Cards keep their own height instead of stretching to the tallest in the
      row. Without this, opening one card pads out the two beside it with empty
      space to match — which reads as three cards having opened, not one. */
   align-items: start;
+}
+
+.landing__card--wide {
+  grid-column: span 2;
+}
+
+/* Dense packing lets the card after the wide one rise into the hole beside
+   the first card when there are only two columns, so twelve cells fill six
+   whole rows there as they fill four on three columns. */
+.landing__grid {
+  grid-auto-flow: row dense;
+}
+
+@media (max-width: 1000px) {
+  .landing__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .landing__card {
@@ -3328,27 +3715,36 @@ input[type="range"] {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 20px;
-  /* Same reasoning as .panel, and worse here: the hover state translates the
-     card, and a transform on a backdrop-filtered element re-blurs the backdrop
-     on every frame of the transition — nine times over, for a blur of a static
-     gradient nobody can see. */
-  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  padding: 18px 20px 20px;
+  transition: border-color var(--dur-ui) ease, transform var(--dur-ui) var(--ease-out),
+    box-shadow var(--dur-ui) ease;
 }
 
-.landing__card--active {
-  border-color: var(--accent);
-  transform: translateY(-3px);
-  box-shadow: 0 14px 32px rgb(var(--shadow-rgb) / 0.35);
+/* Lift and edge only under a real pointer: on a touch screen :hover sticks
+   after the tap and leaves the card raised for no reason. */
+@media (hover: hover) and (pointer: fine) {
+  .landing__card:hover {
+    border-color: var(--accent);
+    transform: translateY(-3px);
+    box-shadow: 0 14px 32px rgb(var(--shadow-rgb) / 0.35);
+  }
+
+  .landing__card:hover .landing__card-chevron {
+    color: var(--accent);
+  }
+}
+
+.landing__card--open {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
 }
 
 .landing__card-top {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
   width: 100%;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   padding: 0;
   border: 0;
   background: none;
@@ -3358,74 +3754,135 @@ input[type="range"] {
   cursor: pointer;
 }
 
+.landing__card-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .landing__card-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
-/* How many topics are behind a closed card. The one thing the label and the
-   blurb don't say, and the thing that decides whether opening it is worth it. */
+/* How many topics are behind a card, with its noun: a bare "7" left the
+   reader asking seven of what. */
 .landing__card-count {
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 12px;
   color: var(--text-dim);
-  opacity: 0.65;
 }
 
 .landing__card-chevron {
-  display: flex;
   color: var(--text-dim);
-  transition: color 0.2s ease;
+  transform: rotate(-90deg);
+  transition: transform var(--dur-overlay) var(--ease-out), color var(--dur-ui) ease;
 }
 
-.landing__card--open .landing__card-chevron,
-.landing__card--active .landing__card-chevron {
+.landing__card--open .landing__card-chevron {
   color: var(--accent);
+  transform: rotate(0deg);
 }
 
 .landing__card-top:focus-visible {
   outline: 2px solid var(--primary);
-  outline-offset: 4px;
-  border-radius: 6px;
+  outline-offset: 6px;
+  border-radius: 8px;
 }
 
 .landing__card-label {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   color: var(--text);
 }
 
-.landing__card-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--accent);
-  box-shadow: 0 0 10px var(--accent);
+/* The family's own picture, in its accent. Every drawing shares one stroke
+   and one 64x28 frame; the filled marks are where a run would be working. */
+.glyph {
+  display: block;
+  color: var(--accent);
+  overflow: visible;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 45%, transparent));
+}
+
+.glyph * {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.glyph .glyph__on {
+  fill: currentColor;
+  fill-opacity: 0.35;
+}
+
+.glyph .glyph__faint {
+  stroke-opacity: 0.4;
+}
+
+.glyph .glyph__cut {
+  stroke-dasharray: 2 3;
+  stroke-opacity: 0.6;
 }
 
 .landing__card-blurb {
-  font-size: 12.5px;
+  font-size: 14px;
   color: var(--text-dim);
   line-height: 1.5;
   margin: 0;
-  /* Two lines' worth, so a one-line blurb doesn't make its card shorter than
-     the rest of the row when they are all closed. */
-  min-height: 38px;
 }
 
-/* The gap belongs to the list, not to the blurb: a closed card ends at the
-   blurb and shouldn't carry 16px of nothing under it. */
-.landing__card--open .landing__card-blurb {
-  margin-bottom: 16px;
+/* Two lines reserved for the blurb and two for the topics, so every closed
+   card in a row ends on the same line whatever its copy runs to. A single
+   column on a phone has no row to line up with, so it drops them. */
+@media (min-width: 761px) {
+  .landing__card-blurb {
+    min-height: 3em;
+  }
+
+  .landing__card-topics {
+    min-height: 3em;
+  }
+}
+
+.landing__card-topics {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  opacity: 0.82;
+  margin: 12px 0 0;
+  /* Two lines at most, so a closed card is about as tall as its neighbours
+     whatever the family holds; the full list is one click away. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .landing__card-items {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
+  margin-top: 16px;
+  transform-origin: top center;
+  animation: items-in var(--dur-overlay) var(--ease-out) both;
+}
+
+.landing__card--wide .landing__card-items {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@keyframes items-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 }
 
 .landing__item-btn {
@@ -3440,21 +3897,33 @@ input[type="range"] {
   border: 1px solid var(--border);
   background: var(--panel-alt);
   color: var(--text);
-  font-size: 12.5px;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: var(--control-transition);
 }
 
-.landing__item-btn:hover {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  transform: translateX(2px);
+@media (hover: hover) and (pointer: fine) {
+  .landing__item-btn:hover {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+
+  .landing__item-btn:hover svg {
+    opacity: 1;
+    transform: translateX(2px);
+  }
+}
+
+.landing__item-btn:active {
+  transform: scale(0.98);
 }
 
 .landing__item-btn svg {
   opacity: 0.6;
   flex-shrink: 0;
+  transition: opacity var(--dur-ui) ease, transform var(--dur-ui) var(--ease-out);
 }
 
 .landing__item-head {
@@ -3468,11 +3937,9 @@ input[type="range"] {
 }
 
 /* The description is the only place a view says what is actually inside it,
-   so it wraps under the label rather than sharing the line — a card is only
-   260px wide and "BST, AVL, red-black, splay, treap & threaded" competing
-   for that space got ellipsised down to nothing. */
+   so it wraps under the label rather than sharing the line. */
 .landing__item-desc {
-  font-size: 11px;
+  font-size: 12.5px;
   color: var(--text-dim);
   font-weight: 400;
   line-height: 1.45;
@@ -3528,7 +3995,7 @@ input[type="range"] {
 }
 
 .tree-inspect__label {
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.08em;
   color: var(--text-dim);
 }
@@ -3548,7 +4015,7 @@ input[type="range"] {
 .tree-inspect__clear {
   margin-left: auto;
   padding: 2px 8px;
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.08em;
   color: var(--text-dim);
   background: none;
@@ -3618,7 +4085,7 @@ input[type="range"] {
   bottom: 10px;
   z-index: 2;
   padding: 4px 10px;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.06em;
 }
 
@@ -3658,7 +4125,7 @@ input[type="range"] {
   border: none;
   background: rgb(var(--scrim-rgb) / 0.62);
   backdrop-filter: blur(2px);
-  animation: sheet-fade 0.2s ease both;
+  animation: sheet-fade var(--dur-overlay) ease both;
 }
 
 .sheet {
@@ -3678,7 +4145,7 @@ input[type="range"] {
   backdrop-filter: blur(18px);
   box-shadow: 0 -16px 44px rgb(var(--shadow-rgb) / 0.55);
   padding-bottom: env(safe-area-inset-bottom);
-  animation: sheet-up 0.24s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  animation: sheet-up 0.32s var(--ease-drawer) both;
 }
 
 @keyframes sheet-up {
@@ -3823,14 +4290,14 @@ input[type="range"] {
   border-right: none;
 }
 
-.topbar--mobile .topbar__title h1 {
+.topbar--mobile .topbar__wordmark {
   font-size: 15px;
 }
 
 .topbar__now {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   color: var(--primary);
   background: var(--primary-dim);
   border: 1px solid rgb(var(--primary-rgb) / 0.35);
@@ -3857,7 +4324,7 @@ input[type="range"] {
   border-bottom: 1px solid var(--border-strong);
   border-radius: 0 0 18px 18px;
   box-shadow: 0 20px 44px rgb(var(--shadow-rgb) / 0.55);
-  animation: nav-down 0.22s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  animation: nav-down 0.26s var(--ease-drawer) both;
 }
 
 @keyframes nav-down {
@@ -3870,7 +4337,7 @@ input[type="range"] {
 }
 
 .topbar__nav-label {
-  font-size: 9.5px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.12em;
   color: var(--accent, var(--text-dim));
@@ -3974,7 +4441,7 @@ input[type="range"] {
   }
 
   .bar__value {
-    font-size: 9px;
+    font-size: 11px;
     top: -17px;
   }
 
@@ -4056,7 +4523,7 @@ input[type="range"] {
   }
 
   .dp-head {
-    font-size: 10px;
+    font-size: 11px;
   }
 
   .ll-row {
@@ -4131,7 +4598,7 @@ input[type="range"] {
   }
 
   .hp-formula {
-    font-size: 10px;
+    font-size: 11px;
   }
 
   /* The bucket rows are the one part worth keeping full-size; the header
@@ -4223,7 +4690,7 @@ input[type="range"] {
   }
 
   .canvas__note {
-    font-size: 9.5px;
+    font-size: 12px;
   }
 
   /* The graph hint is long enough on a phone that the reset button needs its
@@ -4299,19 +4766,26 @@ input[type="range"] {
 
   /* landing */
   .landing {
-    padding: 34px 14px calc(28px + env(safe-area-inset-bottom));
+    padding: 34px 16px calc(28px + env(safe-area-inset-bottom));
   }
 
   .landing__header {
-    margin-bottom: 26px;
+    margin-bottom: 24px;
+  }
+
+  /* Clear of the appearance button pinned to the top-right corner. Only the
+     text needs to dodge it; the live run below it takes the full width. */
+  .landing__intro {
+    padding-right: 44px;
   }
 
   .landing__title {
-    font-size: 22px;
+    font-size: 24px;
+    gap: 10px;
   }
 
   .landing__subtitle {
-    font-size: 12px;
+    font-size: 16px;
   }
 
   .landing__grid {
@@ -4319,14 +4793,17 @@ input[type="range"] {
     gap: 12px;
   }
 
+  .landing__card--wide {
+    grid-column: auto;
+  }
+
+  .landing__card--wide .landing__card-items {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .landing__card {
     padding: 16px;
     border-radius: 14px;
-  }
-
-  .landing__card-blurb {
-    min-height: 0;
-    margin-bottom: 12px;
   }
 
 }
@@ -4403,16 +4880,23 @@ select.text-input {
   appearance: none;
   -webkit-appearance: none;
   cursor: pointer;
-  padding-right: 26px;
-  background-image: linear-gradient(45deg, transparent 50%, var(--text-dim) 50%),
-    linear-gradient(135deg, var(--text-dim) 50%, transparent 50%);
-  background-position: calc(100% - 14px) 15px, calc(100% - 9px) 15px;
-  background-size: 5px 5px, 5px 5px;
+  padding-right: 30px;
+  /* A drawn chevron in the dim ink. A data URI cannot read a custom property,
+     so each theme carries its own copy of the stroke colour. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%238b90a0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5'/%3E%3C/svg%3E");
+  background-position: right 10px center;
+  background-size: 12px 12px;
   background-repeat: no-repeat;
 }
 
+:root[data-theme="light"] select.text-input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23596070' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5'/%3E%3C/svg%3E");
+}
+
+/* From the surface token, not a fixed hex: a dark fill here left the light
+   theme's open list as dark text on near-black. */
 select.text-input option {
-  background: #171a22;
+  background: rgb(var(--surface-rgb));
   color: var(--text);
 }
 
@@ -4459,7 +4943,7 @@ select.text-input option {
 .seg__btn {
   flex: 1;
   font-family: "JetBrains Mono", monospace;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.03em;
   padding: 6px 4px;
   border: none;
@@ -4467,7 +4951,8 @@ select.text-input option {
   background: transparent;
   color: var(--text-dim);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: color var(--dur-ui) ease, background-color var(--dur-ui) ease,
+    transform var(--dur-press) var(--ease-out);
   white-space: nowrap;
 }
 
@@ -4511,7 +4996,7 @@ select.text-input option {
 
 .race__note {
   font-family: "JetBrains Mono", monospace;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.04em;
   color: var(--text-dim);
   margin-bottom: 12px;
@@ -4581,7 +5066,7 @@ select.text-input option {
 }
 
 .lane__variant {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-dim);
   white-space: nowrap;
   overflow: hidden;
@@ -4594,7 +5079,7 @@ select.text-input option {
 
 .lane__badge {
   font-family: "JetBrains Mono", monospace;
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.04em;
   color: var(--green);
   display: inline-flex;
@@ -4688,7 +5173,7 @@ select.text-input option {
 
 .scoreboard__row--head .scoreboard__cell {
   font-family: "JetBrains Mono", monospace;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.05em;
   color: var(--text-dim);
   padding-bottom: 4px;
@@ -4737,7 +5222,7 @@ select.text-input option {
 
 .scoreboard__stable {
   font-family: "JetBrains Mono", monospace;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-dim);
   white-space: nowrap;
 }
@@ -4788,7 +5273,7 @@ select.text-input option {
   .scoreboard__cell[data-label]::before {
     content: attr(data-label);
     font-family: "JetBrains Mono", monospace;
-    font-size: 9px;
+    font-size: 11px;
     letter-spacing: 0.05em;
     color: var(--text-dim);
     margin-right: 5px;
@@ -4799,7 +5284,7 @@ select.text-input option {
 /* A treap node's random priority, above the key. Dim, because the key is what
    you are looking for and the priority is only why the tree has this shape. */
 .tree-priority {
-  font-size: 9px;
+  font-size: 11px;
   fill: var(--purple);
   opacity: 0.85;
 }
@@ -4849,7 +5334,7 @@ select.text-input option {
 /* The bit a branch contributes. The code for a symbol is the path to it. */
 .hf-bit {
   fill: var(--text-dim);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .hf-node {
@@ -4879,7 +5364,7 @@ select.text-input option {
 
 .hf-node__weight {
   fill: var(--text-dim);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .sidebar__note {
@@ -4922,13 +5407,13 @@ select.text-input option {
   width: 54px;
   flex-shrink: 0;
   text-align: right;
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.06em;
   color: var(--text-dim);
   position: sticky;
   left: 0;
   z-index: 1;
-  background: linear-gradient(to right, var(--panel) 70%, transparent);
+  background: linear-gradient(to right, var(--panel) 70%, transparent); /* taste-skill-ignore: scrim keeping a sticky label legible over cells */
 }
 
 /* Every row shares the array's columns, so a span physically covers the cells
@@ -4944,7 +5429,7 @@ select.text-input option {
 }
 
 .rq-index {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-dim);
   text-align: center;
 }
@@ -5088,13 +5573,13 @@ select.text-input option {
   flex-shrink: 0;
   text-align: right;
   padding-right: 6px;
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.06em;
   color: var(--text-dim);
   position: sticky;
   left: 0;
   z-index: 1;
-  background: linear-gradient(to right, var(--panel) 70%, transparent);
+  background: linear-gradient(to right, var(--panel) 70%, transparent); /* taste-skill-ignore: scrim keeping a sticky label legible over cells */
 }
 
 .grid-cell {
@@ -5122,7 +5607,7 @@ select.text-input option {
 .grid-row--index .grid-cell {
   border: none;
   background: none;
-  font-size: 9px;
+  font-size: 11px;
   height: 14px;
   color: var(--text-dim);
 }
@@ -5152,7 +5637,7 @@ select.text-input option {
   border-color: transparent;
   background: none;
   color: var(--text-dim);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.04em;
 }
 
@@ -5175,7 +5660,7 @@ select.text-input option {
 }
 
 .grid-cell__sub {
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 400;
   color: var(--text-dim);
   opacity: 0.9;
@@ -5218,7 +5703,7 @@ select.text-input option {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--primary);
 }
@@ -5297,7 +5782,7 @@ select.text-input option {
 }
 
 .bt-cell__label {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--text-dim);
   opacity: 0.7;
   margin-top: 3px;
@@ -5382,7 +5867,7 @@ select.text-input option {
 
 .bt-puzzle {
   font-family: "JetBrains Mono", monospace;
-  font-size: 10px;
+  font-size: 11px;
   padding: 5px 8px;
   border-radius: 6px;
   border: 1px solid var(--border);
@@ -5404,7 +5889,7 @@ select.text-input option {
 }
 
 .bt-grid-input {
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.5;
   letter-spacing: 0.08em;
 }
@@ -5433,11 +5918,11 @@ select.text-input option {
   flex-direction: column;
   pointer-events: none;
   z-index: 1;
-  background: linear-gradient(to right, var(--panel) 60%, transparent);
+  background: linear-gradient(to right, var(--panel) 60%, transparent); /* taste-skill-ignore: scrim keeping a sticky label legible over cells */
 }
 
 .tree-panel__depth {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-dim);
   text-align: left;
   flex-shrink: 0;
@@ -5511,7 +5996,7 @@ select.text-input option {
 
 .tree-label {
   font-family: "JetBrains Mono", monospace;
-  font-size: 9px;
+  font-size: 11px;
   fill: var(--text-dim);
   pointer-events: none;
 }
@@ -5568,7 +6053,7 @@ select.text-input option {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-dim);
 }
 
@@ -5642,7 +6127,7 @@ select.text-input option {
    "column 3", so both are always on screen. */
 .dp-sub {
   display: block;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 400;
   color: var(--text-dim);
   letter-spacing: 0.02em;
@@ -5721,7 +6206,7 @@ select.text-input option {
   position: absolute;
   top: 0;
   right: 2px;
-  font-size: 8px;
+  font-size: 10px;
   line-height: 1;
   opacity: 0.65;
 }
@@ -5775,7 +6260,7 @@ select.text-input option {
 }
 
 .dp-hint {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-dim);
   margin-top: 4px;
 }
@@ -5807,9 +6292,8 @@ select.text-input option {
 }
 
 .complexity__title {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 600;
   color: var(--primary);
 }
 
@@ -6033,12 +6517,12 @@ select.text-input option {
    the two lists hold the same edges. */
 .mst-seq__n {
   color: var(--seq-color, var(--text-dim));
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .mst-seq__w {
   color: var(--text-dim);
-  font-size: 10px;
+  font-size: 11px;
   padding-left: 6px;
   border-left: 1px solid var(--border);
 }
@@ -6117,7 +6601,7 @@ select.text-input option {
 
 .treecmp__note {
   font-family: "JetBrains Mono", monospace;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.04em;
   color: var(--text-dim);
   display: flex;
@@ -6226,7 +6710,7 @@ select.text-input option {
 
 .treelane__canvas .ll-empty {
   min-height: 120px;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 
@@ -6251,6 +6735,7 @@ select.text-input option {
   background: rgb(var(--scrim-rgb) / 0.66);
   backdrop-filter: blur(3px);
   cursor: pointer;
+  animation: sheet-fade var(--dur-overlay) ease both;
 }
 
 .export-dialog {
@@ -6266,6 +6751,17 @@ select.text-input option {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  /* It floats over the page, so unlike a resting panel it casts a shadow.
+     A modal is not anchored to its trigger, so it grows from its centre. */
+  box-shadow: 0 24px 56px rgb(var(--shadow-rgb) / 0.5);
+  animation: dialog-in var(--dur-overlay) var(--ease-out) both;
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.96);
+  }
 }
 
 .export-dialog__head {
@@ -6499,10 +6995,8 @@ select.text-input option {
   display: flex;
   gap: 10px;
   margin-top: 48px;
-  font-size: 10px;
-  letter-spacing: 0.08em;
+  font-size: 13px;
   color: var(--text-dim);
-  opacity: 0.75;
 }
 
 .landing__footer a {
@@ -6564,7 +7058,7 @@ select.text-input option {
 }
 
 .notfound__asked-label {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.1em;
   color: var(--text-dim);
@@ -6613,6 +7107,9 @@ select.text-input option {
   background: rgb(var(--overlay-rgb) / 0.99);
   border: 1px solid var(--border-strong);
   box-shadow: 0 18px 40px rgb(var(--shadow-rgb) / 0.45);
+  /* Hangs from the button at its top-right corner, so it grows from there. */
+  transform-origin: top right;
+  animation: menu-in var(--dur-overlay) var(--ease-out) both;
 }
 
 .thememenu__row {
@@ -6707,7 +7204,7 @@ select.text-input option {
 
 .thememenu__note {
   margin: 4px 0 0;
-  font-size: 10.5px;
+  font-size: 11px;
   line-height: 1.5;
   color: var(--text-dim);
 }
@@ -6793,8 +7290,7 @@ select.text-input option {
 
 .canvas__hint {
   margin-top: 8px;
-  font-family: "JetBrains Mono", monospace;
-  font-size: 10px;
+  font-size: 12.5px;
   color: var(--text-dim);
   flex-shrink: 0;
 }
@@ -6803,7 +7299,7 @@ select.text-input option {
   /* Two of the three gestures are worth spelling out on a phone; the third is
      the same drag with a different axis and does not need its own sentence. */
   .canvas__hint {
-    font-size: 9.5px;
+    font-size: 12px;
     line-height: 1.5;
   }
 }
@@ -6853,7 +7349,7 @@ input.controls__volume {
 
 .expr-input-error {
   margin: 6px 0 2px;
-  font-size: 10.5px;
+  font-size: 11px;
   line-height: 1.4;
   color: var(--red);
 }
@@ -6889,7 +7385,7 @@ input.controls__volume {
 }
 
 .expr-prec__assoc {
-  font-size: 9.5px;
+  font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-dim);
@@ -6909,12 +7405,13 @@ input.controls__volume {
   gap: 10px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border);
+  padding-right: var(--share-safe, 0);
 }
 
 .expr-strip__label,
 .expr-stack__label,
 .expr-out__label {
-  font-size: 9.5px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--text-dim);
@@ -6970,7 +7467,7 @@ input.controls__volume {
 .expr-token.is-cursor {
   border-color: var(--primary);
   background: rgb(var(--primary-rgb) / 0.16);
-  box-shadow: 0 0 10px rgb(var(--primary-rgb) / 0.45);
+  box-shadow: 0 0 10px rgb(var(--primary-rgb) / var(--glow-alpha));
   opacity: 1;
 }
 
@@ -7046,7 +7543,7 @@ input.controls__volume {
   top: 50%;
   right: calc(100% + 6px);
   transform: translateY(-50%);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--blue);
@@ -7056,7 +7553,7 @@ input.controls__volume {
   padding: 6px 10px;
   border: 1.5px dashed var(--border);
   border-radius: 7px;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.08em;
   color: var(--text-dim);
   text-align: center;
@@ -7064,7 +7561,7 @@ input.controls__volume {
 
 .expr-stack__base {
   margin-top: 3px;
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.06em;
   color: var(--text-dim);
   text-align: center;
@@ -7090,7 +7587,7 @@ input.controls__volume {
 }
 
 .expr-out__empty {
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--text-dim);
   opacity: 0.8;
 }
@@ -7139,7 +7636,7 @@ input.controls__volume {
   border: 1px solid var(--border);
   border-radius: 5px;
   background: var(--panel-alt);
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--text);
 }
 
@@ -7199,7 +7696,7 @@ input.controls__volume {
 }
 
 .sm-block__head {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.07em;
   color: var(--text-dim);
@@ -7215,7 +7712,7 @@ input.controls__volume {
 }
 
 .sm-grid__head {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-dim);
   text-align: center;
   align-self: center;
@@ -7264,7 +7761,7 @@ input.controls__volume {
 .sm-cell.is-cur {
   border-color: var(--primary);
   background: rgb(var(--primary-rgb) / 0.18);
-  box-shadow: 0 0 9px rgb(var(--primary-rgb) / 0.4);
+  box-shadow: 0 0 9px rgb(var(--primary-rgb) / var(--glow-alpha));
 }
 
 .sm-triples {
@@ -7283,7 +7780,7 @@ input.controls__volume {
 }
 
 .sm-triples__head span {
-  font-size: 8.5px;
+  font-size: 10px;
   letter-spacing: 0.08em;
   color: var(--text-dim);
   text-transform: uppercase;
@@ -7321,7 +7818,7 @@ input.controls__volume {
 
 .sm-triples__empty {
   padding: 4px;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-dim);
   text-align: center;
 }
@@ -7342,7 +7839,7 @@ input.controls__volume {
 }
 
 .sm-counts__label {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.07em;
   color: var(--text-dim);
@@ -7377,7 +7874,7 @@ input.controls__volume {
 
 .sm-count i {
   font-style: normal;
-  font-size: 8px;
+  font-size: 10px;
   color: var(--text-dim);
 }
 
@@ -7409,7 +7906,7 @@ input.controls__volume {
 .btn--chip {
   flex: 0 0 auto;
   padding: 4px 8px;
-  font-size: 9.5px;
+  font-size: 11px;
   letter-spacing: 0.06em;
 }
 
@@ -7420,7 +7917,7 @@ input.controls__volume {
 }
 
 .md-layouts__label {
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--text-dim);
@@ -7461,7 +7958,7 @@ input.controls__volume {
 }
 
 .md-head__layout {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--yellow);
@@ -7491,7 +7988,7 @@ input.controls__volume {
 }
 
 .md-slice__label {
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.06em;
   color: var(--text-dim);
 }
@@ -7526,7 +8023,7 @@ input.controls__volume {
 
 .md-cell i {
   font-style: normal;
-  font-size: 8px;
+  font-size: 10px;
   color: var(--text-dim);
 }
 
@@ -7565,7 +8062,7 @@ input.controls__volume {
 .md-cell.is-cur {
   border-color: var(--primary);
   background: rgb(var(--primary-rgb) / 0.18);
-  box-shadow: 0 0 10px rgb(var(--primary-rgb) / 0.45);
+  box-shadow: 0 0 10px rgb(var(--primary-rgb) / var(--glow-alpha));
 }
 
 .md-formula {
@@ -7603,7 +8100,7 @@ input.controls__volume {
 .md-tally__item {
   padding: 2px 8px;
   border-radius: 5px;
-  font-size: 10.5px;
+  font-size: 11px;
   border: 1px solid var(--border);
   background: var(--panel-alt);
   color: var(--text);
@@ -7634,7 +8131,7 @@ input.controls__volume {
 }
 
 .md-memory__label {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.07em;
   color: var(--text-dim);
@@ -7661,7 +8158,7 @@ input.controls__volume {
 }
 
 .md-slot b {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text);
   min-height: 13px;
@@ -7669,7 +8166,7 @@ input.controls__volume {
 
 .md-slot i {
   font-style: normal;
-  font-size: 8px;
+  font-size: 10px;
   color: var(--text-dim);
 }
 
@@ -7739,7 +8236,7 @@ input.controls__volume {
 }
 
 .lt-tree__label {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--text-dim);
@@ -7796,7 +8293,7 @@ input.controls__volume {
 /* The null-path length, beside the node rather than in it — the value is
    still the thing you read first. */
 .lt-node__s {
-  font-size: 8.5px;
+  font-size: 10px;
   font-weight: 700;
   fill: var(--yellow);
 }
@@ -7812,7 +8309,7 @@ input.controls__volume {
 }
 
 .lt-spine__label {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.07em;
   color: var(--text-dim);
@@ -7873,7 +8370,7 @@ input.controls__volume {
 
 .lt-forest__item i {
   font-style: normal;
-  font-size: 8px;
+  font-size: 10px;
   color: var(--text-dim);
 }
 
@@ -7914,13 +8411,13 @@ input.controls__volume {
 }
 
 .dq-cost__row span {
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.07em;
   color: var(--text-dim);
 }
 
 .dq-cost__row b {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -7937,7 +8434,7 @@ input.controls__volume {
   padding: 1px 5px;
   border-radius: 4px;
   font-family: "JetBrains Mono", monospace;
-  font-size: 8.5px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--red);
   background: rgb(var(--red-rgb) / 0.12);
@@ -8008,7 +8505,7 @@ input.controls__volume {
 /* Which level of a min-max heap is which — the alternation is the invariant
    and nothing else in the picture shows it. */
 .dq-level {
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;
 }
@@ -8022,7 +8519,7 @@ input.controls__volume {
 }
 
 .dq-end {
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.07em;
   fill: var(--green);
@@ -8110,7 +8607,7 @@ input.controls__volume {
 }
 
 .st-champion__tag {
-  font-size: 8.5px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--text-dim);
@@ -8146,7 +8643,7 @@ input.controls__volume {
 }
 
 .st-node__run {
-  font-size: 8.5px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.04em;
   fill: var(--text-dim);
@@ -8159,7 +8656,7 @@ input.controls__volume {
 }
 
 .st-node__pos {
-  font-size: 8px;
+  font-size: 10px;
   fill: var(--text-dim);
   opacity: 0.7;
 }
@@ -8198,7 +8695,7 @@ input.controls__volume {
 }
 
 .st-leaf__run {
-  font-size: 8px;
+  font-size: 10px;
   fill: var(--text-dim);
 }
 
@@ -8226,7 +8723,7 @@ input.controls__volume {
 }
 
 .st-run__label {
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.06em;
   color: var(--text-dim);
   flex-shrink: 0;
@@ -8257,7 +8754,7 @@ input.controls__volume {
 }
 
 .st-run__spent {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-dim);
   opacity: 0.8;
 }
@@ -8273,7 +8770,7 @@ input.controls__volume {
 }
 
 .st-output__label {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.07em;
   color: var(--text-dim);
@@ -8299,7 +8796,7 @@ input.controls__volume {
 }
 
 .st-output__empty {
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--text-dim);
   opacity: 0.8;
 }

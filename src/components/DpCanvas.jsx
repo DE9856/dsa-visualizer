@@ -111,7 +111,7 @@ export default function DpCanvas({ step }) {
         </div>
       )}
 
-      <div className="ll-message mono">{step.message}</div>
+      <div className="ll-message">{step.message}</div>
       {step.resultBadge && <div className="result-badge">{step.resultBadge}</div>}
     </div>
   );

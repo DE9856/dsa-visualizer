@@ -128,7 +128,7 @@ export default function HashTableCanvas({ step }) {
         />
       )}
 
-      <div className="ll-message mono">{step.message}</div>
+      <div className="ll-message">{step.message}</div>
       {step.notFound && <div className="not-found">{step.overflow ? "TABLE FULL" : "NOT FOUND"}</div>}
       {step.resultBadge && <div className="result-badge">{step.resultBadge}</div>}
     </div>

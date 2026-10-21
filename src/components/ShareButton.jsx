@@ -37,7 +37,7 @@ export default function ShareButton({ url, label = "SHARE", className = "" }) {
   return (
     <div className="share">
       <button
-        className={`btn ${className} ${state === "copied" ? "active" : ""}`}
+        className={`btn ${className} ${state === "copied" ? "is-done" : ""}`}
         onClick={copy}
         title="Copy a link to this setup"
       >

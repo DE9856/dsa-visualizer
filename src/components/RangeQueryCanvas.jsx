@@ -20,7 +20,7 @@ export default function RangeQueryCanvas({ step }) {
     return (
       <div className="panel canvas rq-canvas">
         <div className="ll-empty mono">EMPTY ARRAY</div>
-        <div className="ll-message mono">{step.message}</div>
+        <div className="ll-message">{step.message}</div>
       </div>
     );
   }
@@ -82,7 +82,7 @@ export default function RangeQueryCanvas({ step }) {
         </div>
       </div>
 
-      <div className="ll-message mono">{step.message}</div>
+      <div className="ll-message">{step.message}</div>
       {step.resultBadge && <div className="result-badge">{step.resultBadge}</div>}
     </div>
   );

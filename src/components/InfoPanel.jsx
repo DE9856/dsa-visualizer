@@ -9,7 +9,7 @@ export default function InfoPanel({ meta, step }) {
   return (
     <div className="panel info">
       <div className="info__summary">
-        <div className="info__title">{meta.label}</div>
+        <h2 className="info__title">{meta.label}</h2>
         <p className="info__desc">{meta.desc}</p>
         <div className="info__complexity">
           <div><span>BEST </span>{meta.time.best}</div>

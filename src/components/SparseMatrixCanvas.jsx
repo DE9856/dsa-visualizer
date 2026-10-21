@@ -30,7 +30,7 @@ export default function SparseMatrixCanvas({ step }) {
 
       {step.counts && <CountStrip counts={step.counts} />}
 
-      <div className="ll-message mono">{step.message}</div>
+      <div className="ll-message">{step.message}</div>
       {step.notFound && <div className="not-found">NOT STORED</div>}
       {step.resultBadge && <div className="result-badge">{step.resultBadge}</div>}
     </div>

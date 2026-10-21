@@ -2332,37 +2332,30 @@ implicit `/favicon.ico` request, because that implicit request is only made when
 `<link rel="icon">` matches, and the `.ico` is what a bookmark bar or a pinned tab reaches
 for.
 
-The set is generated from one high-resolution logo, and two details are worth keeping if
-it is ever regenerated. Each size is rendered in a single downscale from the original
-rather than by resampling a larger icon down a chain, because a 16px icon that has been
-through three resamples is mush. And the mark is **unpremultiplied from the black field it
-was drawn on** — treating luminance as coverage and dividing the colour back out — so that
-its glow and antialiased edges can be composited onto the app's own `#0b0d12` background
-without leaving a black halo where the original field used to be. Tab icons take the mark
-almost to the frame edge; the touch and manifest icons keep a margin, since the platform
-rounds their corners. Note that the margin is *not* tight enough to declare the manifest
-icons `maskable`: that safe area is a circle 80% of the canvas across, and this mark's
-diagonal would need to be scaled to about 58% of the frame to fit inside one, which looks
-shrunken when the icon is shown unmasked.
+The mark is the same short trace the app draws beside its wordmark (`BrandMark.jsx`): a
+level line that steps up, holds, and settles, in Signal Amber. It is drawn from three SVG
+masters in `design/icons/`, and two details are worth keeping if it is ever regenerated.
+**The 16px icon has its own drawing** (`tab16.svg`), with every corner on a whole pixel and
+a 2px stroke, because scaling the 32px drawing down lands its edges between pixels and the
+step blurs into a smudge; 32px and up come from `tab32.svg`. And **the touch and manifest
+icons come from `tile.svg`**, which puts the trace on the app's `#0b0d12` ground with a
+faint zero line and a soft glow, so on a home screen it reads as the instrument rather
+than as a loose squiggle. The margin there is generous but not enough to declare the
+manifest icons `maskable` — that safe area is a circle 80% of the canvas across.
 
 **The tab icons are transparent and the rest are not**, which is deliberate rather than an
 oversight. A tab strip is dark in dark mode and light in light mode and the browser draws
 the favicon straight onto it, so an icon carrying its own dark ground reads as a dark tile
-on a light strip; with alpha the mark sits on whatever the strip is. `favicon.ico` is
-transparent for the same reason — it is what a bookmark bar and a pinned tab reach for.
-The touch and manifest icons keep the app's `#0b0d12` ground instead, for two reasons:
-iOS composites a transparent `apple-touch-icon` onto a background of its own choosing
-rather than leaving it clear, so alpha there means giving up control of what shows
-through; and the mark's gradient runs light, having been drawn to glow on a dark ground,
-so on the white circle a launcher puts a non-maskable icon in, its pale end goes
-low-contrast.
+on a light strip; with alpha the trace sits on whatever the strip is, and its amber holds
+on both. `favicon.ico` is transparent for the same reason — it is what a bookmark bar and a
+pinned tab reach for. The touch and manifest icons keep the dark ground because iOS
+composites a transparent `apple-touch-icon` onto a background of its own choosing.
 
-Getting the alpha this way — unpremultiplying from the source's own black field — is also
-why there is no fringe. A background-removal tool has to *detect* the background and
-erase it, and every pixel along an antialiased edge is a blend it can only guess at: on
-this logo one such tool left about a third of its edge pixels still carrying the black
-tint, which shows as a dirty halo the moment the icon lands on a light strip. Dividing the
-black out instead is exact, and leaves none.
+To regenerate, render each master with ImageMagick (`magick -background none tab16.svg
+favicon-16x16.png`, and `tab32.svg` at 32, 48, 64, 128 and 256; `tile.svg` at 512, then
+192 and 180 downscaled from that once). Build `favicon.ico` from the six tab PNGs as
+PNG-compressed entries rather than ImageMagick's default BMP ones — the BMP version of the
+same six sizes is about forty times larger (370 kB against 9 kB).
 
 ```
 src/

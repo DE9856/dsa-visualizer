@@ -4,6 +4,31 @@ import { CATEGORIES } from "../data/categories.js";
 import { useIsMobile } from "../hooks/useMediaQuery.js";
 import ShareButton from "./ShareButton.jsx";
 import ThemeMenu from "./ThemeMenu.jsx";
+import BrandMark from "./BrandMark.jsx";
+
+/**
+ * The wordmark, and the way home. A real button rather than a clickable div,
+ * so it can be reached and pressed from the keyboard like every other control.
+ */
+function Wordmark({ text, onGoHome }) {
+  const body = (
+    <>
+      <BrandMark className="topbar__mark" />
+      <span className="mono">{text}</span>
+    </>
+  );
+  return (
+    <h1 className="topbar__wordmark">
+      {onGoHome ? (
+        <button type="button" className="topbar__home" onClick={onGoHome} title="All categories">
+          {body}
+        </button>
+      ) : (
+        <span className="topbar__home">{body}</span>
+      )}
+    </h1>
+  );
+}
 
 export default function TopBar({ category, onCategoryChange, onGoHome, shareUrl, onExport, appearance }) {
   const [openMenu, setOpenMenu] = useState(null);
@@ -85,9 +110,8 @@ export default function TopBar({ category, onCategoryChange, onGoHome, shareUrl,
   if (isMobile) {
     return (
       <div className="topbar topbar--mobile" ref={rootRef}>
-        <div className="topbar__title" onClick={onGoHome}>
-          <span className="topbar__mark">&#9642;</span>
-          <h1 className="mono">DSA://VIS</h1>
+        <div className="topbar__title">
+          <Wordmark text="DSA://VIS" onGoHome={onGoHome} />
           {activeItem && <span className="topbar__now mono">{activeItem.label}</span>}
         </div>
 
@@ -170,13 +194,8 @@ export default function TopBar({ category, onCategoryChange, onGoHome, shareUrl,
 
   return (
     <div className="topbar" ref={rootRef}>
-      <div
-        className={`topbar__title ${onGoHome ? "topbar__title--clickable" : ""}`}
-        onClick={onGoHome}
-        title={onGoHome ? "Back to category select" : undefined}
-      >
-        <span className="topbar__mark">&#9642;</span>
-        <h1 className="mono">DSA://VISUALIZER</h1>
+      <div className="topbar__title">
+        <Wordmark text="DSA://VISUALIZER" onGoHome={onGoHome} />
       </div>
       {appearance && (
         <ThemeMenu

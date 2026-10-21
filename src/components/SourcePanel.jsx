@@ -140,7 +140,7 @@ export default function SourcePanel({ algoKey, pseudocode, activeLine, codeLabel
         )}
 
         <button
-          className={`btn source__copy ${copied ? "active" : ""}`}
+          className={`btn source__copy ${copied ? "is-done" : ""}`}
           onClick={copy}
           disabled={pending || failed}
           title="Copy this code"

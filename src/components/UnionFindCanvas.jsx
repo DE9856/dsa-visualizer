@@ -74,7 +74,7 @@ export default function UnionFindCanvas({ step }) {
         <div className="ll-empty mono" style={{ justifyContent: "center", width: "100%" }}>
           {"NO ELEMENTS"}
         </div>
-        <div className="ll-message mono">{step.message}</div>
+        <div className="ll-message">{step.message}</div>
       </div>
     );
   }
@@ -195,7 +195,7 @@ export default function UnionFindCanvas({ step }) {
         </div>
       </div>
 
-      <div className="ll-message mono">{step.message}</div>
+      <div className="ll-message">{step.message}</div>
       {step.notFound && <div className="not-found">{step.overflow ? "FULL" : "NOT CONNECTED"}</div>}
       {step.resultBadge && <div className="result-badge">{step.resultBadge}</div>}
     </div>

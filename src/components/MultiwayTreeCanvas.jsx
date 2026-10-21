@@ -101,8 +101,8 @@ export default function MultiwayTreeCanvas({ step }) {
   return (
     <div className="panel canvas graph-canvas tree-canvas">
       {!root ? (
-        <div className="ll-empty mono" style={{ justifyContent: "center", width: "100%" }}>
-          {"EMPTY TREE \u2014 INSERT A VALUE TO BEGIN"}
+        <div className="ll-empty ll-empty--sentence" style={{ justifyContent: "center", width: "100%" }}>
+          {"Empty tree \u2014 insert a value to begin"}
         </div>
       ) : (
         <div className="canvas-scroll">
@@ -218,7 +218,7 @@ export default function MultiwayTreeCanvas({ step }) {
         </div>
       )}
 
-      <div className="ll-message mono">{step.message}</div>
+      <div className="ll-message">{step.message}</div>
       {step.notFound && !step.resultBadge && <div className="not-found">NOT FOUND</div>}
       {step.resultBadge && <div className="result-badge">{step.resultBadge}</div>}
     </div>

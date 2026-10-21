@@ -138,6 +138,54 @@ TREES; and optimal binary search trees join the dynamic programming family.
 
 ### Changed
 
+- **Glows follow the high-contrast setting everywhere.** Four canvas highlights — the
+  active recursion call, the expression cursor, and the current sparse-matrix and
+  array-layout cells — had a fixed glow alpha and stayed lit under high contrast; they now
+  go through `--glow-alpha` like every other glow.
+- **A type floor of 11px.** Every label, caption, legend, tag and table header that was
+  set at 8–10.5px is now 11px, and index marks inside fixed-size cells are 10px. Sidebar
+  group headings (Build, Query, Traversal…) were 9.5px at 80% opacity — smaller and fainter
+  than the rows under them — and now head them. Each step's narration is set at 14px in
+  full ink rather than as a 12px grey caption, since it is the line read aloud in a
+  lecture. Canvas hints, empty-canvas messages and the not-found heading were sentences
+  typed in capitals; they are now sentence case in the text face. Short control labels
+  (EXPORT, VALUE, OPERATIONS) keep their capitals.
+- **Names in the text face, measurements in mono.** Algorithm and operation lists, panel
+  titles and topic titles use IBM Plex Sans; JetBrains Mono stays on controls, values,
+  counters and code. Panel titles are `h2` elements, so each view has a heading
+  structure under the app's `h1`. All figures use tabular digits so counters don't jitter
+  while a run plays.
+- **The landing page says what the app is.** A plain sentence replaces "choose a category
+  to start visualizing", above a count of views and families computed from the registry.
+  Each family's card carries a small drawing of its own structure in its accent — bars for
+  arrays, a tree, a graph, a filled DP table, a pruned search tree — and lists its topics
+  while closed, so the whole map reads without opening anything. Trees, the largest
+  family, spans two columns, which closes the grid that used to leave an orphan card; closed
+  cards in a row now end on the same line. The page no longer fades in on every return.
+- **The landing page runs.** A real sort plays in the header — quick sort, insertion
+  sort, merge sort and heap sort in turn, each on a fresh array, built from the same
+  algorithm code and state colours as the sorting view — and clicking it opens that view.
+  It pauses while scrolled away or in a background tab, and under reduced motion it shows
+  one still frame from mid-run instead. On the first open of a page load, the header
+  settles in line by line, the cards rise in order, and each family's drawing is traced
+  like a beam crossing the screen; returning to the page from a view shows it at once.
+- **A fresh run says where to start.** While a run is loaded and has not started, the
+  play button is filled amber rather than outlined, so the first thing to press is the
+  one solid control on screen.
+- **The favicon is the wave mark.** The orange "DV" set is replaced by the short trace
+  drawn beside the wordmark, so the tab and the app carry the same mark. The 16px tab
+  icon has its own pixel-snapped drawing; the touch and manifest icons put the trace on
+  the app's dark ground with a soft glow. The SVG masters are kept in `design/icons/`,
+  and `favicon.ico` is now PNG-compressed (9 kB for six sizes).
+- **Interaction feedback.** Buttons answer a press with a slight scale instead of a 1px
+  nudge, and transition only colour, fill, border and transform rather than `all`. Menus
+  and the appearance panel grow from the control that opened them, the export dialog from
+  its centre, and the phone's sheets use a drawer curve; all of it collapses under reduced
+  motion. Copying code or a share link now turns the button green with a tick — it used to
+  reuse the "selected" style. Text fields show a soft focus ring as well as a coloured
+  border, hovering a landing card lifts it only under a real pointer, and selection,
+  caret and scrollbars are themed from the palette.
+
 - **New favicon set.** The blue "DV" wordmark is replaced by an orange one carrying a bar
   chart above the D and a line chart for the V, which also puts the icon on the app's own
   accent colour. Every size is rendered in one pass from the 1254px original rather than
@@ -178,6 +226,20 @@ TREES; and optimal binary search trees join the dynamic programming family.
   easy to forget and invisible until someone shares a link or opens the view on a phone.
 
 ### Fixed
+
+- **The wordmark could not be reached from the keyboard.** It was a `div` with a click
+  handler, so the way back to the category page needed a mouse. It is now a button — the
+  first tab stop on every view — and the `▪` character beside it is a drawn mark.
+- **Native dropdowns were unreadable in the light theme.** The open option list had a
+  hard-coded near-black background under dark text; it now takes the surface colour.
+- **The root's balance factor was clipped on AVL trees.** The `bf:` label above the root
+  rose out of the drawing; the layout now leaves room above the first level.
+- **EXPORT covered the end of full-width canvas headers.** The corner reserved for the
+  floating buttons was still sized for SHARE alone, so the hash table's load-factor
+  read-out (`α 0.57`) sat underneath EXPORT, and so did the end of the expression input.
+  The reservation now covers both buttons.
+- **On tablets the category tabs wrapped to four or five rows** beside the wordmark. The
+  wordmark now takes its own line between 761 and 1100px and the tabs use the full width.
 
 - **The tree view described a BST whatever type was selected.** The topic panel was keyed
   to the view rather than the type, so it was titled "Tree (Binary Search Tree)" and

@@ -119,7 +119,7 @@ export default function DynamicHashCanvas({ step }) {
         </div>
       </div>
 
-      <div className="ll-message mono">{step.message}</div>
+      <div className="ll-message">{step.message}</div>
       {step.notFound && <div className="not-found">NOT FOUND</div>}
       {step.resultBadge && <div className="result-badge">{step.resultBadge}</div>}
     </div>

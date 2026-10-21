@@ -1,0 +1,746 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-21T11:28:02.754Z",
+  "title": "Design System: DSA Visualizer",
+  "extensions": {
+    "colorMeta": {
+      "signal-amber": {
+        "role": "primary",
+        "displayName": "Signal Amber",
+        "canonical": "oklch(75.0% 0.167 50)",
+        "cssSource": "src/index.css --primary-rgb (dark)",
+        "tonalRamp": [
+          "#280000",
+          "#510000",
+          "#7e1f00",
+          "#ac3e00",
+          "#d56400",
+          "#fc8c45",
+          "#ffb57a",
+          "#ffd7a2"
+        ]
+      },
+      "signal-amber-light": {
+        "role": "primary",
+        "displayName": "Signal Amber (light theme)",
+        "canonical": "oklch(53.3% 0.151 44)",
+        "cssSource": "src/index.css --primary-rgb (light)",
+        "tonalRamp": [
+          "#270000",
+          "#500300",
+          "#7c2200",
+          "#a84100",
+          "#d16630",
+          "#f98d5b",
+          "#ffb58a",
+          "#ffd7af"
+        ]
+      },
+      "trace-cyan": {
+        "role": "secondary",
+        "displayName": "Trace Cyan",
+        "canonical": "oklch(73.7% 0.112 226)",
+        "cssSource": "src/index.css --blue-rgb / --state-compare-rgb",
+        "tonalRamp": [
+          "#000e23",
+          "#002d48",
+          "#004e70",
+          "#007297",
+          "#2496bd",
+          "#54bce4",
+          "#86dfff",
+          "#adfbff"
+        ]
+      },
+      "trace-cyan-light": {
+        "role": "secondary",
+        "displayName": "Trace Cyan (light theme)",
+        "canonical": "oklch(50.9% 0.102 235)",
+        "cssSource": "src/index.css --blue-rgb (light)",
+        "tonalRamp": [
+          "#000d24",
+          "#002b4a",
+          "#004b72",
+          "#146e98",
+          "#4292be",
+          "#69b8e6",
+          "#94dbff",
+          "#b8f8ff"
+        ]
+      },
+      "settled-green": {
+        "role": "secondary",
+        "displayName": "Settled Green",
+        "canonical": "oklch(79.3% 0.134 161)",
+        "cssSource": "src/index.css --green-rgb / --state-sorted-rgb, --state-found-rgb",
+        "tonalRamp": [
+          "#001401",
+          "#003414",
+          "#00582f",
+          "#007c4c",
+          "#19a16f",
+          "#52c793",
+          "#87e9b9",
+          "#afffd9"
+        ]
+      },
+      "settled-green-light": {
+        "role": "secondary",
+        "displayName": "Settled Green (light theme)",
+        "canonical": "oklch(52.5% 0.113 161)",
+        "cssSource": "src/index.css --green-rgb (light)",
+        "tonalRamp": [
+          "#001302",
+          "#003317",
+          "#005632",
+          "#007951",
+          "#3c9e73",
+          "#65c497",
+          "#93e6bc",
+          "#b8ffdc"
+        ]
+      },
+      "swap-red": {
+        "role": "tertiary",
+        "displayName": "Swap Red",
+        "canonical": "oklch(71.2% 0.181 22)",
+        "cssSource": "src/index.css --red-rgb / --state-swap-rgb",
+        "tonalRamp": [
+          "#2b0000",
+          "#570001",
+          "#860017",
+          "#b72531",
+          "#e25053",
+          "#ff7c7a",
+          "#ffa7a3",
+          "#ffcbc5"
+        ]
+      },
+      "swap-red-light": {
+        "role": "tertiary",
+        "displayName": "Swap Red (light theme)",
+        "canonical": "oklch(53.1% 0.187 26)",
+        "cssSource": "src/index.css --red-rgb (light)",
+        "tonalRamp": [
+          "#2c0000",
+          "#580000",
+          "#880008",
+          "#b92123",
+          "#e44e48",
+          "#ff7b70",
+          "#ffa79b",
+          "#ffcabe"
+        ]
+      },
+      "pivot-violet": {
+        "role": "tertiary",
+        "displayName": "Pivot Violet",
+        "canonical": "oklch(72.2% 0.165 296)",
+        "cssSource": "src/index.css --purple-rgb / --state-pivot-rgb",
+        "tonalRamp": [
+          "#130030",
+          "#2f0d5a",
+          "#4f2b88",
+          "#724ab7",
+          "#956fdf",
+          "#b996ff",
+          "#dabdff",
+          "#f7deff"
+        ]
+      },
+      "pivot-violet-light": {
+        "role": "tertiary",
+        "displayName": "Pivot Violet (light theme)",
+        "canonical": "oklch(48.8% 0.190 294)",
+        "cssSource": "src/index.css --purple-rgb (light)",
+        "tonalRamp": [
+          "#130035",
+          "#2e0662",
+          "#4e2692",
+          "#7045c5",
+          "#926bee",
+          "#b694ff",
+          "#d7bcff",
+          "#f3ddff"
+        ]
+      },
+      "caution-gold": {
+        "role": "tertiary",
+        "displayName": "Caution Gold",
+        "canonical": "oklch(84.3% 0.141 85)",
+        "cssSource": "src/index.css --yellow-rgb",
+        "tonalRamp": [
+          "#1b0400",
+          "#3e1e00",
+          "#633c00",
+          "#8a5d00",
+          "#af8100",
+          "#d5a632",
+          "#f5cb6f",
+          "#ffea99"
+        ]
+      },
+      "caution-gold-light": {
+        "role": "tertiary",
+        "displayName": "Caution Gold (light theme)",
+        "canonical": "oklch(52.7% 0.108 78)",
+        "cssSource": "src/index.css --yellow-rgb (light)",
+        "tonalRamp": [
+          "#1b0400",
+          "#3d1e00",
+          "#623c00",
+          "#875d00",
+          "#ac8133",
+          "#d3a65a",
+          "#f4ca87",
+          "#ffe8ad"
+        ]
+      },
+      "phosphor-black": {
+        "role": "neutral",
+        "displayName": "Phosphor Black",
+        "canonical": "oklch(15.9% 0.011 267)",
+        "cssSource": "src/index.css --bg (dark)",
+        "tonalRamp": [
+          "#090b10",
+          "#24262c",
+          "#42454b",
+          "#63666d",
+          "#868990",
+          "#abaeb5",
+          "#ced1d9",
+          "#ebeef6"
+        ]
+      },
+      "bezel-graphite": {
+        "role": "neutral",
+        "displayName": "Bezel Graphite",
+        "canonical": "oklch(21.8% 0.016 268)",
+        "cssSource": "src/index.css --surface-rgb (dark), used at 0.72 alpha as --panel",
+        "tonalRamp": [
+          "#080b12",
+          "#23262f",
+          "#41454e",
+          "#626670",
+          "#858993",
+          "#a9aeb9",
+          "#ccd1dc",
+          "#eaeefa"
+        ]
+      },
+      "overlay-graphite": {
+        "role": "neutral",
+        "displayName": "Overlay Graphite",
+        "canonical": "oklch(19.1% 0.015 266)",
+        "cssSource": "src/index.css --overlay-rgb (dark)",
+        "tonalRamp": [
+          "#080b12",
+          "#23262e",
+          "#41454d",
+          "#62666f",
+          "#858993",
+          "#aaaeb8",
+          "#ccd1db",
+          "#eaeef9"
+        ]
+      },
+      "trace-white": {
+        "role": "neutral",
+        "displayName": "Trace White",
+        "canonical": "oklch(94.0% 0.007 88)",
+        "cssSource": "src/index.css --text (dark)",
+        "tonalRamp": [
+          "#0c0b08",
+          "#282623",
+          "#464541",
+          "#686662",
+          "#8b8984",
+          "#b0aea9",
+          "#d3d1cc",
+          "#f0eee9"
+        ]
+      },
+      "graticule-grey": {
+        "role": "neutral",
+        "displayName": "Graticule Grey",
+        "canonical": "oklch(65.5% 0.024 271)",
+        "cssSource": "src/index.css --text-dim (dark)",
+        "tonalRamp": [
+          "#080a15",
+          "#222633",
+          "#404452",
+          "#616675",
+          "#848998",
+          "#a8adbe",
+          "#cbd0e2",
+          "#e8eeff"
+        ]
+      },
+      "on-amber": {
+        "role": "neutral",
+        "displayName": "On-Amber",
+        "canonical": "oklch(17.6% 0.012 73)",
+        "cssSource": "src/index.css --on-primary (dark)",
+        "tonalRamp": [
+          "#0e0a06",
+          "#2a2620",
+          "#49443e",
+          "#6a655f",
+          "#8e8881",
+          "#b3ada6",
+          "#d6d0c9",
+          "#f3ede6"
+        ]
+      },
+      "paper-grey": {
+        "role": "neutral",
+        "displayName": "Paper Grey",
+        "canonical": "oklch(96.4% 0.004 271)",
+        "cssSource": "src/index.css --bg (light)",
+        "tonalRamp": [
+          "#0a0b0d",
+          "#262628",
+          "#444547",
+          "#656668",
+          "#88898c",
+          "#adaeb1",
+          "#d0d1d4",
+          "#edeef1"
+        ]
+      },
+      "paper-white": {
+        "role": "neutral",
+        "displayName": "Paper White",
+        "canonical": "oklch(100.0% 0.000 89)",
+        "cssSource": "src/index.css --surface-rgb (light)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#262626",
+          "#454545",
+          "#666666",
+          "#898989",
+          "#aeaeae",
+          "#d1d1d1",
+          "#eeeeee"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "oklch(20.4% 0.013 264)",
+        "cssSource": "src/index.css --text (light)",
+        "tonalRamp": [
+          "#080b11",
+          "#23262d",
+          "#41454c",
+          "#62666e",
+          "#858991",
+          "#aaaeb6",
+          "#cdd1da",
+          "#eaeff7"
+        ]
+      },
+      "ink-dim": {
+        "role": "neutral",
+        "displayName": "Ink Dim",
+        "canonical": "oklch(48.9% 0.027 266)",
+        "cssSource": "src/index.css --text-dim (light)",
+        "tonalRamp": [
+          "#060b17",
+          "#202634",
+          "#3e4554",
+          "#5f6676",
+          "#82899a",
+          "#a6aec0",
+          "#c9d1e3",
+          "#e6efff"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Landing title only."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "App title in the top bar."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Uppercase category labels and panel section headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Blurbs, descriptions, hints and topic prose."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Mono field labels; the most common size in the app."
+      },
+      "control": {
+        "displayName": "Control",
+        "purpose": "Button and input text."
+      },
+      "readout": {
+        "displayName": "Readout",
+        "purpose": "Counters and any number that changes during playback; tabular figures."
+      }
+    },
+    "themeAxes": [
+      {
+        "attribute": "data-theme",
+        "values": [
+          "light",
+          "dark"
+        ],
+        "purpose": "Surface; System follows prefers-color-scheme."
+      },
+      {
+        "attribute": "data-contrast",
+        "values": [
+          "high"
+        ],
+        "purpose": "Modifier: stronger hairlines, dim text, fills and strokes; glow removed."
+      },
+      {
+        "attribute": "data-palette",
+        "values": [
+          "default",
+          "safe"
+        ],
+        "purpose": "Which hues encode algorithm state; safe is measured for dichromacy."
+      }
+    ],
+    "stateTokens": {
+      "idle": {
+        "token": "--state-idle-rgb",
+        "glyph": "",
+        "fill": "--fill-soft"
+      },
+      "compare": {
+        "token": "--state-compare-rgb",
+        "glyph": "↔",
+        "fill": "--fill-mid"
+      },
+      "swap": {
+        "token": "--state-swap-rgb",
+        "glyph": "⇄",
+        "fill": "--fill-strong"
+      },
+      "sorted": {
+        "token": "--state-sorted-rgb",
+        "glyph": "✓",
+        "fill": "--fill-soft"
+      },
+      "pivot": {
+        "token": "--state-pivot-rgb",
+        "glyph": "◆",
+        "fill": "rides alongside another state"
+      },
+      "probe": {
+        "token": "--state-probe-rgb",
+        "glyph": "◎",
+        "fill": "--fill-strong"
+      },
+      "found": {
+        "token": "--state-found-rgb",
+        "glyph": "★",
+        "fill": "--fill-strong"
+      },
+      "muted": {
+        "token": "--state-muted-rgb",
+        "glyph": "",
+        "fill": "0.05"
+      }
+    },
+    "fillStrengths": {
+      "--fill-soft": "0.14 (0.26 high contrast)",
+      "--fill-mid": "0.32 (0.5)",
+      "--fill-strong": "0.5 (0.72)",
+      "--glow-alpha": "0.35 dark / 0.22 light / 0 high contrast",
+      "--stroke-width": "1.5px (2px high contrast)"
+    },
+    "shadows": [
+      {
+        "name": "panel-rest",
+        "value": "0 1px 0 rgb(var(--ink-rgb) / 0.03) inset, 0 10px 30px rgb(var(--shadow-rgb) / 0.25)",
+        "purpose": "Every workspace panel."
+      },
+      {
+        "name": "menu",
+        "value": "0 1px 0 rgb(var(--ink-rgb) / 0.03) inset, 0 14px 32px rgb(var(--shadow-rgb) / 0.4)",
+        "purpose": "Category dropdowns, over a 14px blur."
+      },
+      {
+        "name": "signal-glow",
+        "value": "0 0 16px rgb(var(--primary-rgb) / 0.4)",
+        "purpose": "Selected buttons; tabs use 14px at 0.28."
+      },
+      {
+        "name": "appearance-panel",
+        "value": "0 18px 40px rgb(var(--shadow-rgb) / 0.45)",
+        "purpose": "The appearance menu."
+      },
+      {
+        "name": "dialog",
+        "value": "0 24px 56px rgb(var(--shadow-rgb) / 0.5)",
+        "purpose": "The export dialog."
+      },
+      {
+        "name": "sheet",
+        "value": "0 -16px 44px rgb(var(--shadow-rgb) / 0.55)",
+        "purpose": "Mobile bottom sheet."
+      },
+      {
+        "name": "trace-glow",
+        "value": "0 0 10px rgb(var(--state-…-rgb) / var(--glow-alpha))",
+        "purpose": "Canvas elements only; 0 under high contrast."
+      }
+    ],
+    "motion": [
+      {
+        "name": "step-anim",
+        "value": "var(--step-anim) (240ms default, set from playback speed)",
+        "purpose": "Every step-driven transition; stays shorter than the 700–40ms step gap."
+      },
+      {
+        "name": "ease-bar-height",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Bar height changes."
+      },
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "purpose": "Presses, menus, dialogs, card lift: answers on the first frame."
+      },
+      {
+        "name": "ease-drawer",
+        "value": "cubic-bezier(0.32, 0.72, 0, 1)",
+        "purpose": "Phone sheets (0.32s) and the nav sheet (0.26s)."
+      },
+      {
+        "name": "dur-press",
+        "value": "140ms",
+        "purpose": "Press scale (0.97)."
+      },
+      {
+        "name": "dur-ui",
+        "value": "160ms",
+        "purpose": "Colour, fill and border changes."
+      },
+      {
+        "name": "dur-overlay",
+        "value": "200ms",
+        "purpose": "Menus, the appearance panel and the dialog growing in from their origin."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "0.01ms",
+        "purpose": "prefers-reduced-motion collapses decorative motion; step playback unaffected."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact-landing",
+        "value": "640px"
+      },
+      {
+        "name": "mobile-structural",
+        "value": "760px"
+      },
+      {
+        "name": "narrow",
+        "value": "900px"
+      },
+      {
+        "name": "medium",
+        "value": "1100px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Default pill control: quiet until hovered.",
+      "html": "<button class=\"ds-btn\">STEP</button>",
+      "css": ".ds-btn{font-family:\"JetBrains Mono\",monospace;border:1px solid transparent;background:var(--panel-alt);color:var(--text-dim);border-radius:999px;padding:7px 14px;font-size:12px;cursor:pointer;transition:color 160ms ease,background-color 160ms ease,transform 140ms cubic-bezier(.23,1,.32,1);display:inline-flex;align-items:center;gap:6px} .ds-btn:hover{color:var(--text);background:rgb(var(--ink-rgb) / .07)} .ds-btn:active{transform:scale(.97)} .ds-btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px}"
+    },
+    {
+      "name": "Selected Button",
+      "kind": "button",
+      "refersTo": "button-selected",
+      "description": "A chosen option: filled Signal Amber with a soft glow.",
+      "html": "<button class=\"ds-btn-on\">AVL</button>",
+      "css": ".ds-btn-on{font-family:\"JetBrains Mono\",monospace;border:1px solid transparent;border-radius:999px;padding:7px 14px;font-size:12px;cursor:pointer;color:var(--on-primary);background:var(--primary);box-shadow:0 0 16px rgb(var(--primary-rgb) / .4);transition:transform 140ms cubic-bezier(.23,1,.32,1)} .ds-btn-on:active{transform:scale(.97)} .ds-btn-on:focus-visible{outline:2px solid var(--primary);outline-offset:2px}"
+    },
+    {
+      "name": "Run Button",
+      "kind": "button",
+      "refersTo": "button-run",
+      "description": "The one filled amber control per panel: it runs the operation.",
+      "html": "<button class=\"ds-btn-run\" type=\"submit\">RUN INSERT</button>",
+      "css": ".ds-btn-run{font-family:\"JetBrains Mono\",monospace;font-weight:600;border:1px solid transparent;border-radius:999px;padding:8px 16px;font-size:12px;cursor:pointer;color:var(--on-primary);background:var(--primary);transition:background-color 160ms ease,transform 140ms cubic-bezier(.23,1,.32,1)} .ds-btn-run:hover{background:rgb(var(--primary-rgb) / .88)} .ds-btn-run:active{transform:scale(.97)} .ds-btn-run:focus-visible{outline:2px solid var(--primary);outline-offset:2px}"
+    },
+    {
+      "name": "Done Button",
+      "kind": "button",
+      "refersTo": "button-done",
+      "description": "A finished action (copied): green, with the tick scaling in.",
+      "html": "<button class=\"ds-btn-done\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 6 9 17l-5-5\"/></svg>COPIED</button>",
+      "css": ".ds-btn-done{display:inline-flex;align-items:center;gap:6px;font-family:\"JetBrains Mono\",monospace;border:1px solid rgb(var(--green-rgb) / .4);border-radius:999px;padding:4px 10px;font-size:11px;color:var(--green);background:rgb(var(--green-rgb) / .1)}"
+    },
+    {
+      "name": "Accent Button",
+      "kind": "button",
+      "refersTo": "button-accent",
+      "description": "The one control that starts an operation.",
+      "html": "<button class=\"ds-btn-accent\">INSERT</button>",
+      "css": ".ds-btn-accent{font-family:\"JetBrains Mono\",monospace;background:var(--panel-alt);color:var(--primary);border:1px solid rgb(var(--primary-rgb) / .4);border-radius:10px;padding:7px 14px;font-size:12px;cursor:pointer;transition:all .15s ease} .ds-btn-accent:hover{background:rgb(var(--ink-rgb) / .06)} .ds-btn-accent:active{transform:translateY(1px)} .ds-btn-accent:focus-visible{outline:2px solid var(--primary);outline-offset:2px}"
+    },
+    {
+      "name": "Icon Button",
+      "kind": "button",
+      "refersTo": "button-icon",
+      "description": "Transport controls: play, step, reset.",
+      "html": "<button class=\"ds-btn-icon\" aria-label=\"Play\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polygon points=\"6 3 20 12 6 21 6 3\"/></svg></button>",
+      "css": ".ds-btn-icon{display:inline-flex;padding:9px;border-radius:10px;border:1px solid var(--border);background:var(--panel-alt);color:var(--text-dim);cursor:pointer;transition:all .15s ease} .ds-btn-icon:hover{color:var(--text);background:rgb(var(--ink-rgb) / .06)} .ds-btn-icon:focus-visible{outline:2px solid var(--primary);outline-offset:2px}"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Mono field with a label above; amber border on focus.",
+      "html": "<label class=\"ds-label\">ARRAY</label><input class=\"ds-input\" value=\"38, 27, 43, 3, 9, 82, 10\">",
+      "css": ".ds-label{display:block;font-family:\"JetBrains Mono\",monospace;font-size:11px;letter-spacing:.04em;color:var(--text-dim);margin-bottom:8px} .ds-input{font-family:\"JetBrains Mono\",monospace;width:100%;font-size:12px;padding:8px 10px;border-radius:8px;background:var(--panel-alt);border:1px solid var(--border);color:var(--text)} .ds-input:focus{outline:none;border-color:var(--primary)}"
+    },
+    {
+      "name": "Segmented Toggle",
+      "kind": "chip",
+      "refersTo": "segmented",
+      "description": "Mutually exclusive types in a tray.",
+      "html": "<div class=\"ds-seg\"><button class=\"ds-seg-b ds-seg-on\">SINGLY</button><button class=\"ds-seg-b\">DOUBLY</button><button class=\"ds-seg-b\">CIRCULAR</button></div>",
+      "css": ".ds-seg{display:flex;gap:4px;background:var(--panel-alt);border:1px solid var(--border);border-radius:10px;padding:3px} .ds-seg-b{flex:1;font-family:\"JetBrains Mono\",monospace;font-size:11px;padding:6px 4px;border-radius:8px;border:0;background:none;color:var(--text-dim);cursor:pointer;transition:all .15s ease} .ds-seg-b:hover{color:var(--text)} .ds-seg-on{background:var(--primary);color:var(--on-primary)} .ds-seg-b:focus-visible{outline:2px solid var(--primary);outline-offset:2px}"
+    },
+    {
+      "name": "Top Bar Navigation",
+      "kind": "nav",
+      "refersTo": "button-selected",
+      "description": "Wordmark (the way home) behind a hairline; the open category filled amber.",
+      "html": "<nav class=\"ds-nav\"><span class=\"ds-nav-title\"><span class=\"ds-mark\"><svg width=\"18\" height=\"14\" viewBox=\"0 0 18 14\" fill=\"none\"><path d=\"M1 11H5V3H9.5V11H12.5V7H17\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span>DSA://VISUALIZER</span><button class=\"ds-tab ds-tab-on\">ARRAYS</button><button class=\"ds-tab\">TREES</button><button class=\"ds-tab\">GRAPHS</button></nav>",
+      "css": ".ds-nav{display:flex;align-items:center;gap:4px;flex-wrap:wrap} .ds-nav-title{display:flex;align-items:center;gap:9px;font-family:\"JetBrains Mono\",monospace;font-size:17px;font-weight:700;letter-spacing:-.02em;color:var(--text);padding-right:14px;margin-right:2px;border-right:1px solid var(--border)} .ds-mark{color:var(--primary);display:inline-flex;filter:drop-shadow(0 0 8px rgb(var(--primary-rgb) / .6))} .ds-tab{font-family:\"JetBrains Mono\",monospace;font-size:12px;letter-spacing:.02em;padding:7px 12px;border-radius:999px;border:0;background:none;color:var(--text-dim);cursor:pointer;transition:all .15s ease} .ds-tab:hover{background:var(--panel-alt);color:var(--text)} .ds-tab-on{background:var(--primary);color:var(--on-primary);box-shadow:0 0 14px rgb(var(--primary-rgb) / .28)} .ds-tab:focus-visible{outline:2px solid var(--primary);outline-offset:2px}"
+    },
+    {
+      "name": "Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "The container every workspace region sits in, with a readout inside.",
+      "html": "<div class=\"ds-panel\"><div class=\"ds-lcd\">STEP 14 / 96 · CMP 31 · SWP 9</div></div>",
+      "css": ".ds-panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:0 1px 0 rgb(var(--ink-rgb) / .03) inset,0 10px 30px rgb(var(--shadow-rgb) / .25)} .ds-lcd{font-family:\"JetBrains Mono\",monospace;font-variant-numeric:tabular-nums;letter-spacing:.5px;font-size:12px;color:var(--text-dim)}"
+    },
+    {
+      "name": "Landing Category Card",
+      "kind": "card",
+      "refersTo": "landing-card",
+      "description": "Category card with its own accent dot; lifts when active.",
+      "html": "<div class=\"ds-lcard\" style=\"--accent:var(--green)\"><div class=\"ds-lcard-top\"><svg class=\"ds-glyph\" width=\"64\" height=\"28\" viewBox=\"0 0 64 28\"><path d=\"M32 6L18 15M32 6L46 15M18 15L11 23M18 15L25 23M46 15L53 23\"/><circle cx=\"32\" cy=\"5\" r=\"3.2\" class=\"on\"/><circle cx=\"18\" cy=\"15\" r=\"3\"/><circle cx=\"46\" cy=\"15\" r=\"3\"/><circle cx=\"11\" cy=\"23\" r=\"2.6\"/><circle cx=\"25\" cy=\"23\" r=\"2.6\"/><circle cx=\"53\" cy=\"23\" r=\"2.6\"/></svg><span class=\"ds-count\">11 views</span></div><div class=\"ds-lcard-label\">TREES</div><p class=\"ds-blurb\">Branching structures and how they stay balanced.</p><p class=\"ds-topics\">Tree · 2-3 Tree · B-Tree &amp; B+ Tree · Heap · Leftist Tree</p></div>",
+      "css": ".ds-lcard{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px 20px 20px;cursor:pointer;transition:border-color 160ms ease,transform 160ms cubic-bezier(.23,1,.32,1);max-width:320px} .ds-lcard:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 14px 32px rgb(var(--shadow-rgb) / .35)} .ds-lcard-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px} .ds-glyph{color:var(--accent);filter:drop-shadow(0 0 6px color-mix(in srgb,var(--accent) 45%,transparent))} .ds-glyph *{fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round} .ds-glyph .on{fill:currentColor;fill-opacity:.35} .ds-lcard-label{font-family:\"JetBrains Mono\",monospace;font-size:13px;font-weight:600;letter-spacing:.06em;color:var(--text);margin-bottom:8px} .ds-count{font-family:\"JetBrains Mono\",monospace;font-size:12px;color:var(--text-dim)} .ds-blurb{font-family:\"IBM Plex Sans\",sans-serif;font-size:14px;line-height:1.5;color:var(--text-dim);margin:0} .ds-topics{font-family:\"IBM Plex Sans\",sans-serif;font-size:13px;line-height:1.5;color:var(--text);opacity:.82;margin:12px 0 0}"
+    },
+    {
+      "name": "State Bars",
+      "kind": "custom",
+      "refersTo": "bar",
+      "description": "Signature: fill, stroke, glow and glyph per algorithm state.",
+      "html": "<div class=\"ds-bars\"><div class=\"ds-bar\" style=\"--s:var(--state-idle-rgb);--f:var(--fill-soft);height:40%\"><i></i></div><div class=\"ds-bar\" style=\"--s:var(--state-compare-rgb);--f:var(--fill-mid);height:70%\"><i>↔</i></div><div class=\"ds-bar\" style=\"--s:var(--state-compare-rgb);--f:var(--fill-mid);height:55%\"><i>↔</i></div><div class=\"ds-bar\" style=\"--s:var(--state-swap-rgb);--f:var(--fill-strong);height:85%\"><i>⇄</i></div><div class=\"ds-bar\" style=\"--s:var(--state-pivot-rgb);--f:var(--fill-mid);height:60%\"><i>◆</i></div><div class=\"ds-bar\" style=\"--s:var(--state-sorted-rgb);--f:var(--fill-soft);height:95%\"><i>✓</i></div></div>",
+      "css": ".ds-bars{display:flex;align-items:flex-end;gap:6px;height:140px;padding:24px 12px 12px;background:var(--bg);border-radius:14px} .ds-bar{flex:1;position:relative;border-radius:4px 4px 2px 2px;background:rgb(var(--s) / var(--f));border:var(--stroke-width) solid rgb(var(--s));box-shadow:0 0 10px rgb(var(--s) / var(--glow-alpha));transition:height var(--step-anim) cubic-bezier(.4,0,.2,1),background-color var(--step-anim) ease} .ds-bar i{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-style:normal;font-size:11px;color:rgb(var(--s))}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Oscilloscope",
+    "overview": "The app is an instrument screen. A near-black field lit by three soft washes — amber from the top left, cyan from the top right, violet from below — and on it traces in saturated hues that each mean exactly one thing: comparing, swapping, in place, pivot, probing, found, with untouched elements glowing Signal Amber. The chrome around the screen is the bezel — translucent graphite, mono-labelled — and where you are is lit in the same amber: the open category, the chosen algorithm, the selected toggle. Glow is how a trace looks on phosphor, which is why the dark theme is the reference rendering; light and high-contrast are re-tunings of the same instrument, not different products.\n\nDensity is high and deliberate: a sidebar of controls, a canvas, a readout panel, a transport bar, all on one screen, because the user is operating something and watching it at once. Everything is driven from a small set of primitives on `:root` — six hue channels, one overlay ink, a surface — and three independent axes on `<html>` (`data-theme`, `data-contrast`, `data-palette`) re-point them. Components never know which theme, contrast or palette is active.\n\nMeaning is carried twice. Every state hue has a glyph beside it (`↔ ⇄ ✓ ◆ ◎ ★`), a fill strength, and in some views a tone, so no reading of the screen depends on hue alone.",
+    "keyCharacteristics": [
+      "A near-black phosphor field with three soft radial washes (amber, cyan, violet); light theme is cool paper.",
+      "State hues named for what they mean (`--state-compare-rgb`), never for their colour; idle is Signal Amber in the default palette.",
+      "Translucent fills mixed from bare RGB channels: tinted body, solid stroke, optional glow.",
+      "JetBrains Mono for controls, values, counters and code; IBM Plex Sans for names, titles, narration and prose.",
+      "Signal Amber for the current place and the current choice: filled, with a soft glow.",
+      "A drawn trace mark, and a drawn structure glyph for each family on the landing page.",
+      "Three composable appearance axes; high contrast strips glow and thickens strokes."
+    ],
+    "rules": [
+      {
+        "name": "The Meaning-Not-Hue Rule",
+        "body": "Canvases read only `--state-*-rgb` tokens. A component never names a hue for a state; the palette decides which hue a meaning gets.",
+        "section": "colors"
+      },
+      {
+        "name": "The Lit Choice Rule",
+        "body": "What you have chosen is lit: a selected button, tab or menu item is filled Signal Amber with On-Amber text and a soft amber glow; a selected list row or code tab is amber text on `--primary-dim`. `--active-fill` (a neutral step) is only for toggled icon buttons such as sound and the shortcut help.",
+        "section": "colors"
+      },
+      {
+        "name": "The Second Channel Rule",
+        "body": "No state is shown by colour alone. A new state ships with a glyph in `stateStyle.js` and a label, or it does not ship.",
+        "section": "colors"
+      },
+      {
+        "name": "The Primitive Override Rule",
+        "body": "Themes, contrast and palettes redefine primitives (`--ink-rgb`, the six hue channels, `--fill-*`), never component styles. If a theme needs a component-specific rule, the primitive is missing.",
+        "section": "colors"
+      },
+      {
+        "name": "The Readout Rule",
+        "body": "Any number that changes during playback is mono with tabular figures, so the digits don't jitter as they count.",
+        "section": "typography"
+      },
+      {
+        "name": "The Projection Floor Rule",
+        "body": "No text below 11px, except an index mark inside a cell that is sized for it (10px).",
+        "section": "typography"
+      },
+      {
+        "name": "The Silkscreen Rule",
+        "body": "Capitals label a control in three words or fewer. Anything that reads as a sentence is set in sentence case.",
+        "section": "typography"
+      },
+      {
+        "name": "The No Sideways Scroll Rule",
+        "body": "The page never scrolls horizontally at any width. Anything wide scrolls inside its own container.",
+        "section": "layout"
+      },
+      {
+        "name": "The Droppable Glow Rule",
+        "body": "Glow is part of the identity on dark, but it never carries meaning on its own; canvas glows go through `--glow-alpha` so high contrast can remove them, and anything that only reads because it glows is broken.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Static Blur Rule",
+        "body": "Never transform an element that has a `backdrop-filter`; the backdrop re-blurs every frame. Panels and cards carry no blur, only overlays do.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** mix every new fill or border from the existing channels: `rgb(var(--state-compare-rgb) / var(--fill-mid))`, `rgb(var(--ink-rgb) / 0.08)`.",
+      "**Do** give every new state a glyph, a label and a fill strength in `stateStyle.js`.",
+      "**Do** time step-driven transitions with `var(--step-anim)` so they never outlast the gap between steps; interface motion uses `--dur-press` / `--dur-ui` / `--dur-overlay` with `--ease-out` (or `--ease-drawer` for sheets), and `--control-transition` on controls.",
+      "**Do** light a selected state in Signal Amber (filled for buttons and tabs, amber text on `--primary-dim` for rows and code tabs).",
+      "**Do** check new work in all three axes: light and dark, high contrast on and off, default and safe palette.",
+      "**Do** put every control label, value and counter in JetBrains Mono.",
+      "**Do** keep all styling in `src/index.css`, with colours defined as tokens on `:root`."
+    ],
+    "donts": [
+      "**Don't** hardcode a hex or `rgb()` value in a component; a palette or theme switch will miss it. (Category accents in `categories.js` point at `var(--…)` for this reason.)",
+      "**Don't** use Signal Amber as a border flourish or for body emphasis.",
+      "**Don't** put a `backdrop-filter` on a panel or card; blur is for overlays.",
+      "**Don't** write a sentence in capitals.",
+      "**Don't** use `transition: all`.",
+      "**Don't** let glow or hue be the only way something reads.",
+      "**Don't** put new canvas or label text below 11px.",
+      "**Don't** let anything scroll the page sideways at any width.",
+      "**Don't** add a webfont, icon CDN or remote asset; fonts are self-hosted and the app contacts no third party.",
+      "**Don't** animate a transform on an element with `backdrop-filter`."
+    ]
+  }
+}

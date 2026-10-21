@@ -32,7 +32,7 @@ export default function NotFound({ requested, onHome, appearance }) {
 
       <div className="notfound">
         <div className="notfound__code mono">404</div>
-        <h1 className="notfound__title mono">NOTHING TO VISUALIZE HERE</h1>
+        <h1 className="notfound__title mono">Nothing to visualize here</h1>
         <p className="notfound__blurb">
           This link points at a view the visualizer doesn&rsquo;t have. It was probably cut short on its
           way here &mdash; a shared link carries its whole setup in the address, so losing the end of one

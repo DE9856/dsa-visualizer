@@ -54,7 +54,7 @@ export default function HuffmanCanvas({ step }) {
       <div className="panel canvas hf-canvas">
         <div className="hf-empty mono">{step.message ? "" : "NOTHING BUILT YET"}</div>
         {step.aux && <AuxRow aux={step.aux} />}
-        <div className="ll-message mono">{step.message}</div>
+        <div className="ll-message">{step.message}</div>
       </div>
     );
   }
@@ -110,7 +110,7 @@ export default function HuffmanCanvas({ step }) {
       </div>
 
       {step.aux && <AuxRow aux={step.aux} />}
-      <div className="ll-message mono">{step.message}</div>
+      <div className="ll-message">{step.message}</div>
       {step.resultBadge && <div className="result-badge">{step.resultBadge}</div>}
     </div>
   );

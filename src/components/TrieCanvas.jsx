@@ -92,8 +92,8 @@ export default function TrieCanvas({ step }) {
       </div>
 
       {nodeCount === 0 ? (
-        <div className="ll-empty mono" style={{ justifyContent: "center", width: "100%" }}>
-          {"EMPTY TRIE — INSERT A WORD TO BEGIN"}
+        <div className="ll-empty ll-empty--sentence" style={{ justifyContent: "center", width: "100%" }}>
+          {"Empty trie — insert a word to begin"}
         </div>
       ) : (
         <div className="canvas-scroll">
@@ -179,7 +179,7 @@ export default function TrieCanvas({ step }) {
         </div>
       )}
 
-      <div className="ll-message mono">{step.message}</div>
+      <div className="ll-message">{step.message}</div>
       {step.notFound && <div className="not-found">{step.overflow ? "TRIE FULL" : "NOT FOUND"}</div>}
       {step.resultBadge && <div className="result-badge">{step.resultBadge}</div>}
     </div>

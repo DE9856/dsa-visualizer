@@ -55,7 +55,9 @@ export default function Controls({
             <SkipBack size={15} />
           </button>
           <button
-            className="btn icon accent"
+            // Filled while a run is loaded and untouched: on a fresh view the
+            // first thing to do is press this, so it is the one solid control.
+            className={`btn icon accent ${hasRun && current === 0 && !playing ? "is-ready" : ""}`}
             onClick={onTogglePlay}
             disabled={!hasRun}
             title={playing ? "Pause (Space)" : atEnd ? "Replay (Space)" : "Play (Space)"}

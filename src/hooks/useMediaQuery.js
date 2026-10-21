@@ -41,3 +41,11 @@ export function useIsMobile() {
 export function useIsTouch() {
   return useMediaQuery(TOUCH_QUERY);
 }
+
+/**
+ * The OS "reduce motion" setting. CSS already collapses transitions under it;
+ * this is for motion that is driven from script, which CSS cannot reach.
+ */
+export function usePrefersReducedMotion() {
+  return useMediaQuery("(prefers-reduced-motion: reduce)");
+}

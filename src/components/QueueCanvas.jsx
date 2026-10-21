@@ -30,7 +30,7 @@ export default function QueueCanvas({ step }) {
         <span className="sq-side-label mono">&#8594; OUT</span>
       </div>
 
-      <div className="ll-message mono">{step.message}</div>
+      <div className="ll-message">{step.message}</div>
       {step.notFound && (
         <div className="not-found">{step.overflow ? "OVERFLOW" : step.underflow ? "UNDERFLOW" : "NOT FOUND"}</div>
       )}
